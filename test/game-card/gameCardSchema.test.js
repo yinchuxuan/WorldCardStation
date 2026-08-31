@@ -45,7 +45,7 @@ describe('game card schema', () => {
       id: 'demo-card',
       name: 'Demo Card',
       description: 'Injects rules before the first send.',
-      author: 'ChatApp',
+      author: 'World Card Station',
       files: { rules: 'worldbook/rules.md' },
       state: { player: { hp: 10 } },
       rules: [

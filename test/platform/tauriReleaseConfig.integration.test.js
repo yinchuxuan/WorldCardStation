@@ -16,6 +16,7 @@ describe('Tauri desktop release configuration', () => {
     expect(e2e.app.security.capabilities[0].permissions).toContain('wdio:default');
     expect(capability.permissions).toEqual([
       'core:default',
+      'core:window:allow-destroy',
       'core:window:allow-set-fullscreen'
     ]);
   });
@@ -34,9 +35,19 @@ describe('Tauri desktop release configuration', () => {
   test('runs Tauri E2E and bundles on the three-platform CI matrix', () => {
     const workflow = readText('.github/workflows/tauri-ci.yml');
 
+    expect(workflow).toContain('name: World Card Station desktop CI');
+    expect(workflow).toContain('name: world-card-station-${{ runner.os }}');
     expect(workflow).toContain('[macos-latest, ubuntu-22.04, windows-latest]');
     expect(workflow).toContain('npm run test:tauri');
     expect(workflow).toContain('npm run tauri:build');
+  });
+
+  test('publishes releases under the World Card Station brand', () => {
+    const workflow = readText('.github/workflows/tauri-release.yml');
+
+    expect(workflow).toContain('name: World Card Station desktop release');
+    expect(workflow).toContain('releaseName: World Card Station v__VERSION__');
+    expect(workflow).toContain('World Card Station (世界站) installers');
   });
 
   test('retains the controlled resource CSP in release builds', () => {

@@ -27,7 +27,7 @@ pub async fn import_game_card_from_directory(
     state: State<'_, AppStorage>,
 ) -> CardResult<Value> {
     #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("CHATAPP_E2E_IMPORT_DIR") {
+    if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_IMPORT_DIR") {
         return game_card_repository::import(&state, std::path::Path::new(&path)).await;
     }
     let selected = app
@@ -47,7 +47,7 @@ pub async fn import_game_card_from_file(
     state: State<'_, AppStorage>,
 ) -> CardResult<Value> {
     #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("CHATAPP_E2E_IMPORT_FILE") {
+    if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_IMPORT_FILE") {
         return game_card_repository::import_file(&state, std::path::Path::new(&path)).await;
     }
     let selected = app

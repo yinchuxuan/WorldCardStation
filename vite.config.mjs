@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     cacheDir: '../../node_modules/.vite',
     clearScreen: false,
     define: {
-      __CHATAPP_TAURI_E2E__: JSON.stringify(mode === 'tauri-e2e')
+      __WORLD_CARD_STATION_TAURI_E2E__: JSON.stringify(mode === 'tauri-e2e')
     },
     plugins: [react()],
     envPrefix: ['VITE_', 'TAURI_ENV_*'],

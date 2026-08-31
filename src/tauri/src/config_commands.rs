@@ -117,7 +117,7 @@ pub async fn select_background_image(
     state: State<'_, AppStorage>,
 ) -> AppResult<Option<String>> {
     #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("CHATAPP_E2E_BACKGROUND_PATH") {
+    if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_BACKGROUND_PATH") {
         authorize_background(&state, Path::new(&path)).await?;
         return Ok(Some(USER_BACKGROUND_URL.to_string()));
     }

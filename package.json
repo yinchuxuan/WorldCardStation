@@ -1,8 +1,8 @@
 {
-  "name": "chatapp",
-  "productName": "ChatApp",
+  "name": "world-card-station",
+  "productName": "World Card Station",
   "version": "1.0.8",
-  "description": "AI roleplay game desktop application",
+  "description": "World Card Station (世界站), an AI roleplay game card platform",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },

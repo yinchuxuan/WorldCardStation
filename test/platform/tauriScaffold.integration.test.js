@@ -20,6 +20,8 @@ describe('Tauri desktop scaffold', () => {
   test('uses the shared Vite renderer and existing window dimensions', () => {
     const config = readJson('src/tauri/tauri.conf.json');
 
+    expect(config.productName).toBe('World Card Station');
+    expect(config.identifier).toBe('com.airp.chatapp');
     expect(config.build).toEqual({
       beforeDevCommand: 'npm --prefix .. run renderer:dev',
       devUrl: 'http://localhost:1420',
@@ -27,7 +29,9 @@ describe('Tauri desktop scaffold', () => {
       frontendDist: '../../dist/renderer'
     });
     expect(config.app.windows).toEqual([
-      expect.objectContaining({ label: 'main', width: 1200, height: 800 })
+      expect.objectContaining({
+        label: 'main', title: '世界站 · World Card Station', width: 1200, height: 800
+      })
     ]);
   });
 
@@ -46,6 +50,8 @@ describe('Tauri desktop scaffold', () => {
     const packageJson = readJson('package.json');
     const config = readJson('src/tauri/tauri.conf.json');
 
+    expect(packageJson.name).toBe('world-card-station');
+    expect(packageJson.productName).toBe('World Card Station');
     expect(packageJson.scripts).toEqual(expect.objectContaining({
       dev: 'cd src/tauri && tauri dev',
       build: 'cd src/tauri && tauri build',
@@ -70,7 +76,7 @@ describe('Tauri desktop scaffold', () => {
     const schema = fs.readFileSync(path.join(rootDir, 'src/tauri/src/game_card_schema.rs'), 'utf8');
 
     expect(cargo).toContain('tauri-plugin-dialog = "2"');
-    expect(cargo).toContain('default-run = "chatapp-tauri"');
+    expect(cargo).toContain('default-run = "world-card-station-tauri"');
     expect(lib).toContain('.plugin(tauri_plugin_dialog::init())');
     [
       'get_game_cards',

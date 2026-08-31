@@ -16,7 +16,8 @@ struct TestDir(PathBuf);
 
 impl TestDir {
     fn new() -> Self {
-        let path = std::env::temp_dir().join(format!("chatapp-tauri-{}", Uuid::new_v4()));
+        let path =
+            std::env::temp_dir().join(format!("world-card-station-tauri-{}", Uuid::new_v4()));
         fs::create_dir_all(&path).unwrap();
         Self(path)
     }

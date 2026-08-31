@@ -1,5 +1,7 @@
 # Architecture
 
+World Card Station（世界站）是面向 AI Roleplay 游戏卡的桌面平台。
+
 ## 组成部分
 
 - **Tauri 桌面壳 (`src/tauri/`)**：创建桌面窗口，管理应用生命周期，通过 Rust commands 提供配置、Session、游戏卡仓库和模型网络能力。
@@ -53,6 +55,8 @@ game-cards/cards/<card-id>/{card.json,sessions/}
 
 所有业务 JSON 使用同目录临时文件和 rename 原子替换；同一 session 的写入串行执行。
 
+Tauri bundle identifier 有意保留为 `com.airp.chatapp`，使 World Card Station 升级安装后继续读取原有配置、游戏卡和 Session；它是数据兼容标识，不再作为产品名称使用。
+
 ## 游戏卡协议
 
 `src/shared/game-card/schema/game-card.schema.json` 是唯一结构事实源。Rust 导入器嵌入该 schema，处理 `$import`、路径边界、引用文件存在性和 Ajv `$data` 等价语义；共享 fixture 保证 JS runtime 与 Rust 导入校验一致。
@@ -63,7 +67,7 @@ Shared core 不依赖 DOM、React、Tauri、Node 文件系统或本地绝对路�
 
 - `test/chat`、`test/game-card`、`test/components`：Jest renderer 和 shared core 测试。
 - `test/platform`：Tauri/memory adapter contract 与 WebView 配置测试。
-- `src/tauri/src/*tests*`：存储、迁移、导入、资源协议和模型网络 Rust 测试。
+- `src/tauri/src/*tests*`：存储、导入、资源协议和模型网络 Rust 测试。
 - `test/tauri-e2e`：真实 Tauri commands、资源协议、流式网络和进程重启恢复。
 
 正式 build 只加载 `default` capability。WebDriver 插件、增强 capability、固定导入目录和隔离数据目录只在 `e2e` feature/config 中启用。

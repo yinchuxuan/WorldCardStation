@@ -1,5 +1,5 @@
-use chatapp_tauri_lib::export_game_card_package;
 use std::path::PathBuf;
+use world_card_station_tauri_lib::export_game_card_package;
 
 struct Arguments {
     source: PathBuf,

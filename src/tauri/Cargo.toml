@@ -1,13 +1,13 @@
 [package]
-name = "chatapp-tauri"
+name = "world-card-station-tauri"
 version = "1.0.8"
-description = "AI roleplay game desktop application"
-authors = ["ChatApp contributors"]
+description = "World Card Station (世界站), an AI roleplay game card platform"
+authors = ["World Card Station contributors"]
 edition = "2021"
-default-run = "chatapp-tauri"
+default-run = "world-card-station-tauri"
 
 [lib]
-name = "chatapp_tauri_lib"
+name = "world_card_station_tauri_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]

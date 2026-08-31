@@ -30,7 +30,7 @@ use tauri::Manager;
 
 fn storage_dir(app: &tauri::App) -> tauri::Result<std::path::PathBuf> {
     #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("CHATAPP_E2E_DATA_DIR") {
+    if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_DATA_DIR") {
         return Ok(path.into());
     }
     app.path().app_data_dir()

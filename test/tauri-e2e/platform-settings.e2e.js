@@ -19,6 +19,7 @@ describe('Tauri startup and settings', () => {
   });
 
   it('should launch and display main window', async () => {
+    expect(await browser.getTitle()).toBe('世界站 · World Card Station');
     await expect($('.app-container')).toExist();
     await expect($('.chat-panel')).toExist();
     await expect($('.game-card-title-name')).toHaveText('普通聊天');

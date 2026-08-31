@@ -1,4 +1,4 @@
-name: Tauri desktop release
+name: World Card Station desktop release
 
 on:
   push:
@@ -95,8 +95,8 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY || '-' }}
         with:
           tagName: app-v__VERSION__
-          releaseName: ChatApp v__VERSION__
-          releaseBody: Desktop installers for macOS, Windows and Linux.
+          releaseName: World Card Station v__VERSION__
+          releaseBody: World Card Station (世界站) installers for macOS, Windows and Linux.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

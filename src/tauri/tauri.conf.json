@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ChatApp",
+  "productName": "World Card Station",
   "version": "1.0.8",
   "identifier": "com.airp.chatapp",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "ChatApp",
+        "title": "世界站 · World Card Station",
         "width": 1200,
         "height": 800,
         "center": true,
@@ -55,8 +55,8 @@
     "active": true,
     "targets": "all",
     "category": "Entertainment",
-    "shortDescription": "AI roleplay game platform",
-    "longDescription": "A desktop platform for AI-driven roleplay game cards.",
+    "shortDescription": "世界站 AI roleplay game card platform",
+    "longDescription": "World Card Station (世界站) is a desktop platform for AI-driven roleplay game cards.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

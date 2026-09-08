@@ -1,5 +1,5 @@
 import { runExecAction } from './execRunner.js';
-import { loadCachedRuntimeCard, loadCachedUiScriptResources } from './gameCardRuntimeCache.js';
+import { loadCachedRuntimeCard, loadCachedUiScriptResources, readCachedCardText } from './gameCardRuntimeCache.js';
 import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
 
 const SCRIPT_PATH_PATTERN = /^(?![/\\])(?!.*(?:^|[/\\])\.\.(?:[/\\]|$)).+\.js$/i;
@@ -59,6 +59,7 @@ async function applyUiScriptRunEvent({ event, state = {}, messages = [], card = 
       card: loaded.card,
       event: { type: 'game.script.run', name: normalized.name, sourceFile: normalized.sourceFile, payload: normalized.payload },
       fileContents: loaded.fileContents,
+      readText: filePath => readCachedCardText(loaded.card, platform?.resources, filePath),
       scriptExecutor: platform?.scriptExecutor
     });
     if (JSON.stringify(result.messages) !== JSON.stringify(messages)) return fail('messages_not_supported', state);

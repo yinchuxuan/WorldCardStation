@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { resolveContent } = require('../../src/shared/game-card/content/contentResolver');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
@@ -23,23 +23,16 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': [
-    '# 角色世界书',
-    '## 北原春希', '角色：北原春希',
-    '## 冬马和纱', '角色：冬马和纱',
-    '## 小木曾雪菜', '角色：小木曾雪菜'
-  ].join('\n'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': '# 地点世界书'
+  ...worldbookFileContents
 };
 
-function runAtTime(currentTime, overrides = {}) {
+async function runAtTime(currentTime, overrides = {}) {
   const state = ensureStateDefaults(loadedCard.state.schema, {
     ...overrides,
     timeline: { ...(overrides.timeline || {}), currentTime }
   }).state;
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state, fileContents });
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, { role: 'user', content: '继续' }],
@@ -49,8 +42,8 @@ function runAtTime(currentTime, overrides = {}) {
 }
 
 describe('white album chapters', () => {
-  test('switches to chapter 2 by timeline time and reads chapter 2 plot', () => {
-    const result = runAtTime('2007.10.25: 17:30 星期四', { setsuna: { affection: 15 } });
+  test('switches to chapter 2 by timeline time and reads chapter 2 plot', async () => {
+    const result = await runAtTime('2007.10.25: 17:30 星期四', { setsuna: { affection: 15 } });
     const guide = result.messages.find((msg) => msg.role === 'user');
     const status = result.messages.find((msg) => msg._meta?.source === 'wa2_state_context');
 
@@ -70,8 +63,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('本轮自由剧情走向');
   });
 
-  test('uses a reserved Setsuna branch for fixed plot 2 when affection is below 15', () => {
-    const result = runAtTime('2007.10.25: 16:30 星期四', { setsuna: { affection: 14 } });
+  test('uses a reserved Setsuna branch for fixed plot 2 when affection is below 15', async () => {
+    const result = await runAtTime('2007.10.25: 16:30 星期四', { setsuna: { affection: 14 } });
     const guide = result.messages.find((msg) => msg.role === 'user');
 
     expect(result.trace.errors).toEqual([]);
@@ -87,8 +80,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('秘密就一个都不剩');
   });
 
-  test('uses a reserved Setsuna branch for fixed plot 3 when affection is below 15', () => {
-    const result = runAtTime('2007.10.25: 17:30 星期四', { setsuna: { affection: 14 } });
+  test('uses a reserved Setsuna branch for fixed plot 3 when affection is below 15', async () => {
+    const result = await runAtTime('2007.10.25: 17:30 星期四', { setsuna: { affection: 14 } });
     const guide = result.messages.find((msg) => msg.role === 'user');
 
     expect(result.trace.errors).toEqual([]);
@@ -105,8 +98,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('秘密就一个都不剩');
   });
 
-  test('loads fixed plot 3 low after the reserved branch is chosen', () => {
-    const result = runAtTime('2007.10.25: 17:30 星期四', {
+  test('loads fixed plot 3 low after the reserved branch is chosen', async () => {
+    const result = await runAtTime('2007.10.25: 17:30 星期四', {
       setsuna: { affection: 80 },
       story: { chapter2SetsunaBranch: 'reserved' }
     });
@@ -123,8 +116,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('雪菜盛装出席和春希在KTV碰面');
   });
 
-  test('uses fixed plot 7 in the game end slot when both affections are high after the secret branch', () => {
-    const result = runAtTime('2007.10.28: 21:00 星期日', {
+  test('uses fixed plot 7 in the game end slot when both affections are high after the secret branch', async () => {
+    const result = await runAtTime('2007.10.28: 21:00 星期日', {
       touma: { affection: 30 },
       setsuna: { affection: 20 },
       performance: { proficiency: 20 },
@@ -145,8 +138,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('五年后的一个周日夜晚');
   });
 
-  test('keeps game end 1 when the secret branch was not chosen', () => {
-    const result = runAtTime('2007.10.28: 21:00 星期日', {
+  test('keeps game end 1 when the secret branch was not chosen', async () => {
+    const result = await runAtTime('2007.10.28: 21:00 星期日', {
       touma: { affection: 80 },
       setsuna: { affection: 80 },
       story: { chapter2SetsunaBranch: 'reserved' }
@@ -163,8 +156,8 @@ describe('white album chapters', () => {
     expect(guide.content).not.toContain('重建同好会的剧情完成');
   });
 
-  test('uses game end 1 afterstory free plot after game end 1 was loaded', () => {
-    const result = runAtTime('2007.10.20: 15:00 星期六', {
+  test('uses game end 1 afterstory free plot after game end 1 was loaded', async () => {
+    const result = await runAtTime('2007.10.20: 15:00 星期六', {
       story: { chapter2GameEnd1Reached: true }
     });
     const guide = result.messages.find((msg) => msg.role === 'user');

@@ -34,6 +34,7 @@ function prepareRuntime() {
 export const config = {
   runner: 'local',
   specs: ['./test/tauri-e2e/**/*.e2e.js'],
+  exclude: ['./test/tauri-e2e/tavern-import.e2e.js'],
   maxInstances: 1,
   services: [['@wdio/tauri-service', {
     appBinaryPath: binaryPath,

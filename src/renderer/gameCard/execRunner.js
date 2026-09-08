@@ -1,7 +1,7 @@
 import { createExecContext } from '../../shared/game-card/exec/execContext.js';
 import { validateExecResult } from '../../shared/game-card/exec/execResult.js';
 import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
-import { controlledScriptExecutor } from '../platform/controlledScriptExecutor.js';
+import { controlledScriptExecutor, DEFAULT_EXEC_TIMEOUT_MS } from '../platform/controlledScriptExecutor.js';
 import { createExecFiles } from './execFiles.js';
 import { resolveExecSource } from './execSource.js';
 
@@ -36,12 +36,13 @@ function finishExecAction(result, beforeMessages, beforeState, action, timeoutMs
 function runExecAction(messages, state, action, options = {}) {
   const beforeMessages = cloneJson(messages);
   const beforeState = cloneJson(state);
-  const timeoutMs = options.timeoutMs || 50;
+  const timeoutMs = options.timeoutMs || DEFAULT_EXEC_TIMEOUT_MS;
   const context = createExecContext({
     messages,
     state,
     card: options.card,
     event: options.event,
+    args: action.args,
     files: createExecFiles(options, state),
     random: options.random,
     randomUuid: options.randomUuid

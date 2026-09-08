@@ -94,11 +94,18 @@ function createTauriRendererServices(client = tauriBridge) {
         invalidateGameCardRuntimeCache();
         return card;
       },
-      importFile: async () => {
-        const card = await call('import_game_card_from_file', {}, 'card');
+      importFile: async ({ tavernOnly = false } = {}) => {
+        const card = await call('import_game_card_from_file', tavernOnly ? { tavernOnly: true } : {}, 'card');
         invalidateGameCardRuntimeCache();
         return card;
-      }
+      },
+      stageTavernImport: (token, plan, targetId = null) => call('stage_tavern_import', { token, plan, targetId }),
+      commitTavernImport: async (token, revision) => {
+        const card = await call('commit_tavern_import', { token, revision });
+        invalidateGameCardRuntimeCache();
+        return card;
+      },
+      cancelTavernImport: token => call('cancel_tavern_import', { token })
     }),
     window: Object.freeze({
       destroy: () => client.getCurrentWindow().destroy(),

@@ -54,9 +54,13 @@ Display rules 位于游戏卡顶层:
 | `enabled` | boolean | 可选，`false` 时跳过；默认 `true` |
 | `stage` | string | 执行阶段，第一版只支持 `before_markdown` |
 | `type` | string | 规则类型，第一版只支持 `regex_replace` |
-| `pattern` | string | JavaScript 正则源码，不包含 `/.../` 包裹 |
+| `pattern` | string / 片段数组 | JavaScript 正则源码，不包含 `/.../` 包裹；数组支持只读 state |
 | `flags` | string | 正则 flags，建议只允许 `gimsu` |
-| `replace` | string | 替换内容，使用 JavaScript replace 语义 |
+| `replace` | string / 片段数组 | 字符串保持 JavaScript replace 语义；数组显式引用捕获组/state |
+| `trimStrings` | array | 仅用于片段数组，插入捕获结果前依次删除指定文本 |
+| `minDepth` / `maxDepth` | integer / null | 包含边界，null/缺省无界；无消息深度上下文时跳过有限深度规则 |
+
+片段数组和深度的完整语义见 [显示模板](./game_card_display_templates.md)。
 
 ## Stage
 
@@ -66,13 +70,7 @@ Display rules 位于游戏卡顶层:
 |---|---|---|---|
 | `before_markdown` | user / assistant 原始 `content` | Markdown 源文本 | 隐藏标签、包装文本约定、轻量格式增强 |
 
-后续可考虑增加:
-
-| stage | 输入 | 用途 |
-|---|---|---|
-| `after_markdown` | Markdown 转换后的 HTML | 对 HTML 结构做受控增强 |
-
-`after_markdown` 更容易误伤 HTML，第一版不建议开放。
+不开放 `after_markdown`，避免变换误伤已渲染 HTML。
 
 ## Regex Replace
 
@@ -175,7 +173,7 @@ Display rules 不要求 assistant 输出大量标签。推荐用正则识别轻�
 - 不支持 display `exec` 或任意 JavaScript。
 - 不支持事件属性、脚本注入或内联行为。
 - `flags` 应限制为 `gimsu`，不开放 `y`。
-- 应限制规则数量、`pattern` 长度和输入长度，避免灾难性正则拖慢 UI。
+- 限制规则数量、表达式/输入/输出长度；长度限制不等于正则超时保护。
 - 所有 display 输出必须继续经过 `DOMPurify.sanitize`。
 - display rules 不应改变 retry、history、API request 或 game state。
 
@@ -183,7 +181,7 @@ Display rules 不要求 assistant 输出大量标签。推荐用正则识别轻�
 
 本设计借鉴 SillyTavern 常见正则美化插件的思路: 用正则在渲染管线中对消息做格式化，并区分 display-only 与 prompt/history 变更。
 
-但第一版刻意比酒馆更简单:
+平台 display 保持以下边界，酒馆发送正则的有损转换见 [正则转换](./game_card_tavern_regex.md)：
 
 - 只作用于 user / assistant 对话流显示
 - 只处理当前单条消息

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -19,12 +19,10 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
-function runFinalSlot(proficiency) {
+async function runFinalSlot(proficiency) {
   const state = ensureStateDefaults(loadedCard.state.schema, {
     touma: { affection: 80 },
     setsuna: { affection: 80 },
@@ -32,7 +30,7 @@ function runFinalSlot(proficiency) {
     story: { chapter2SetsunaBranch: 'secret' },
     timeline: { currentTime: '2007.10.28: 21:00 星期日' }
   }).state;
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [{ role: 'user', content: '继续' }],
@@ -42,8 +40,8 @@ function runFinalSlot(proficiency) {
 }
 
 describe('white album performance proficiency', () => {
-  test('exposes performance proficiency to the llm state context', () => {
-    const result = runFinalSlot(19);
+  test('exposes performance proficiency to the llm state context', async () => {
+    const result = await runFinalSlot(19);
     const status = result.messages.find((msg) => msg._meta?.source === 'wa2_state_context');
 
     expect(stateSchema.schema['performance.proficiency'].default).toBe(2);
@@ -55,8 +53,8 @@ describe('white album performance proficiency', () => {
     expect(status.content).toContain('演出熟练度');
   });
 
-  test('falls back to game end 1 when performance proficiency is below 20', () => {
-    const result = runFinalSlot(19);
+  test('falls back to game end 1 when performance proficiency is below 20', async () => {
+    const result = await runFinalSlot(19);
     const guide = result.messages.find((msg) => msg.role === 'user');
 
     expect(result.trace.errors).toEqual([]);

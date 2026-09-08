@@ -8,9 +8,9 @@ use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, DateTime, ZipArchive, ZipWriter};
 
 pub const MAX_ARCHIVE_SIZE: u64 = 1024 * 1024 * 1024;
-const MAX_EXPANDED_SIZE: u64 = 2 * MAX_ARCHIVE_SIZE;
-const MAX_FILE_SIZE: u64 = 512 * 1024 * 1024;
-const MAX_FILES: usize = 4096;
+pub const MAX_EXPANDED_SIZE: u64 = 2 * MAX_ARCHIVE_SIZE;
+pub const MAX_FILE_SIZE: u64 = 512 * 1024 * 1024;
+pub const MAX_FILES: usize = 4096;
 
 fn card_error(error: impl ToString) -> GameCardError {
     GameCardError::new(error.to_string())

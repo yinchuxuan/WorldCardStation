@@ -1,0 +1,26 @@
+{
+  "name": "white-album-2",
+  "scan_depth": 3,
+  "token_budget": 8192,
+  "recursive_scanning": false,
+  "extensions": {
+    "world_card_station": { "max_recursion_steps": 8 }
+  },
+  "entries": [
+    { "id": "e000001", "name": "世界书索引", "keys": [], "content": "", "enabled": true, "constant": true, "insertion_order": 10, "extensions": { "world_card_station": { "content_file": "entries/世界书索引.md" } } },
+    { "id": "e000002", "name": "北原春希", "keys": [], "content": "", "enabled": true, "constant": true, "insertion_order": 20, "extensions": { "world_card_station": { "content_file": "entries/北原春希.md" } } },
+    { "id": "e000003", "name": "冬马和纱", "keys": [], "content": "", "enabled": true, "constant": true, "insertion_order": 30, "extensions": { "world_card_station": { "content_file": "entries/冬马和纱.md" } } },
+    { "id": "e000004", "name": "小木曾雪菜", "keys": [], "content": "", "enabled": true, "constant": true, "insertion_order": 40, "extensions": { "world_card_station": { "content_file": "entries/小木曾雪菜.md" } } },
+    { "id": "e000005", "name": "饭冢武也", "keys": ["武也", "饭冢", "飯塚", "Takeya", "Iizuka"], "content": "", "enabled": true, "constant": false, "insertion_order": 50, "extensions": { "world_card_station": { "content_file": "entries/饭冢武也.md" } } },
+    { "id": "e000006", "name": "水泽依绪", "keys": ["依绪", "依緒", "水泽", "水沢", "Io", "Mizusawa"], "content": "", "enabled": true, "constant": false, "insertion_order": 60, "extensions": { "world_card_station": { "content_file": "entries/水泽依绪.md" } } },
+    { "id": "e000007", "name": "早坂亲志", "keys": ["亲志", "親志", "早坂", "Hayasaka", "Chikashi"], "content": "", "enabled": true, "constant": false, "insertion_order": 70, "extensions": { "world_card_station": { "content_file": "entries/早坂亲志.md" } } },
+    { "id": "e000008", "name": "柳原朋", "keys": ["柳原朋", "柳原", "Yanagihara", "Tomo"], "content": "", "enabled": true, "constant": false, "insertion_order": 80, "extensions": { "world_card_station": { "content_file": "entries/柳原朋.md" } } },
+    { "id": "e000009", "name": "小木曾孝宏", "keys": ["孝宏", "小木曾孝宏", "小木曽孝宏", "Takahiro"], "content": "", "enabled": true, "constant": false, "insertion_order": 90, "extensions": { "world_card_station": { "content_file": "entries/小木曾孝宏.md" } } },
+    { "id": "e000010", "name": "三年E班班主任", "keys": ["三年E班班主任", "E班班主任", "班主任", "担任教师", "担任教師", "homeroom"], "content": "", "enabled": true, "constant": false, "insertion_order": 100, "extensions": { "world_card_station": { "content_file": "entries/三年E班班主任.md" } } },
+    { "id": "e000011", "name": "诹访老师", "keys": ["诹访", "諏訪", "指导部主任", "指导部长", "教导主任", "训导主任", "Suwa"], "content": "", "enabled": true, "constant": false, "insertion_order": 110, "extensions": { "world_card_station": { "content_file": "entries/诹访老师.md" } } },
+    { "id": "e000012", "name": "第二音乐教室", "keys": ["第二音乐教室", "第二音乐室", "第二音楽室"], "content": "", "enabled": true, "constant": false, "insertion_order": 120, "extensions": { "world_card_station": { "content_file": "entries/第二音乐教室.md" } } },
+    { "id": "e000013", "name": "第三音乐教室", "keys": ["第三音乐教室", "第三音乐室", "第三音楽室"], "content": "", "enabled": true, "constant": false, "insertion_order": 130, "extensions": { "world_card_station": { "content_file": "entries/第三音乐教室.md" } } },
+    { "id": "e000014", "name": "峰城大附属中学", "keys": ["峰城大附属中学", "峰城大附属", "峰城大付属"], "content": "", "enabled": true, "constant": false, "insertion_order": 140, "extensions": { "world_card_station": { "content_file": "entries/峰城大附属中学.md" } } },
+    { "id": "e000015", "name": "冬马家", "keys": ["冬马家", "冬馬家", "和纱家", "和紗家"], "content": "", "enabled": true, "constant": false, "insertion_order": 150, "extensions": { "world_card_station": { "content_file": "entries/冬马家.md" } } }
+  ]
+}

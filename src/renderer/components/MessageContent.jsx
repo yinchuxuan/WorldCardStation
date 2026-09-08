@@ -2,20 +2,20 @@ import React from 'react';
 import * as displayRules from '../gameCard/displayRules.js';
 import { PropTypes } from './componentPropTypes.js';
 
-function applyRules(content, role, display) {
-  if (role === 'assistant') return displayRules.applyAssistantDisplayRules(content, display);
-  if (role === 'user') return displayRules.applyUserDisplayRules(content, display);
+function applyRules(content, role, display, depth) {
+  if (role === 'assistant') return displayRules.applyAssistantDisplayRules(content, display, depth);
+  if (role === 'user') return displayRules.applyUserDisplayRules(content, display, depth);
   return content;
 }
 
-function MessageContent({ content, role, display, displayRevision, markdown, sanitizer,
+function MessageContent({ content, role, display, displayRevision, depth, markdown, sanitizer,
   quoteHighlighter, onClick, onKeyDown, onMouseDown }) {
   const html = React.useMemo(() => {
-    const displayed = applyRules(content, role, display);
+    const displayed = applyRules(content, role, display, depth);
     const rawHtml = markdown ? markdown.parse(displayed) : displayed;
     const sanitized = sanitizer ? sanitizer.sanitize(rawHtml) : rawHtml;
     return quoteHighlighter(sanitized);
-  }, [content, display, displayRevision, markdown, quoteHighlighter, role, sanitizer]);
+  }, [content, display, displayRevision, depth, markdown, quoteHighlighter, role, sanitizer]);
 
   return <div className="chat-bubble-content" data-gc-part="message-content"
     onClick={onClick} onKeyDown={onKeyDown} onMouseDown={onMouseDown}
@@ -27,6 +27,7 @@ MessageContent.propTypes = {
   role: PropTypes.string.isRequired,
   display: PropTypes.object,
   displayRevision: PropTypes.string,
+  depth: PropTypes.number,
   markdown: PropTypes.oneOfType([
     PropTypes.func,
     PropTypes.shape({ parse: PropTypes.func.isRequired })
@@ -49,8 +50,11 @@ function sameDisplay(previous, next) {
 }
 
 function sameMessageContent(previous, next) {
+  const usesDepth = displayRules.getRules(next.display, next.role).some(rule => rule?.enabled !== false
+    && ((rule?.minDepth ?? undefined) !== undefined || (rule?.maxDepth ?? undefined) !== undefined));
   return previous.content === next.content
     && previous.role === next.role
+    && (!usesDepth || previous.depth === next.depth)
     && sameDisplay(previous, next)
     && previous.markdown === next.markdown
     && previous.sanitizer === next.sanitizer

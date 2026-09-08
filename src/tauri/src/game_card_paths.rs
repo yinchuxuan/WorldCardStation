@@ -63,3 +63,20 @@ pub fn existing_file(root: &Path, relative: &str) -> CardResult<PathBuf> {
     }
     Ok(real_file)
 }
+
+pub fn existing_directory(root: &Path, relative: &str) -> CardResult<PathBuf> {
+    assert_safe_relative(relative, None)?;
+    let real_root = root
+        .canonicalize()
+        .map_err(|_| GameCardError::new("Game card directory not found"))?;
+    let real_directory = root
+        .join(relative)
+        .canonicalize()
+        .map_err(|_| GameCardError::new(format!("game card directory not found: {relative}")))?;
+    if !real_directory.starts_with(&real_root) || !real_directory.is_dir() {
+        return Err(GameCardError::new(
+            "game card path must stay inside game card directory",
+        ));
+    }
+    Ok(real_directory)
+}

@@ -1,5 +1,7 @@
 [
   { "name": "valid-import", "valid": true },
+  { "name": "valid-display-template", "valid": true },
+  { "name": "invalid-display-template", "valid": false, "stage": "validate_card" },
   { "name": "invalid-schema", "valid": false, "stage": "validate_card" },
   { "name": "invalid-random-range", "valid": false, "stage": "validate_card" },
   { "name": "invalid-state-schema", "valid": false, "stage": "validate_state_schema" },

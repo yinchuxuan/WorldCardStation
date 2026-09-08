@@ -1,4 +1,5 @@
 import { extractUniqueFileSection } from './fileSections.js';
+import { resolveRegisteredTextPath } from './fileScopes.js';
 import { getStateValue, hasStateValue } from '../state/statePaths.js';
 
 function readDeclaredFile(filePath, options) {
@@ -30,7 +31,10 @@ function parseFileRef(ref) {
 function resolveFileSource(ref, options) {
   const { fileRef, sectionRef } = parseFileRef(ref);
   const fileId = resolveRefValue(fileRef, options, 'file');
-  const filePath = options.card?.files?.[fileId];
+  if (fileRef.trim().startsWith('$') && typeof options.card?.files?.[fileId] !== 'string') {
+    throw new Error(`dynamic file reference requires an exact file id: ${fileId}`);
+  }
+  const filePath = resolveRegisteredTextPath(options.card, fileId);
   if (!filePath) throw new Error(`unknown content file id: ${fileId}`);
   const content = readDeclaredFile(filePath, options);
   if (!sectionRef) return content;

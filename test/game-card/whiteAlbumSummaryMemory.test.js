@@ -1,13 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeRuntimeStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
 const cardDir = path.join(__dirname, '../../game-card-examples/white-album-2');
 const read = relativePath => fs.readFileSync(path.join(cardDir, relativePath), 'utf8');
-const fileContents = Object.fromEntries(Object.values(card.files).map(file => [file, read(file)]));
+const fileContents = Object.fromEntries(Object.values(card.files)
+  .filter(file => typeof file === 'string').map(file => [file, read(file)]));
+Object.assign(fileContents, worldbookFileContents);
 ['scripts/summary-memory.js', 'scripts/timeline.js', 'scripts/timelines/chapter-1.js',
   'scripts/timelines/chapter-2.js'].forEach(file => { fileContents[file] = read(file); });
 const loadedCard = mergeRuntimeStateSchema({
@@ -124,13 +126,13 @@ describe('white album structured summary memory', () => {
     expect(result.state.memory.summary).not.toHaveProperty('legacy');
   });
 
-  test('pre_send removes old assistant messages without reapplying their summaries', () => {
+  test('pre_send removes old assistant messages without reapplying their summaries', async () => {
     const old = summary(item('recent', '北原春希',
       '2007.10.30早晨｜三年E班教室：已经写入记忆。'));
     const latest = summary(item('recent', '北原春希',
       '2007.10.30中午｜三年E班教室：当前回复。'));
     const state = runMemory([old]).state;
-    const result = applyGameCard({
+    const result = await applyGameCardAsync({
       card: loadedCard, phase: 'pre_send',
       messages: [...baseMessages(), { role: 'assistant', content: old },
         { role: 'assistant', content: latest }, { role: 'user', content: '继续' }],

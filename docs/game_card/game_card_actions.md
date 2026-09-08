@@ -135,25 +135,29 @@ LLM 响应中的 `state_patch` 是另一条统一发布路径：普通模式在�
 
 ## exec
 
-兜底操作，用于声明式操作无法覆盖的游戏逻辑。`exec` 是受限上下文中的纯变换函数。
+兜底操作，用于声明式操作无法覆盖的游戏逻辑。`exec` 调用受限上下文中的 JavaScript，并以返回值更新消息、状态或副作用描述。
 
 ```json
 {
   "type": "exec",
-  "source": "const damage = utils.roll('1d6'); state.player.hp = utils.clamp(state.player.hp - damage, 0, 100); return { messages, state };"
+  "source": "state.player.hp = utils.clamp(state.player.hp - args.damage, 0, 100); return { state };",
+  "args": { "damage": 5 }
 }
 ```
 
-长脚本推荐拆到游戏卡文件中，并通过 `sourceFile` 引用。`source` 与 `sourceFile` 必须二选一：
+`source` 与 `sourceFile` 必须二选一。长脚本通过 `sourceFile` 引用卡内文件：
 
 ```json
 {
   "type": "exec",
-  "sourceFile": "scripts/timeline.js"
+  "sourceFile": "lib/worldbook/index.js",
+  "args": { "worldbook": "worldbook" }
 }
 ```
 
-`sourceFile` 使用游戏卡目录相对路径，路径安全规则与文本资源一致。平台会在执行前读取脚本内容；脚本本身仍运行在同一个受限 `exec` 上下文中，不获得文件 IO 权限。
+`args` 是可选的只读 JSON 对象，对 `source` 和 `sourceFile` 语义相同，通过 `ctx.args` 传入。平台不解释其字段，也不预设 `config`、`options` 或 `exec` 等分区；字段结构完全由脚本定义。
+
+`sourceFile` 使用游戏卡目录相对路径，平台会在执行前读取内容；脚本不获得非受控文件 IO 权限。`lib/` 只是卡内共享代码的推荐目录，与普通脚本没有不同的加载、权限或生命周期语义。
 
 `sourceFile` 可以在脚本顶部声明同卡内脚本依赖：
 
@@ -163,7 +167,7 @@ include("./timelines/chapter-1.js");
 
 平台会在执行前按声明顺序展开 `include(...)`，适合拆出共享 helper 或章节 resolver。
 
-`sourceFile` 文件必须定义 `run(ctx)`，这是普通 JS 文件，不能写裸 `return`：
+`sourceFile` 文件必须定义 `run(ctx)`，可以是同步或异步函数；这是普通 JS 文件，不能写裸 `return`：
 
 ```js
 function run(ctx) {
@@ -181,9 +185,13 @@ function run(ctx) {
 | `state` | 当前游戏状态 |
 | `config` | 游戏卡配置字段，只读 |
 | `event` | 当前触发事件 |
+| `args` | 当前 action 的参数，只读；省略时为空对象 |
+| `files` | `read(fileId)` 读取已声明文本；`readText(scopeId, relativePath)` 异步读取已授权目录内文本 |
 | `utils` | `randomInt`、`roll`、`clamp`、`uuid` |
 
-返回值固定为 `{ messages?, state?, effects? }`。不提供 `require` / `import` / `process` / `window` / `document` / `fetch` / `ipcRenderer` / Node.js / native API。
+`readText` 的 scope 必须是顶层 `files` 中的目录描述符；路径相对该目录解析，并禁止绝对路径、反斜杠、空路径段和 `..`。返回值或异步完成值固定为 `{ messages?, state?, effects? }`。不提供 `require` / `import` / `process` / `window` / `document` / `fetch` / `ipcRenderer` / Node.js / native API。
+
+桌面端每次 `exec` 默认总超时为 2000 毫秒，包含 Worker 启动、脚本执行和异步文件读取等待。超时仍会终止 Worker 并报错，不接受迟到的执行结果。该限制由平台管理，不是卡内 `args` 或 action 配置项。
 
 推荐优先让 `exec` 只返回 `{ state }`，用于时间线、随机分支、audio/background 等派生状态；只有声明式 action 无法表达消息变换时，再返回 `{ messages, state }` 作为高级逃生口。
 

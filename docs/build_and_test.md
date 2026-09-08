@@ -23,6 +23,8 @@ Tauri is the only desktop target.
 
 `tauri:dev`、`tauri:build` 和 `test:e2e` 是对应默认命令的兼容别名。
 
+酒馆导入专用桌面测试：先运行 `npm run tauri:e2e:build`，再运行 `npx wdio run wdio.tavern.conf.mjs`。它使用独立文件选择 fixture，验证自动导入、兼容差异取消、单独覆盖确认、实际 Worker 编译、世界书及重启恢复；不纳入使用原生卡 fixture 的默认桌面 suite。编译器用 `npx jest --runInBand --coverage=false test/tavern-import` 测试，压缩构建回归位于 integration suite。
+
 ## Renderer
 
 - `src/renderer/main.jsx` is the single renderer entry.

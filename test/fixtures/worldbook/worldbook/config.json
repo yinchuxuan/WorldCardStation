@@ -1,0 +1,58 @@
+{
+  "name": "demo",
+  "scan_depth": 3,
+  "token_budget": 1000,
+  "recursive_scanning": true,
+  "extensions": {
+    "world_card_station": {
+      "max_recursion_steps": 8,
+      "prefix": "# Worldbook\n\n"
+    }
+  },
+  "entries": [
+    {
+      "id": "e000001",
+      "name": "舞台",
+      "keys": [],
+      "content": "",
+      "enabled": true,
+      "constant": true,
+      "priority": 1000,
+      "insertion_order": 10,
+      "extensions": { "world_card_station": { "content_file": "entries/e000001.md" } }
+    },
+    {
+      "id": "e000002",
+      "name": "雪夜车站",
+      "keys": ["下雪", "车站"],
+      "content": "",
+      "enabled": true,
+      "constant": false,
+      "priority": 100,
+      "insertion_order": 20,
+      "extensions": { "world_card_station": { "content_file": "entries/e000002.md" } }
+    },
+    {
+      "id": "e000003",
+      "name": "钢琴家",
+      "keys": ["钢琴家"],
+      "content": "",
+      "enabled": true,
+      "constant": false,
+      "priority": 90,
+      "insertion_order": 30,
+      "extensions": { "world_card_station": { "content_file": "entries/e000003.md" } }
+    },
+    {
+      "id": "e000004",
+      "name": "未命中条目",
+      "keys": ["海边"],
+      "content": "",
+      "enabled": true,
+      "constant": false,
+      "priority": 80,
+      "insertion_order": 40,
+      "extensions": { "world_card_station": { "content_file": "entries/e000004.md" } }
+    }
+  ]
+}

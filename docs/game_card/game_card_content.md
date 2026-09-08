@@ -7,32 +7,31 @@ Content 描述符描述如何生成一条消息的 `content` 值。
 | 来源 | 语法 | 说明 |
 |---|---|---|
 | 消息原文 | `{{original_content}}` | `replace` 时为被匹配消息的 content；`insert` 时为空字符串 |
-| 文本文件 | `{{file:fileId}}` | 读取游戏卡 `files` 预声明的文本资源 |
-| Markdown 章节 | `{{file:fileId#标题}}` | 读取预声明文本资源里的唯一 Markdown 章节 |
+| 文本文件 | `{{file:fileRef}}` | 读取游戏卡 `files` 授权的文本资源 |
+| Markdown 章节 | `{{file:fileRef#标题}}` | 读取授权文本资源里的唯一 Markdown 章节 |
 | 状态读取 | `{{state:path.to.value}}` | 读取当前 state；`find` 结果通过 `temp.find.*` 读取 |
 
 ## 文本文件
 
-游戏卡通过顶层 `files` 预声明可被 prompt 读取的文本资源：
+游戏卡通过顶层 `files` 注册单个文本或命名的文本目录：
 
 ```json
 {
   "files": {
     "plot_guides": "chapters/chapter-1/plot_guides.md",
-    "worldbook.characters": "worldbook/characters.md"
+    "worldbook": {
+      "directory": "worldbook",
+      "include": ["config.json", "entries/*.md"]
+    }
   }
 }
 ```
 
-也可以像 audio / visual 一样拆到单独 JSON：
+字符串值注册精确 file ID。目录描述符把 scope ID 注册成虚拟路径前缀，例如 `{{file:worldbook/entries/e000001.md}}`；解析时精确 file ID 优先，否则用第一个 `/` 前的 ID 查找目录 scope。`include` 是授权范围，不会展开写回游戏卡。`files` 也可以通过 `$import` 拆分。
 
-```json
-{ "files": { "$import": "files.json" } }
-```
+文件和目录必须是游戏卡内的安全相对路径。目录 include 支持精确文件和单层 `*`，匹配结果仅限 `.md`、`.txt`、`.json`；音频和图片继续使用 `audio` / `visual` 资源表。
 
-路径必须是游戏卡目录内的安全相对路径，建议只用于 `.md`、`.txt`、`.json` 等文本资源。音频和图片继续使用 `audio` / `visual` 资源表，不进入 `files`。
-
-`fileId` 和章节名都可以从 state 读取：
+精确 file ID 和章节名可以从 state 读取：
 
 ```txt
 {{file:plot_guides}}
@@ -40,13 +39,11 @@ Content 描述符描述如何生成一条消息的 `content` 值。
 {{file:$temp.plotFile#$temp.PlotType}}
 ```
 
-`$temp.plotFile` 读取到的值必须是 `files` 中的 file id，不是裸文件路径。
-
-Content 不支持直接读取裸文件路径；请先在顶层 `files` 中预声明文本资源，再通过 `{{file:fileId}}` 或 `{{file:fileId#标题}}` 引用。
+目录 fileRef 必须在规则中写成静态字面量，以便执行前加载；state 动态引用只接受精确 file ID。fileRef 始终经过顶层 `files` 授权，不支持裸文件路径。
 
 ## Markdown 章节
 
-`{{file:fileId#标题}}` 会在对应 Markdown 文件中查找标题文本完全相同的唯一标题，不要求写 `##` / `###` 层级：
+`{{file:fileRef#标题}}` 会在对应 Markdown 文件中查找标题文本完全相同的唯一标题，不要求写 `##` / `###` 层级：
 
 ```md
 ## 雪菜线
@@ -182,7 +179,7 @@ Transform 函数可以紧跟在 source 后面。它默认支持列表输入：�
 ```txt
 template = text_or_chain*
 chain    = source ("." transform)*
-source   = "{{original_content}}" | "{{state:...}}" | "{{state_json:...}}" | "{{file:fileId[#section]}}"
+source   = "{{original_content}}" | "{{state:...}}" | "{{state_json:...}}" | "{{file:fileRef[#section]}}"
 ```
 
 普通文本原样保留。`.` 只绑定它前面的 source，不影响后续文本或 source。

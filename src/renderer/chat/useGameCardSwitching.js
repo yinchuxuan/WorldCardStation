@@ -1,5 +1,6 @@
 import React from 'react';
 import { rendererServices } from '../platform/index.js';
+import { checkImportCanceled, prepareTavernImport } from '../gameCard/prepareTavernImport.js';
 
 function useGameCardSwitching({
   isLoading,
@@ -8,6 +9,8 @@ function useGameCardSwitching({
   session,
   repository = rendererServices.cards
 }) {
+  const loading = React.useRef(isLoading);
+  loading.current = isLoading;
   const finishSwitch = React.useCallback(async (card) => {
     runtime.setRuntimeError(null);
     runtime.changeActiveCard(card || null);
@@ -24,10 +27,26 @@ function useGameCardSwitching({
     return finishSwitch(card);
   }, [finishSwitch, isLoading, repository, session]);
 
-  const importCard = React.useCallback(async () => {
+  const importCard = React.useCallback(async (confirm, { targetCard, signal, onProgress } = {}) => {
     if (isLoading) return null;
     await session.saveCurrent();
-    const card = await repository.importFile();
+    checkImportCanceled(signal);
+    let card = await repository.importFile(targetCard ? { tavernOnly: true } : undefined);
+    if (card?.kind === 'tavern') {
+      const task = card;
+      try {
+        const revision = await prepareTavernImport(task, { repository, confirm, targetCard, signal, onProgress });
+        if (!revision) return null;
+        if (loading.current) throw new Error('生成期间不能安装游戏卡，请稍后重试');
+        await session.saveCurrent();
+        checkImportCanceled(signal);
+        if (loading.current) throw new Error('生成期间不能安装游戏卡，请稍后重试');
+        onProgress?.('正在安装游戏卡…', false);
+        card = await repository.commitTavernImport(task.token, revision);
+      } finally {
+        await repository.cancelTavernImport(task.token);
+      }
+    }
     if (!card) return null;
     return finishSwitch(card);
   }, [finishSwitch, isLoading, repository, session]);

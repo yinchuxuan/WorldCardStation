@@ -8,6 +8,7 @@ import { gameCardPlatform } from '../platform/index.js';
 import { dispatchChatInputCommand } from '../chat/chatInputCommands.js';
 import GameCardUIErrorBoundary from './GameCardUIErrorBoundary.jsx';
 import { readonly } from '../gameCard/uiReadonly.js';
+import { resolveDisplayState } from '../gameCard/regexTemplate.js';
 import useUiStateEventQueue from '../gameCard/useUiStateEventQueue.js';
 import { gameCard, gameState, message, PropTypes } from './componentPropTypes.js';
 
@@ -28,7 +29,7 @@ const readingEventTypes = new Set([
   'reading.previous', 'reading.next', 'reading.latest'
 ]);
 
-function renderAssistantMessage(R, content, card, options = {}) {
+function renderAssistantMessage(R, content, card, options = {}, state) {
   const renderers = ChatPanelMessageRenderers;
   const rowClass = ['chat-message-row', options.rowClassName].filter(Boolean).join(' ');
   const msgClass = ['chat-message assistant', options.messageClassName].filter(Boolean).join(' ');
@@ -45,7 +46,7 @@ function renderAssistantMessage(R, content, card, options = {}) {
     marked,
     DOMPurify,
     highlightQuotes,
-    card?.display
+    resolveDisplayState(card?.display, state), undefined, undefined, options.depth ?? 0
   );
   return R.createElement('div', { className: rowClass, 'data-gc-part': 'message-row', 'data-role': 'assistant' },
     R.createElement('div', { className: msgClass, 'data-gc-part': 'message', style: { flex: 1, minWidth: 0 } }, bubble)
@@ -133,8 +134,8 @@ function GameCardUIRootContent({
     retrySource,
     reading,
     root: card?.ui?.root || {},
-    renderAssistantMessage: (content, options) => renderAssistantMessage(R, content, card, options)
-  }), [R, cardId, isLoading, canRetry, retrySource, reading, card]);
+    renderAssistantMessage: (content, options) => renderAssistantMessage(R, content, card, options, gameState)
+  }), [R, cardId, isLoading, canRetry, retrySource, reading, card, gameState]);
 
   if (!loadedRoot?.Component) return null;
   return C('div', {

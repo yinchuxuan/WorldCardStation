@@ -1,6 +1,6 @@
 import { expandCardImports } from './cardImportExpander.js';
 import { extractExecIncludes, resolveExecIncludePath } from './execSource.js';
-import { collectExecSourcePaths } from './resourcePreload.js';
+import { collectExecSourcePaths, collectFileContentPaths } from './resourcePreload.js';
 import { loadExternalStateSchema } from './stateSchemaLoader.js';
 
 const MAX_INCLUDE_DEPTH = 20;
@@ -85,7 +85,7 @@ async function collectScriptPaths(card, resources, filePath, paths, stack = []) 
 }
 
 async function buildFileContents(card, resources, runtimeCard, scriptPaths) {
-  const paths = new Set(Object.values(runtimeCard?.files || {}).filter(path => typeof path === 'string'));
+  const paths = new Set(collectFileContentPaths(runtimeCard));
   await Promise.all([...paths].map(path => readCachedCardText(card, resources, path)));
   for (const scriptPath of scriptPaths) {
     await collectScriptPaths(card, resources, scriptPath, paths);

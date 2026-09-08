@@ -8,7 +8,8 @@
   "roleplay_rules": "roleplay_rules.md",
   "state.llm_schema": "state/llm_schema.md",
   "state.update_rules": "state/state_update_rules.md",
-  "worldbook.characters": "worldbook/characters.md",
-  "worldbook.index": "worldbook/index.md",
-  "worldbook.location": "worldbook/location.md"
+  "worldbook": {
+    "directory": "worldbook",
+    "include": ["config.json", "entries/*.md"]
+  }
 }

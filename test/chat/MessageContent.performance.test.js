@@ -51,6 +51,13 @@ describe('MessageContent rendering performance', () => {
     expect(historyParses).toHaveLength(1);
   });
 
+  test('depth changes do not reparse cards that have no depth-dependent display rules', () => {
+    const pipeline = createPipeline();
+    const view = render(<MessageContent content="history" role="assistant" depth={0} {...pipeline} />);
+    view.rerender(<MessageContent content="history" role="assistant" depth={1} {...pipeline} />);
+    expect(pipeline.markdown.parse).toHaveBeenCalledTimes(1);
+  });
+
   test('batches 3000 single-character tokens into bounded Markdown parses', () => {
     jest.useFakeTimers();
     const pipeline = createPipeline();

@@ -1,4 +1,4 @@
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -62,8 +62,8 @@ describe('browser game card find runtime', () => {
     expect(result.state.slot).toBe('fixed');
   });
 
-  test('white album browser runtime appends tail context to latest user message', () => {
-    const { card, stateSchema: schema, llmStateContract } = require('./whiteAlbumTestCard');
+  test('white album browser runtime appends tail context to latest user message', async () => {
+    const { card, stateSchema: schema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
     const loadedCard = mergeAudioStateSchema({ ...card, state: { ...card.state, schema } });
     const fileContents = {
       'first_msg.md': '开场',
@@ -75,9 +75,7 @@ describe('browser game card find runtime', () => {
       'state/state_update_rules.md': '规则',
       'scripts/timeline.js': 'function run(ctx) { ctx.state.temp = { plotFile: "plot.chapter.1", PlotType: "FreePlot1", plotDirectionRoll: 50, includeFreeGuide: true }; ctx.state.audio.bgm = "normal"; return { state: ctx.state }; }',
       'scripts/timelines/chapter-1.js': '',
-      'worldbook/characters.md': '# 角色\n## 北原春希\n春希\n## 冬马和纱\n冬马\n## 小木曾雪菜\n雪菜',
-      'worldbook/index.md': '世界书索引',
-      'worldbook/location.md': '# 地点'
+      ...worldbookFileContents
     };
     const init = applyGameCard({
       card: loadedCard,
@@ -86,7 +84,7 @@ describe('browser game card find runtime', () => {
       state: ensureStateDefaults(loadedCard.state.schema, {}).state,
       fileContents
     });
-    const result = applyGameCard({
+    const result = await applyGameCardAsync({
       card: loadedCard,
       phase: 'pre_send',
       messages: [...init.messages, { role: 'user', content: '继续' }],

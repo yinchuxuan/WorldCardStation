@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -21,26 +21,13 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': [
-    '# 角色世界书',
-    '## 北原春希', '角色：北原春希',
-    '## 冬马和纱', '角色：冬马和纱',
-    '## 小木曾雪菜', '角色：小木曾雪菜'
-  ].join('\n'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': [
-    '# 地点世界书',
-    '## 第二音乐教室', '地点：第二音乐教室',
-    '## 第三音乐教室', '地点：第三音乐教室',
-    '## 峰城大附属中学', '地点：峰城大附属中学',
-    '## 冬马家', '地点：冬马家'
-  ].join('\n')
+  ...worldbookFileContents
 };
 
-function applyWithUser(content) {
+async function applyWithUser(content) {
   const state = ensureStateDefaults(loadedCard.state.schema, {}).state;
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state, fileContents });
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, { role: 'user', content }],
@@ -50,18 +37,18 @@ function applyWithUser(content) {
 }
 
 describe('white album location worldbook', () => {
-  test('loads location entries from location.md when places are mentioned', () => {
-    const result = applyWithUser('从峰城大附属中学的第二音乐教室去第三音乐室，之后再去冬马家');
-    const worldbook = result.messages.find((msg) => msg._meta?.source === 'wa2_worldbook');
-    const cardText = JSON.stringify(card.rules);
+  test('loads separate location entries when places are mentioned', async () => {
+    const result = await applyWithUser('从峰城大附属中学的第二音乐教室去第三音乐室，之后再去冬马家');
+    const worldbook = result.messages.find((msg) => msg._meta?.source === 'worldbook:white-album-2');
+    const rule = card.rules.find((item) => item.id === 'wa2-insert-turn-context');
 
     expect(result.trace.errors).toEqual([]);
-    expect(cardText).toContain('{{file:worldbook.location#第二音乐教室}}');
+    expect(rule.then[0].args).toEqual({ worldbook: 'worldbook' });
     expect(worldbook.content).toContain('地点:');
     expect(worldbook.content).toContain('第二音乐教室: 传说中音乐科的优等生独占的音乐教室');
-    expect(worldbook.content).toContain('地点：第二音乐教室');
-    expect(worldbook.content).toContain('地点：第三音乐教室');
-    expect(worldbook.content).toContain('地点：峰城大附属中学');
-    expect(worldbook.content).toContain('地点：冬马家');
+    expect(worldbook.content).toContain('音乐科优等生独占的教室');
+    expect(worldbook.content).toContain('轻音乐同好会实际活动与春希练习吉他的核心地点');
+    expect(worldbook.content).toContain('故事主要校园舞台');
+    expect(worldbook.content).toContain('冬马和纱独自居住的宽大住宅');
   });
 });

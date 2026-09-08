@@ -13,6 +13,16 @@ pub(crate) struct ModelNetworkState {
 }
 
 impl ModelNetworkState {
+    pub(crate) async fn require_idle(&self) -> crate::game_card_error::CardResult<()> {
+        if self.requests.lock().await.is_empty() {
+            Ok(())
+        } else {
+            Err(crate::game_card_error::GameCardError::new(
+                "生成期间不能安装游戏卡",
+            ))
+        }
+    }
+
     pub(crate) fn new() -> Result<Self, String> {
         let client = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(30))

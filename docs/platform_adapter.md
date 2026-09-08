@@ -42,6 +42,8 @@ rendererServices.window
 
 `cards.uninstall(id)` 删除已导入游戏卡；如果目标是当前 active card，后端同时清空 active card。游戏卡选择器负责在调用前二次确认，并在卸载当前卡后切回普通聊天 Session。
 
+`cards.importFile()` 使用统一文件选择器；原生卡返回已安装卡，酒馆卡返回 `{ kind: 'tavern', token, id, source, resources, fingerprint, container }`，此时不安装。内置 Worker 编译后调用 `stageTavernImport(token, { files, copies, worldbook }, targetId?)`，后端校验并返回 revision；无警告自动 `commitTavernImport(token, revision)`，有兼容差异或显式更新目标则分别确认后提交。取消用 `cancelTavernImport(token)`。资源只有任务内 ID，无任意磁盘路径；修改计划须重新 stage，旧 revision 和重复提交被拒绝。主动更新酒馆卡时传 `importFile({ tavernOnly: true })`，误选原生包在安装前拒绝，不按原生 ID 意外安装其它卡。
+
 ## 模型网络
 
 `tauriModelFetch.js` 使用 Rust `stream_model_request` 和 Channel，将响应包装成兼容 `fetch` 的 `ReadableStream`。`src/renderer/chat/apiClient.js` 因此继续复用 OpenAI/Anthropic SSE parser。
@@ -56,7 +58,7 @@ OpenAI-compatible 流中的 `reasoning_content`、`reasoning` 与可见的 `reas
 
 ## 受控脚本
 
-`controlledScriptExecutor.js` 在独立 Worker 中执行游戏卡 JavaScript，超时会终止 Worker。脚本 context 和 result 协议位于 `src/shared/game-card/exec`；DOM、native command 和本地文件能力不会进入脚本上下文。
+`controlledScriptExecutor.js` 在独立 Worker 中执行游戏卡 JavaScript，默认总超时为 2000 毫秒，包含 Worker 启动、执行及异步文件读取等待；超时会终止 Worker。规则入口与执行器共用默认值，内部调用仍可显式传入 `options.timeoutMs`。脚本 context 和 result 协议位于 `src/shared/game-card/exec`；DOM、native command 和本地文件能力不会进入脚本上下文。
 
 ## 调用方向
 

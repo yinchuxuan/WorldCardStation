@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -21,17 +21,15 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
-function runAtTime(currentTime, overrides = {}) {
+async function runAtTime(currentTime, overrides = {}) {
   const state = ensureStateDefaults(loadedCard.state.schema, {
     ...overrides,
     timeline: { ...(overrides.timeline || {}), currentTime }
   }).state;
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [{ role: 'user', content: '继续' }],
@@ -54,16 +52,16 @@ describe('white album timeline transitions', () => {
     ['2007.10.28: 13:00 星期日', 'chapter_2', 'FixedPlot6'],
     ['2007.10.28: 14:00 星期日', 'chapter_2', 'FixedPlot6'],
     ['2007.10.28: 21:00 星期日', 'chapter_2', 'GameEnd1']
-  ])('resolves %s to %s %s', (currentTime, chapter, plotType) => {
-    const result = runAtTime(currentTime);
+  ])('resolves %s to %s %s', async (currentTime, chapter, plotType) => {
+    const result = await runAtTime(currentTime);
 
     expect(result.trace.errors).toEqual([]);
     expect(result.state.story.chapter).toBe(chapter);
     expect(result.state.temp.PlotType).toBe(plotType);
   });
 
-  test('loads FreePlot3 without leaking the preceding fixed plot', () => {
-    const result = runAtTime('2007.10.27: 17:30 星期六');
+  test('loads FreePlot3 without leaking the preceding fixed plot', async () => {
+    const result = await runAtTime('2007.10.27: 17:30 星期六');
     const guide = result.messages.find(message => message.role === 'user');
 
     expect(result.state.temp.PlotType).toBe('FreePlot3');
@@ -71,14 +69,14 @@ describe('white album timeline transitions', () => {
     expect(guide.content).not.toContain('晚上春希等雪菜下班一同回家');
   });
 
-  test('enters the success afterstory after FixedPlot7', () => {
-    const ending = runAtTime('2007.10.28: 21:00 星期日', {
+  test('enters the success afterstory after FixedPlot7', async () => {
+    const ending = await runAtTime('2007.10.28: 21:00 星期日', {
       touma: { affection: 30 },
       setsuna: { affection: 20 },
       performance: { proficiency: 20 },
       story: { chapter2SetsunaBranch: 'secret' }
     });
-    const afterstory = runAtTime('2007.10.28: 22:00 星期日', ending.state);
+    const afterstory = await runAtTime('2007.10.28: 22:00 星期日', ending.state);
     const guide = afterstory.messages.find(message => message.role === 'user');
 
     expect(ending.state.temp.PlotType).toBe('FixedPlot7');

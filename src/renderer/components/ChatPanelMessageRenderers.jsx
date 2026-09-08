@@ -60,23 +60,23 @@ const ChatPanelMessageRenderers = {
     return selectVisibleMessages(messages);
   },
 
-  renderMarkdown(_React, text, marked, DOMPurify, highlightQuotes, role = 'user', display, displayRevision) {
+  renderMarkdown(_React, text, marked, DOMPurify, highlightQuotes, role = 'user', display, displayRevision, depth) {
     return <div className="chat-message-bubble" data-gc-part="message-bubble">
-      <MessageContent content={text} role={role} display={display} displayRevision={displayRevision}
+      <MessageContent content={text} role={role} display={display} displayRevision={displayRevision} depth={depth}
         markdown={marked} sanitizer={DOMPurify} quoteHighlighter={highlightQuotes}
         onClick={handleInputActionClick} onKeyDown={handleInputActionKeyDown}
         onMouseDown={handleInputActionMouseDown} />
     </div>;
   },
 
-  renderUserMsg(R, msg, marked, DOMPurify, highlightQuotes, display, displayRevision) {
+  renderUserMsg(R, msg, marked, DOMPurify, highlightQuotes, display, displayRevision, depth) {
     return this.renderMarkdown(
-      R, msg.content, marked, DOMPurify, highlightQuotes, 'user', display, displayRevision
+      R, msg.content, marked, DOMPurify, highlightQuotes, 'user', display, displayRevision, depth
     );
   },
 
   renderEditableUserMsg(R, msg, renderIndex, renderMarkdown, editUserMessage) {
-    if (!editUserMessage?.canEdit?.(renderIndex)) return renderMarkdown(msg.content);
+    if (!editUserMessage?.canEdit?.(renderIndex)) return renderMarkdown(msg.content, msg);
     if (editUserMessage.isEditing(renderIndex)) {
       const rows = Math.max(1, String(editUserMessage.content || '').split('\n').length);
       return <div className="chat-message-bubble chat-message-edit-bubble" data-gc-part="message-bubble">
@@ -87,7 +87,7 @@ const ChatPanelMessageRenderers = {
           onKeyDown={event => { if (event.key === 'Escape') editUserMessage.cancel(); }} />
       </div>;
     }
-    const bubble = renderMarkdown(msg.content);
+    const bubble = renderMarkdown(msg.content, msg);
     return R.cloneElement(bubble, {
       className: `${bubble.props.className || ''} chat-message-editable-bubble`,
       onClick: event => { if (!event.defaultPrevented) editUserMessage.start(renderIndex, msg.content); }
@@ -96,13 +96,13 @@ const ChatPanelMessageRenderers = {
 
   renderAssistantMsg(_React, msg, idx, isStreaming, tw, currentThinking, showStreamThinking,
     setShowStreamThinking, toggleThinkingForMessage, marked, DOMPurify, highlightQuotes, display,
-    displayRevision, segmentedReading) {
+    displayRevision, segmentedReading, depth) {
     const thinking = isStreaming ? currentThinking : msg._thinking;
     const showThinking = isStreaming ? showStreamThinking : msg._thinkingVisible === true;
     const rawContent = isStreaming ? msg.slice(0, tw.displayedCount) : msg.content;
     const segmented = segmentedReading?.enabled === true;
     const segments = segmented
-      ? resolveReadingSegments(rawContent, display, segmentedReading.includeInputActions !== false)
+      ? resolveReadingSegments(rawContent, display, segmentedReading.includeInputActions !== false, depth)
       : [];
     const pageIndex = Math.min(segmentedReading?.pageIndex || 0, Math.max(segments.length - 1, 0));
     const hasNext = segmented && pageIndex < segments.length - 1;
@@ -114,7 +114,7 @@ const ChatPanelMessageRenderers = {
       else toggleThinkingForMessage(idx);
     } : undefined;
     const content = segmented ? (segments[pageIndex] || '') : rawContent;
-    const contentNode = <MessageContent content={content} role="assistant"
+    const contentNode = <MessageContent content={content} role="assistant" depth={depth}
       display={segmented ? undefined : display} displayRevision={segmented ? undefined : displayRevision}
       markdown={marked} sanitizer={DOMPurify} quoteHighlighter={highlightQuotes}
       onClick={handleInputActionClick} onKeyDown={handleInputActionKeyDown}

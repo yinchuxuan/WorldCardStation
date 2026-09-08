@@ -28,7 +28,10 @@
  * @property {(id: string|null) => Promise<unknown>} setActive
  * @property {(id: string) => Promise<unknown>} uninstall
  * @property {() => Promise<GameCard|null>} importDirectory
- * @property {() => Promise<GameCard|null>} importFile
+ * @property {(options?: {tavernOnly?: boolean}) => Promise<GameCard|JsonObject|null>} importFile Native card or prepared Tavern task; tavernOnly rejects native cards without installation.
+ * @property {(token: string, plan: JsonObject, targetId?: string|null) => Promise<JsonObject>} stageTavernImport
+ * @property {(token: string, revision: string) => Promise<GameCard>} commitTavernImport
+ * @property {(token: string) => Promise<unknown>} cancelTavernImport
  */
 /**
  * @typedef {Object} WindowService

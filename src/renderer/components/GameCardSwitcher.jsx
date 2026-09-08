@@ -2,6 +2,8 @@ import React from 'react';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
 import { rendererServices } from '../platform/index.js';
 import GameCardSwitchRow from './GameCardSwitchRow.jsx';
+import TavernImportDialog from './TavernImportDialog.jsx';
+import { useGameCardImport } from '../gameCard/useGameCardImport.js';
 import { gameCard, PropTypes } from './componentPropTypes.js';
 
 const IDLE_IMPORT = Object.freeze({ state: 'idle', message: '' });
@@ -22,6 +24,7 @@ function GameCardSwitcher({
   const [removingId, setRemovingId] = React.useState('');
   const [importStatus, setImportStatus] = React.useState(IDLE_IMPORT);
   const closeTimer = React.useRef(null);
+  const conversion = useGameCardImport(onImport);
 
   const loadCards = React.useCallback(async () => {
     try {
@@ -69,15 +72,15 @@ function GameCardSwitcher({
     }
   };
 
-  const importCard = async (event) => {
+  const importCard = async (event, targetCard = null) => {
     event.stopPropagation();
-    if (busy) return;
+    if (busy || isLoading) return;
     window.clearTimeout(closeTimer.current);
     setBusy(true);
     setImportStatus({ state: 'importing', message: '正在导入游戏卡…' });
     onError?.(null);
     try {
-      const card = await onImport();
+      const card = await conversion.run(targetCard, message => setImportStatus({ state: 'importing', message }));
       if (card) {
         await loadCards();
         const name = card.name || card.id || '游戏卡';
@@ -124,8 +127,8 @@ function GameCardSwitcher({
 
   const title = activeCard?.name || activeCard?.id || '普通聊天';
   const renderCard = card => <GameCardSwitchRow key={card?.id || 'no-card'} card={card}
-    active={(card?.id || null) === (activeCard?.id || null)} busy={busy}
-    removing={removingId === card?.id} onActivate={activate} onUninstall={uninstallCard} />;
+    active={(card?.id || null) === (activeCard?.id || null)} busy={busy || isLoading}
+    removing={removingId === card?.id} onActivate={activate} onUninstall={uninstallCard} onUpdate={importCard} />;
 
   return <div className="game-card-switcher" data-gc-part="game-card-switcher">
     <button type="button" className="game-card-title-main" data-gc-part="game-card-title-main"
@@ -147,11 +150,12 @@ function GameCardSwitcher({
         {cards.map(renderCard)}
       </div>
       <button type="button" className="game-card-switch-import" onClick={importCard}
-        disabled={busy} aria-label="导入游戏卡文件">
+        disabled={busy || isLoading} aria-label="导入游戏卡文件">
         <span className={`material-icons${busy ? ' importing' : ''}`}>
           {busy ? 'progress_activity' : 'upload_file'}
-        </span><span>{busy ? '正在导入…' : '导入游戏卡'}</span>
+        </span><span>{busy ? '正在导入…' : '导入卡片'}</span>
       </button>
+      {conversion.cancelable ? <button type="button" className="game-card-switch-import" onClick={conversion.cancel}>取消导入</button> : null}
       {importStatus.state !== 'idle' ? <div className="game-card-import-status"
         data-state={importStatus.state} role="status" aria-live="polite">
         <span className="material-icons" aria-hidden="true">
@@ -162,6 +166,8 @@ function GameCardSwitcher({
           role="progressbar" aria-label="游戏卡导入进度"><span /></span> : null}
       </div> : null}
     </div> : null}
+    {conversion.request ? <TavernImportDialog key={conversion.request.kind} request={conversion.request}
+      isLoading={isLoading} onFinish={conversion.finish} /> : null}
   </div>;
 }
 

@@ -45,21 +45,31 @@ pub async fn import_game_card_from_directory(
 pub async fn import_game_card_from_file(
     app: AppHandle,
     state: State<'_, AppStorage>,
+    tasks: State<'_, crate::tavern_tasks::TavernTasks>,
+    tavern_only: Option<bool>,
 ) -> CardResult<Value> {
     #[cfg(feature = "e2e")]
     if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_IMPORT_FILE") {
-        return game_card_repository::import_file(&state, std::path::Path::new(&path)).await;
+        return tasks
+            .prepare_file(
+                &state,
+                std::path::Path::new(&path),
+                tavern_only.unwrap_or(false),
+            )
+            .await;
     }
     let selected = app
         .dialog()
         .file()
-        .add_filter("游戏卡文件", &["gamecard", "png"])
+        .add_filter("卡片文件", &["gamecard", "png", "apng", "json", "charx"])
         .blocking_pick_file()
         .ok_or_else(GameCardError::canceled)?;
     let path = selected
         .into_path()
         .map_err(|error| GameCardError::new(error.to_string()))?;
-    game_card_repository::import_file(&state, &path).await
+    tasks
+        .prepare_file(&state, &path, tavern_only.unwrap_or(false))
+        .await
 }
 
 #[tauri::command]

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -21,18 +21,16 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
 function state(overrides) {
   return ensureStateDefaults(loadedCard.state.schema, overrides).state;
 }
 
-function run(content, gameState) {
+async function run(content, gameState) {
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state: state({}), fileContents });
-  const result = applyGameCard({
+  const result = await applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, { role: 'user', content }],
@@ -42,14 +40,14 @@ function run(content, gameState) {
   return {
     status: result.messages.find((msg) => msg._meta?.source === 'wa2_state_context').content,
     guide: result.messages.find((msg) => msg.role === 'user').content,
-    worldbook: result.messages.find((msg) => msg._meta?.source === 'wa2_worldbook').content
+    worldbook: result.messages.find((msg) => msg._meta?.source === 'worldbook:white-album-2').content
   };
 }
 
 describe('white album affection status', () => {
-  test('writes affection attitudes into the free plot guide', () => {
-    const low = run('今天去找冬马排练', state({ touma: { affection: 12 }, setsuna: { affection: 65 } }));
-    const high = run('今天去找冬马排练', state({ touma: { affection: 88 }, setsuna: { affection: 90 } }));
+  test('writes affection attitudes into the free plot guide', async () => {
+    const low = await run('今天去找冬马排练', state({ touma: { affection: 12 }, setsuna: { affection: 65 } }));
+    const high = await run('今天去找冬马排练', state({ touma: { affection: 88 }, setsuna: { affection: 90 } }));
 
     expect(low.status).toContain('touma.affection: 12');
     expect(low.status).toContain('setsuna.affection: 65');
@@ -61,11 +59,11 @@ describe('white album affection status', () => {
   test.each([
     ['chapter 1', { currentTime: '2007.10.21: 16:00 星期日' }],
     ['chapter 2', { currentTime: '2007.10.26: 17:00 星期五' }]
-  ])('uses the revised affection thresholds in %s', (_chapter, fixedTime) => {
-    const low = run('继续', state({
+  ])('uses the revised affection thresholds in %s', async (_chapter, fixedTime) => {
+    const low = await run('继续', state({
       timeline: fixedTime, touma: { affection: 24 }, setsuna: { affection: 14 }
     }));
-    const high = run('继续', state({
+    const high = await run('继续', state({
       timeline: fixedTime, touma: { affection: 25 }, setsuna: { affection: 15 }
     }));
 
@@ -75,8 +73,8 @@ describe('white album affection status', () => {
     expect(high.guide).toContain('将春希当作好朋友');
   });
 
-  test('keeps Touma and Setsuna worldbook content permanently in prompt', () => {
-    const result = run('整理今天的值日安排', state({ touma: { affection: 88 }, setsuna: { affection: 90 } }));
+  test('keeps Touma and Setsuna worldbook content permanently in prompt', async () => {
+    const result = await run('整理今天的值日安排', state({ touma: { affection: 88 }, setsuna: { affection: 90 } }));
 
     expect(result.worldbook).toContain('冬马和纱');
     expect(result.worldbook).toContain('小木曾雪菜');
@@ -91,8 +89,8 @@ describe('white album affection status', () => {
     expect(result.worldbook).not.toContain('当前态度');
   });
 
-  test('loads the corresponding teacher worldbook entries on mention', () => {
-    const result = run('去教职员室找诹访老师和三年E班班主任', state({}));
+  test('loads the corresponding teacher worldbook entries on mention', async () => {
+    const result = await run('去教职员室找诹访老师和三年E班班主任', state({}));
 
     expect(result.worldbook).toContain('峰城大附属的学生指导部主任');
     expect(result.worldbook).toContain('峰城大附属三年E班的男性班主任');

@@ -1,0 +1,7 @@
+{
+  "version": "1", "id": "display-template", "name": "Display template", "rules": [],
+  "display": { "assistant": [{
+    "stage": "before_markdown", "type": "regex_replace", "pattern": "x",
+    "replace": [{ "source": "arbitrary script" }], "minDepth": -1
+  }] }
+}

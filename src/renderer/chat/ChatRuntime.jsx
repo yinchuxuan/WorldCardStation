@@ -30,6 +30,7 @@ import useGameCardSwitching from './useGameCardSwitching.js';
 import useGameCardPresentation from './useGameCardPresentation.js';
 import useModelConfig from './useModelConfig.js';
 import useReadingStatePatches from './useReadingStatePatches.js';
+import useChatDisplay from './useChatDisplay.js';
 function ChatRuntime({
   BgmPlayer = GameCardBgmPlayer,
   BackgroundRuntime = GameCardBackgroundRuntime,
@@ -47,7 +48,7 @@ function ChatRuntime({
   const [actionError, setActionError] = React.useState(null), [requestError, setRequestError] = React.useState(null), [responseWarning, setResponseWarning] = React.useState(null);
   const chatPanelRef = React.useRef(null);
   const runtime = useGameCardRuntime();
-  const display = runtime.activeCard?.display;
+  const { display, displayRevision, depths } = useChatDisplay(runtime.activeCard?.display, runtime.gameState, messages, isLoading);
   const segmentedReading = display?.segmentedReading === true;
   const modelConfig = useModelConfig();
   const typewriter = useTypewriter(React);
@@ -131,9 +132,8 @@ function ChatRuntime({
   )));
   const streamThinking = typewriter.getThinkingContent();
   const currentThinking = isLoading && streamThinking ? streamThinking : null;
-  const displayRevision = React.useMemo(() => JSON.stringify(display ?? null), [display]);
-  const renderUser = text => ChatPanelMessageRenderers.renderUserMsg(
-    React, { content: text }, marked, DOMPurify, highlightQuotes, display, displayRevision
+  const renderUser = (text, message) => ChatPanelMessageRenderers.renderUserMsg(
+    React, { content: text }, marked, DOMPurify, highlightQuotes, display, displayRevision, depths[message?._renderIndex]
   );
   const renderAssistant = (msg, index, streaming) => ChatPanelMessageRenderers.renderAssistantMsg(
     React, msg, index, streaming, typewriter, currentThinking, showStreamThinking,
@@ -144,7 +144,7 @@ function ChatRuntime({
       ),
       pageIndex: segmented.pageIndex,
       includeInputActions: !segmented.isHistory
-    }
+    }, streaming ? 0 : depths[index]
   );
   const renderedMessages = ChatPanelMessageRenderers.renderMessages(
     React, segmented.displayMessages, segmented.displayIsLoading, typewriter,

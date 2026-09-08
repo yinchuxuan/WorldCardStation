@@ -1,6 +1,6 @@
 import { applyGameCardAsync } from './engine.js';
 import { adaptMessagesToProtocol } from '../../shared/game-card/protocol/protocolAdapter.js';
-import { loadCachedCardResources, loadCachedRuntimeCard } from './gameCardRuntimeCache.js';
+import { loadCachedCardResources, loadCachedRuntimeCard, readCachedCardText } from './gameCardRuntimeCache.js';
 import { ensureStateDefaults } from '../../shared/game-card/state/stateSchema.js';
 import { applyLatestAssistantStatePatch } from '../../shared/game-card/state/statePatch.js';
 import { decayTTL } from '../../shared/game-card/engine/ttl.js';
@@ -20,8 +20,12 @@ async function loadCardResources(card, platform) {
   return loadCachedCardResources(card, platform?.resources);
 }
 
-function runtimeDependencies(platform) {
-  return platform?.scriptExecutor ? { scriptExecutor: platform.scriptExecutor } : {};
+function runtimeDependencies(platform, card) {
+  const dependencies = platform?.scriptExecutor ? { scriptExecutor: platform.scriptExecutor } : {};
+  if (card?.id && typeof platform?.resources?.readText === 'function') {
+    dependencies.readText = filePath => readCachedCardText(card, platform.resources, filePath);
+  }
+  return dependencies;
 }
 
 function prepareState(card, state) {
@@ -47,11 +51,9 @@ function prepareState(card, state) {
 
 async function preparePreSendMessages({ messages = [], state = {}, event = {}, card, protocol = 'openai', platform } = {}) {
   const activeCard = card === undefined ? await loadActiveGameCard(platform) : card;
-
   if (!activeCard) {
     return { messages, state, trace: null, ttlTrace: null, applied: false, card: null };
   }
-
   let resources;
   try {
     resources = await loadCardResources(activeCard, platform);
@@ -60,7 +62,7 @@ async function preparePreSendMessages({ messages = [], state = {}, event = {}, c
   }
   const prepared = prepareState(resources.card, state);
   const ttl = decayTTL(messages);
-  const result = await applyGameCardAsync({ card: resources.card, phase: 'pre_send', messages: ttl.messages, state: prepared.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform) });
+  const result = await applyGameCardAsync({ card: resources.card, phase: 'pre_send', messages: ttl.messages, state: prepared.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform, resources.card) });
   return {
     ...result,
     presentationEffects: collectPresentationEffects(result.trace),
@@ -82,11 +84,9 @@ async function prepareAfterResponseMessages({
   statePatchesApplied = false
 } = {}) {
   const activeCard = card === undefined ? await loadActiveGameCard(platform) : card;
-
   if (!activeCard) {
     return { messages, state, trace: null, ttlTrace: null, applied: false, card: null };
   }
-
   let resources;
   try {
     resources = await loadCardResources(activeCard, platform);
@@ -103,7 +103,7 @@ async function prepareAfterResponseMessages({
       messages,
       schema: resources.card?.state?.schema
     });
-  const result = await applyGameCardAsync({ card: resources.card, phase: 'after_response', messages, state: patched.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform) });
+  const result = await applyGameCardAsync({ card: resources.card, phase: 'after_response', messages, state: patched.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform, resources.card) });
   return {
     ...result,
     presentationEffects: collectPresentationEffects(result.trace),
@@ -129,7 +129,7 @@ async function prepareAfterStreamMessages({
   const prepared = prepareState(resources.card, state);
   const result = await applyGameCardAsync({
     card: resources.card, phase: 'after_stream', messages, state: prepared.state,
-    event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform)
+    event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform, resources.card)
   });
   return {
     ...result,
@@ -178,8 +178,8 @@ async function prepareInitMessages({ messages = [], state = {}, event = {}, card
   }
   const prepared = prepareState(resources.card, state);
 
-  const result = await applyGameCardAsync({ card: resources.card, phase: 'init', messages, state: prepared.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform) });
-  const changed = hasMessageChanges(messages, result.messages) || prepared.trace.changed;
+  const result = await applyGameCardAsync({ card: resources.card, phase: 'init', messages, state: prepared.state, event, fileContents: resources.fileContents, dependencies: runtimeDependencies(platform, resources.card) });
+  const changed = hasMessageChanges(messages, result.messages) || hasMessageChanges(state, result.state) || prepared.trace.changed;
   return { ...result, ttlTrace: null, stateTrace: prepared.trace, applied: true, changed, card: resources.card };
 }
 

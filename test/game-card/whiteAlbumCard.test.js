@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -33,20 +33,12 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': [
-    '# 角色世界书', '## 北原春希', '世界书：北原春希',
-    '## 冬马和纱', '世界书：冬马和纱',
-    '## 小木曾雪菜', '世界书：小木曾雪菜',
-    '## 饭冢武也', '世界书：饭冢武也',
-    '## 水泽依绪', '世界书：水泽依绪',
-    '## 柳原朋', '世界书：柳原朋'
-  ].join('\n'),
-  'worldbook/location.md': readCardFile('worldbook/location.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md')
+  ...worldbookFileContents
 };
 function defaultState(overrides = {}) { return ensureStateDefaults(loadedCard.state.schema, overrides).state; }
 function applyWhiteAlbumPhase(phase, messages, state = defaultState()) {
-  return applyGameCard({
+  const apply = phase === 'pre_send' ? applyGameCardAsync : applyGameCard;
+  return apply({
     card: loadedCard,
     phase,
     messages,
@@ -96,9 +88,9 @@ describe('white album 2 game card', () => {
     expect(result.messages[2].content).toContain('"setsuna.affection"');
   });
 
-  test('declares Touma and Setsuna affection state and refreshes the status message', () => {
+  test('declares Touma and Setsuna affection state and refreshes the status message', async () => {
     const initial = initWhiteAlbum();
-    const result = applyWhiteAlbumPhase(
+    const result = await applyWhiteAlbumPhase(
       'pre_send',
       [...initial.messages, user('查看好感度')],
       defaultState({ touma: { affection: 12 }, setsuna: { affection: 8 } })
@@ -121,8 +113,8 @@ describe('white album 2 game card', () => {
     expect(status.content).toContain('setsuna.affection: 8');
   });
 
-  test('tail roleplay rules tell the llm how to update affection state', () => {
-    const result = applyWhiteAlbum([user('继续')]);
+  test('tail roleplay rules tell the llm how to update affection state', async () => {
+    const result = await applyWhiteAlbum([user('继续')]);
     const hint = result.messages.find((msg) => msg.role === 'user');
     const stateContext = result.messages.find((msg) => msg._meta?.source === 'wa2_state_context');
 
@@ -139,14 +131,18 @@ describe('white album 2 game card', () => {
     expect(stateContext.content).toContain('表情可写 `normal`（平静自然）');
   });
 
-  test('appends character worldbook entries into the fixed worldbook message', () => {
-    const result = applyWhiteAlbum([user('春希想约冬马、雪菜、武也、依绪和柳原朋一起排练')]);
-    const worldbook = result.messages.filter((msg) => msg._meta?.source === 'wa2_worldbook');
-    const cardText = JSON.stringify(card.rules);
+  test('runs the card-local worldbook library with its directory config', async () => {
+    const result = await applyWhiteAlbum([user('春希想约冬马、雪菜、武也、依绪和柳原朋一起排练')]);
+    const worldbook = result.messages.filter((msg) => msg._meta?.source === 'worldbook:white-album-2');
+    const rule = card.rules.find((item) => item.id === 'wa2-insert-turn-context');
 
     expect(result.trace.errors).toEqual([]);
-    expect(cardText).toContain('{{file:worldbook.characters#北原春希}}');
-    expect(cardText).not.toContain('worldbook/haruki.md');
+    expect(card.files.worldbook).toEqual({
+      directory: 'worldbook', include: ['config.json', 'entries/*.md']
+    });
+    expect(rule.then[0]).toEqual({
+      type: 'exec', sourceFile: 'lib/worldbook/index.js', args: { worldbook: 'worldbook' }
+    });
     expect(worldbook).toHaveLength(1);
     expect(worldbook[0].role).toBe('system');
     expect(worldbook[0].ttl).toBe(1);

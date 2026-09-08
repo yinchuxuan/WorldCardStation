@@ -26,7 +26,7 @@ function applyGameCard(options = {}) {
 
   return applyCoreGameCard({
     ...coreOptions,
-    dependencies: { readFile, runExecAction: execute }
+    dependencies: { readFile, readText: dependencies.readText, runExecAction: execute }
   });
 }
 
@@ -43,7 +43,7 @@ function applyGameCardAsync(options = {}) {
   ));
   return applyCoreGameCardAsync({
     ...coreOptions,
-    dependencies: { readFile, runExecAction: execute }
+    dependencies: { readFile, readText: dependencies.readText, runExecAction: execute }
   });
 }
 

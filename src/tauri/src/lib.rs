@@ -5,6 +5,7 @@ mod game_card_commands;
 mod game_card_copy;
 mod game_card_error;
 mod game_card_imports;
+mod game_card_install;
 mod game_card_package;
 mod game_card_paths;
 mod game_card_png;
@@ -23,6 +24,13 @@ mod resource_response;
 mod session_commands;
 mod session_management;
 mod sessions;
+mod tavern_bundle;
+mod tavern_commands;
+mod tavern_input;
+mod tavern_output;
+mod tavern_png;
+mod tavern_resources;
+mod tavern_tasks;
 
 use app_storage::AppStorage;
 use model_commands::ModelNetworkState;
@@ -58,6 +66,7 @@ pub fn run() {
             std::fs::create_dir_all(&data_dir)?;
             app.manage(AppStorage::new(data_dir));
             app.manage(ModelNetworkState::new()?);
+            app.manage(tavern_tasks::TavernTasks::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -83,6 +92,9 @@ pub fn run() {
             game_card_commands::delete_game_card,
             game_card_commands::get_active_game_card,
             game_card_commands::read_game_card_file,
+            tavern_commands::stage_tavern_import,
+            tavern_commands::commit_tavern_import,
+            tavern_commands::cancel_tavern_import,
             model_commands::stream_model_request,
             model_commands::cancel_model_stream
         ])
@@ -106,6 +118,8 @@ pub fn export_game_card_package(
 }
 
 #[cfg(test)]
+mod game_card_directory_tests;
+#[cfg(test)]
 mod game_card_package_tests;
 #[cfg(test)]
 mod game_card_tests;
@@ -115,5 +129,13 @@ mod game_card_uninstall_tests;
 mod model_tests;
 #[cfg(test)]
 mod resource_tests;
+#[cfg(test)]
+mod tavern_container_tests;
+#[cfg(test)]
+mod tavern_install_tests;
+#[cfg(test)]
+mod tavern_resource_tests;
+#[cfg(test)]
+mod tavern_test_support;
 #[cfg(test)]
 mod tests;

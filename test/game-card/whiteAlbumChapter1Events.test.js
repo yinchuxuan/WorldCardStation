@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -20,16 +20,14 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
-function runAt(currentTime, randomValues) {
+async function runAt(currentTime, randomValues) {
   jest.spyOn(Math, 'random').mockImplementation(() => randomValues.shift() ?? 0);
   const state = ensureStateDefaults(loadedCard.state.schema, { timeline: { currentTime } }).state;
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state, fileContents });
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, { role: 'user', content: '放学后去第三音乐室练吉他' }],
@@ -50,8 +48,8 @@ describe('white album chapter 1 random events', () => {
     [0.5, 'friends', '春希与武也、依绪、亲志'],
     [0.7, 'school', '上课、班级、执行委员会'],
     [0.85, 'personal', '春希的学习、练琴、通勤']
-  ])('selects the weighted event category for roll %s', (eventRandom, category, prompt) => {
-    const result = runAt('2007.10.20: 15:00 星期六', [0, 0, eventRandom]);
+  ])('selects the weighted event category for roll %s', async (eventRandom, category, prompt) => {
+    const result = await runAt('2007.10.20: 15:00 星期六', [0, 0, eventRandom]);
     const guide = latestUserGuide(result);
 
     expect(result.trace.errors).toEqual([]);
@@ -66,8 +64,8 @@ describe('white album chapter 1 random events', () => {
     expect(guide).toContain('放学后去第三音乐室练吉他');
   });
 
-  test('does not inject an event category for a normal chapter 1 turn', () => {
-    const result = runAt('2007.10.20: 15:00 星期六', [0.5, 0]);
+  test('does not inject an event category for a normal chapter 1 turn', async () => {
+    const result = await runAt('2007.10.20: 15:00 星期六', [0.5, 0]);
     const guide = latestUserGuide(result);
 
     expect(result.state.temp.plotMood).toBe('normal');
@@ -78,8 +76,8 @@ describe('white album chapter 1 random events', () => {
     expect(guide).not.toContain('本轮意外事件围绕');
   });
 
-  test('offers varied friend-event ingredients without prescribing a plot', () => {
-    const result = runAt('2007.10.20: 15:00 星期六', [0, 0, 0.5]);
+  test('offers varied friend-event ingredients without prescribing a plot', async () => {
+    const result = await runAt('2007.10.20: 15:00 星期六', [0, 0, 0.5]);
     const guide = latestUserGuide(result);
 
     expect(guide).toContain('武也广泛的异性交往');
@@ -88,8 +86,8 @@ describe('white album chapter 1 random events', () => {
     expect(guide).toContain('不要照搬成固定情节');
   });
 
-  test('does not inject chapter 1 event prompts into chapter 2', () => {
-    const result = runAt('2007.10.25: 08:00 星期四', [0, 0, 0]);
+  test('does not inject chapter 1 event prompts into chapter 2', async () => {
+    const result = await runAt('2007.10.25: 08:00 星期四', [0, 0, 0]);
     const guide = latestUserGuide(result);
 
     expect(result.state.temp.plotMood).toBe('tragic');

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 const { applyLatestAssistantStatePatch } = require('../../src/shared/game-card/state/statePatch');
@@ -22,29 +22,27 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
 function user(content) { return { role: 'user', content }; }
 
-function runWithRandom(randomValue) {
+async function runWithRandom(randomValue) {
   jest.spyOn(Math, 'random').mockReturnValue(randomValue);
   const state = ensureStateDefaults(loadedCard.state.schema, {}).state;
   return runWithState(state);
 }
 
-function runAtSlot(currentTime) {
+async function runAtSlot(currentTime) {
   const state = ensureStateDefaults(loadedCard.state.schema, {
     timeline: { currentTime }
   }).state;
   return runWithState(state);
 }
 
-function runWithState(state) {
+async function runWithState(state) {
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state, fileContents });
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, user('继续')],
@@ -56,15 +54,15 @@ function runWithState(state) {
 describe('white album plot direction guide', () => {
   afterEach(() => Math.random.mockRestore && Math.random.mockRestore());
 
-  test('appends plot direction and roleplay rules to the latest user message', () => {
-    const result = runWithRandom(0.99);
+  test('appends plot direction and roleplay rules to the latest user message', async () => {
+    const result = await runWithRandom(0.99);
     const userIndex = result.messages.findIndex((msg) => msg.role === 'user');
     const guide = result.messages[userIndex];
 
     expect(result.trace.errors).toEqual([]);
     expect(result.state.temp.plotDirectionRoll).toBe(100);
     expect(result.state.audio.bgm).toBe('daily');
-    expect(result.messages[userIndex - 2]._meta.source).toBe('wa2_worldbook');
+    expect(result.messages[userIndex - 2]._meta.source).toBe('worldbook:white-album-2');
     expect(result.messages[userIndex - 2].ttl).toBe(1);
     expect(result.messages[userIndex - 1]._meta.source).toBe('wa2_state_context');
     expect(result.messages[userIndex - 1].ttl).toBe(1);
@@ -82,13 +80,13 @@ describe('white album plot direction guide', () => {
 
   test.each([
     [0.09, 'tragic'], [0.28, 'sad'], [0.291, 'normal'], [0.691, 'daily'], [0.891, 'happy']
-  ])('selects plot mood %s without changing bgm', (randomValue, mood) => {
-    const result = runWithRandom(randomValue);
+  ])('selects plot mood %s without changing bgm', async (randomValue, mood) => {
+    const result = await runWithRandom(randomValue);
     expect(result.state.temp.plotMood).toBe(mood);
     expect(result.state.audio.bgm).toBe('daily');
   });
 
-  test('keeps the model-directed portraits during free and fixed plots', () => {
+  test('keeps the model-directed portraits during free and fixed plots', async () => {
     jest.spyOn(Math, 'random').mockReturnValue(0.99);
     const freeState = ensureStateDefaults(loadedCard.state.schema, {
       visual: { scene: 'classroom', portraits: { touma: 'laugh' } }, audio: { bgm: 'sad' }
@@ -97,21 +95,21 @@ describe('white album plot direction guide', () => {
       timeline: { currentTime: '2007.10.21: 16:00 星期日' },
       visual: { scene: 'classroom', portraits: { touma: 'laugh' } }, audio: { bgm: 'sad' }
     }).state;
-    const free = runWithState(freeState);
-    const fixed = runWithState(fixedState);
+    const free = await runWithState(freeState);
+    const fixed = await runWithState(fixedState);
 
     expect(free.state).toMatchObject({ visual: freeState.visual, audio: freeState.audio });
     expect(fixed.state).toMatchObject({ visual: fixedState.visual, audio: fixedState.audio });
   });
 
-  test('loads plot guidance from the current timeline time', () => {
-    const opening = runWithRandom(0.5);
+  test('loads plot guidance from the current timeline time', async () => {
+    const opening = await runWithRandom(0.5);
     const guide = opening.messages.find((msg) => msg.role === 'user');
 
     expect(guide.content).toContain('绝对禁止将时间推进到 2007.10.21: 16:00 星期日 之后');
     expect(guide.content).toContain('剧情类型：自由剧情节点');
 
-    const wall = runAtSlot('2007.10.21: 16:00 星期日');
+    const wall = await runAtSlot('2007.10.21: 16:00 星期日');
     const wallGuide = wall.messages.find((msg) => msg.role === 'user');
 
     expect(wallGuide.content).toContain('audio.bgm: `WA_piano`');
@@ -121,18 +119,19 @@ describe('white album plot direction guide', () => {
     expect(wallGuide.content).toContain('冬马和纱当前态度');
     expect(wallGuide.content).toContain('小木曾雪菜当前态度');
 
-    const free = runAtSlot('2007.10.21: 18:00 星期日');
+    const free = await runAtSlot('2007.10.21: 18:00 星期日');
     const freeGuide = free.messages.find((msg) => msg.role === 'user');
 
     expect(freeGuide.content).toContain('绝对禁止将时间推进到 2007.10.22: 8:00 星期一 之后');
     expect(freeGuide.content).toContain('剧情类型：自由剧情节点');
     expect(freeGuide.content).not.toContain('本轮必须完成该剧情节点');
-    ['2007.10.21: 18:00 星期日', '2007.10.22: 10:00 星期一', '2007.10.23: 12:00 星期二'].forEach((time) => {
-      const branchGuide = runAtSlot(time).messages.find((msg) => msg.role === 'user');
+    for (const time of ['2007.10.21: 18:00 星期日', '2007.10.22: 10:00 星期一', '2007.10.23: 12:00 星期二']) {
+      const branch = await runAtSlot(time);
+      const branchGuide = branch.messages.find((msg) => msg.role === 'user');
       expect(branchGuide.content).toContain('本轮剧情走向');
-    });
+    }
 
-    const invite = runAtSlot('2007.10.22: 08:00 星期一');
+    const invite = await runAtSlot('2007.10.22: 08:00 星期一');
     const inviteGuide = invite.messages.find((msg) => msg.role === 'user');
 
     expect(inviteGuide.content).toContain('visual.scene: `invite`');
@@ -141,7 +140,7 @@ describe('white album plot direction guide', () => {
     expect(inviteGuide.content).not.toContain('隔墙合奏');
     expect(inviteGuide.content).not.toContain('本轮自由剧情走向');
 
-    const deadline = runAtSlot('2007.10.23: 10:00 星期二');
+    const deadline = await runAtSlot('2007.10.23: 10:00 星期二');
     const deadlineGuide = deadline.messages.find((msg) => msg.role === 'user');
 
     expect(deadlineGuide.content).toContain('visual.scene: `haiku`');
@@ -150,7 +149,7 @@ describe('white album plot direction guide', () => {
     expect(deadlineGuide.content).not.toContain('隔墙合奏');
     expect(deadlineGuide.content).not.toContain('本轮自由剧情走向');
 
-    const rooftop = runAtSlot('2007.10.23: 17:00 星期二');
+    const rooftop = await runAtSlot('2007.10.23: 17:00 星期二');
     const rooftopGuide = rooftop.messages.find((msg) => msg.role === 'user');
 
     expect(rooftopGuide.content).toContain('audio.bgm: `WA_3`');
@@ -159,7 +158,7 @@ describe('white album plot direction guide', () => {
     expect(rooftopGuide.content).not.toContain('本轮自由剧情走向');
   });
 
-  test('llm updates the timeline time with state.set in state patch', () => {
+  test('llm updates the timeline time with state.set in state patch', async () => {
     const state = ensureStateDefaults(loadedCard.state.schema, {
       timeline: { currentTime: '2007.10.21: 08:00 星期日' }
     }).state;
@@ -169,7 +168,7 @@ describe('white album plot direction guide', () => {
         content: '<state_patch>[{"type":"state.set","path":"timeline.currentTime","value":"2007.10.21: 16:00 星期日"}]</state_patch>'
       }
     ], state, { schema: loadedCard.state.schema });
-    const result = runWithState(patched.state);
+    const result = await runWithState(patched.state);
     const guide = result.messages.find((msg) => msg.role === 'user');
 
     expect(patched.state.timeline.currentTime).toBe('2007.10.21: 16:00 星期日');
@@ -177,8 +176,8 @@ describe('white album plot direction guide', () => {
     expect(guide.content).toContain('隔墙合奏');
   });
 
-  test('keeps current time during fixed slots', () => {
-    const result = runAtSlot('2007.10.21: 17:00 星期日');
+  test('keeps current time during fixed slots', async () => {
+    const result = await runAtSlot('2007.10.21: 17:00 星期日');
     const guide = result.messages.find((msg) => msg.role === 'user');
 
     expect(result.state.timeline.currentTime).toBe('2007.10.21: 17:00 星期日');
@@ -187,9 +186,9 @@ describe('white album plot direction guide', () => {
     expect(guide.content).not.toContain('隔墙合奏');
   });
 
-  test('keeps current time during free slots', () => {
-    const early = runAtSlot('2007.10.22: 06:00 星期一');
-    const snapped = runAtSlot('2007.10.22: 06:01 星期一');
+  test('keeps current time during free slots', async () => {
+    const early = await runAtSlot('2007.10.22: 06:00 星期一');
+    const snapped = await runAtSlot('2007.10.22: 06:01 星期一');
     const guide = snapped.messages.find((msg) => msg.role === 'user');
 
     expect(early.state.timeline.currentTime).toBe('2007.10.22: 06:00 星期一');

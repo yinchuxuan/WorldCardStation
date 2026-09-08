@@ -123,6 +123,7 @@ function applyGameCard({ card, phase, messages = [], state = {}, event = {}, fil
         event: { ...event, phase },
         fileContents,
         readFile: dependencies.readFile,
+        readText: dependencies.readText,
         runExecAction: dependencies.runExecAction
       });
     } catch (error) {
@@ -170,6 +171,7 @@ async function applyGameCardAsync(options = {}) {
         event: { ...event, phase },
         fileContents,
         readFile: dependencies.readFile,
+        readText: dependencies.readText,
         runExecAction: dependencies.runExecAction
       });
       result = {

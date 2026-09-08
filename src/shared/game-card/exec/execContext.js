@@ -33,12 +33,13 @@ function createConfig(card = {}) {
   return deepFreeze(config);
 }
 
-function createExecContext({ messages, state, card, event, files, random, randomUuid }) {
+function createExecContext({ messages, state, card, event, args, files, random, randomUuid }) {
   return {
     messages: cloneJson(messages),
     state: cloneJson(state),
     config: createConfig(card),
     event: deepFreeze(cloneJson(event || {})),
+    args: deepFreeze(cloneJson(args || {})),
     files,
     utils: createUtils({ random, randomUuid })
   };

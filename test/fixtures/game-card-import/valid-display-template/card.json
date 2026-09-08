@@ -1,0 +1,9 @@
+{
+  "version": "1", "id": "display-template", "name": "Display template", "rules": [],
+  "display": { "assistant": [{
+    "stage": "before_markdown", "type": "regex_replace",
+    "pattern": ["(", { "state": "player.name", "escapeRegex": true }, ")"], "flags": "g",
+    "replace": [{ "state": "player.name" }, ":", { "capture": 1 }, { "capture": "word" }],
+    "trimStrings": [" ", { "parts": [{ "state": "player.trim" }] }], "minDepth": 1, "maxDepth": null
+  }] }
+}

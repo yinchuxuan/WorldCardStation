@@ -13,6 +13,27 @@ function section(content, heading) {
   }
   return lines.slice(start + 1, end).join('\n').trim();
 }
+let nextFileRequestId = 1;
+const pendingFileReads = new Map();
+function readScopedText(scopeId, relativePath) {
+  return new Promise((resolve, reject) => {
+    const requestId = nextFileRequestId++;
+    pendingFileReads.set(requestId, { resolve, reject });
+    self.postMessage({ type: 'file.read', requestId, scopeId, relativePath });
+  });
+}
+function settleFileRead(data) {
+  const pending = pendingFileReads.get(data.requestId);
+  if (!pending) return;
+  pendingFileReads.delete(data.requestId);
+  if (data.error) pending.reject(new Error(data.error));
+  else pending.resolve(data.content);
+}
+function deepFreeze(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  Object.values(value).forEach(deepFreeze);
+  return Object.freeze(value);
+}
 function createFiles(entries, state) {
   return Object.freeze({ read(ref) {
     const marker = String(ref).indexOf('#');
@@ -24,7 +45,7 @@ function createFiles(entries, state) {
     const fileId = resolve(rawFile);
     if (!Object.prototype.hasOwnProperty.call(entries, fileId)) throw new Error('unknown content file id: ' + fileId);
     return rawSection ? section(entries[fileId], resolve(rawSection)) : entries[fileId];
-  }});
+  }, readText: readScopedText });
 }
 function createUtils() {
   return Object.freeze({
@@ -41,16 +62,27 @@ function createUtils() {
 }
 function buildSource(source, isSourceFile) {
   if (isSourceFile) return source + '\nif (typeof run !== "function") throw new Error("exec sourceFile must define function run(ctx)");\nreturn run(__ctx);';
-  return '"use strict";\nconst ctx = __ctx;\nconst { messages, state, config, event, utils, files } = ctx;\n' + source;
+  return '"use strict";\nconst ctx = __ctx;\nconst { messages, state, config, event, args, utils, files } = ctx;\n' + source;
 }
-self.onmessage = event => {
+self.onmessage = async event => {
+  if (event.data.type === 'file.response') {
+    settleFileRead(event.data);
+    return;
+  }
   try {
     const data = event.data;
-    const context = { ...data.context, files: createFiles(data.files, data.context.state), utils: createUtils() };
+    const context = {
+      ...data.context,
+      config: deepFreeze(data.context.config || {}),
+      event: deepFreeze(data.context.event || {}),
+      args: deepFreeze(data.context.args || {}),
+      files: createFiles(data.files, data.context.state),
+      utils: createUtils()
+    };
     const execute = Function('__ctx', 'self', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket',
       'EventSource', 'BroadcastChannel', 'Worker', 'SharedWorker', 'navigator', 'location', 'caches',
       'importScripts', 'postMessage', 'close', 'indexedDB', buildSource(data.source, data.isSourceFile));
-    const result = execute(context, undefined, undefined, undefined, undefined, undefined,
+    const result = await execute(context, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined);
     self.postMessage({ result });

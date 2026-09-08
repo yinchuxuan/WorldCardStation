@@ -1,5 +1,5 @@
 use crate::game_card_error::{CardResult, GameCardError, ValidationDetail};
-use crate::game_card_paths::existing_file;
+use crate::game_card_paths::{existing_directory, existing_file};
 use crate::game_card_references::collect_file_references;
 use crate::game_card_state_schema::validate_state_schema;
 use serde_json::Value;
@@ -106,7 +106,7 @@ fn validate_data_constraints(card: &Value) -> CardResult<()> {
 
 fn validate_files(card: &Value, root: &Path) -> CardResult<()> {
     let references = collect_file_references(card).map_err(GameCardError::new)?;
-    let details: Vec<_> = references
+    let mut details: Vec<_> = references
         .into_iter()
         .filter_map(|reference| {
             existing_file(root, &reference.file)
@@ -117,6 +117,19 @@ fn validate_files(card: &Value, root: &Path) -> CardResult<()> {
                 })
         })
         .collect();
+    if let Some(files) = card.get("files").and_then(Value::as_object) {
+        for (id, value) in files {
+            let Some(directory) = value.get("directory").and_then(Value::as_str) else {
+                continue;
+            };
+            if existing_directory(root, directory).is_err() {
+                details.push(ValidationDetail {
+                    file: directory.to_string(),
+                    message: format!("files.{id}.directory: directory not found"),
+                });
+            }
+        }
+    }
     if details.is_empty() {
         Ok(())
     } else {

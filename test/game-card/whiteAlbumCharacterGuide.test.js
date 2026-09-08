@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema } = require('./whiteAlbumTestCard');
-const { applyGameCard } = require('../../src/renderer/gameCard/engine');
+const { card, stateSchema, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
@@ -20,17 +20,15 @@ const fileContents = {
   'scripts/timeline.js': readCardFile('scripts/timeline.js'),
   'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
   'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  'worldbook/characters.md': readCardFile('worldbook/characters.md'),
-  'worldbook/index.md': readCardFile('worldbook/index.md'),
-  'worldbook/location.md': readCardFile('worldbook/location.md')
+  ...worldbookFileContents
 };
 
-function runFreePlot(currentTime = '2007.10.25: 08:00 星期四') {
+async function runFreePlot(currentTime = '2007.10.25: 08:00 星期四') {
   const state = ensureStateDefaults(loadedCard.state.schema, {
     timeline: { currentTime }
   }).state;
   const init = applyGameCard({ card: loadedCard, phase: 'init', messages: [], state, fileContents });
-  return applyGameCard({
+  return applyGameCardAsync({
     card: loadedCard,
     phase: 'pre_send',
     messages: [...init.messages, { role: 'user', content: '继续' }],
@@ -46,39 +44,39 @@ function latestUserGuide(result) {
 describe('white album character weak guide', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  test('injects the Setsuna guide independently from a negative plot mood', () => {
+  test('injects the Setsuna guide independently from a negative plot mood', async () => {
     jest.spyOn(Math, 'random')
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0.99)
       .mockReturnValue(0);
 
-    const result = runFreePlot();
+    const result = await runFreePlot();
 
     expect(result.state.temp.plotMood).toBe('tragic');
     expect(result.state.temp.characterGuideRoll).toBe(100);
     expect(latestUserGuide(result)).toContain('本轮可以根据用户行动、当前场景和最近剧情');
   });
 
-  test('omits the Setsuna guide independently from a positive plot mood', () => {
+  test('omits the Setsuna guide independently from a positive plot mood', async () => {
     jest.spyOn(Math, 'random')
       .mockReturnValueOnce(0.99)
       .mockReturnValueOnce(0)
       .mockReturnValue(0);
 
-    const result = runFreePlot();
+    const result = await runFreePlot();
 
     expect(result.state.temp.plotMood).toBe('happy');
     expect(result.state.temp.characterGuideRoll).toBe(1);
     expect(latestUserGuide(result)).not.toContain('本轮可以根据用户行动、当前场景和最近剧情');
   });
 
-  test('injects the Touma guide during FreePlot3', () => {
+  test('injects the Touma guide during FreePlot3', async () => {
     jest.spyOn(Math, 'random')
       .mockReturnValueOnce(0.5)
       .mockReturnValueOnce(0.99)
       .mockReturnValue(0);
 
-    const result = runFreePlot('2007.10.26: 19:30 星期五');
+    const result = await runFreePlot('2007.10.26: 19:30 星期五');
 
     expect(result.state.temp.PlotType).toBe('FreePlot3');
     expect(result.state.temp.characterGuideRoll).toBe(100);

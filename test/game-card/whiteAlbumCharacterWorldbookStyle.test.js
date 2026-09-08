@@ -1,10 +1,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const characters = fs.readFileSync(
-  path.join(__dirname, '../../game-card-examples/white-album-2/worldbook/characters.md'),
-  'utf-8',
+const entriesDir = path.join(
+  __dirname, '../../game-card-examples/white-album-2/worldbook/entries'
 );
+const characters = [
+  '北原春希', '冬马和纱', '小木曾雪菜', '饭冢武也', '水泽依绪',
+  '早坂亲志', '柳原朋', '小木曾孝宏', '三年E班班主任', '诹访老师'
+].map(name => fs.readFileSync(path.join(entriesDir, `${name}.md`), 'utf-8')).join('\n');
 
 describe('white album character worldbook style', () => {
   test('describes characters through playable speech and behavior', () => {

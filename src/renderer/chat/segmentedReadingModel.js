@@ -1,5 +1,6 @@
 import { applyAssistantDisplayRules } from '../gameCard/displayRules.js';
 import { messageKey } from './messageSelection.js';
+import { messageDepths } from '../gameCard/messageDepth.js';
 
 const INPUT_ACTION_PATTERN = /data-gc-chat-input-(?:value|value-from|label)/;
 const STATE_PATCH_PATTERN = /<state_patch>([\s\S]*?)<\/state_patch>/g;
@@ -15,9 +16,9 @@ function splitReadingSegments(content, separator) {
   return segments.filter(segment => segment.trim());
 }
 
-function resolveReadingSegments(content, display, includeInputActions = true) {
+function resolveReadingSegments(content, display, includeInputActions = true, depth) {
   const segments = splitReadingSegments(
-    applyAssistantDisplayRules(content, display),
+    applyAssistantDisplayRules(content, display, depth),
     display?.segmentSeparator
   );
   return includeInputActions
@@ -25,18 +26,18 @@ function resolveReadingSegments(content, display, includeInputActions = true) {
     : segments.filter(segment => !INPUT_ACTION_PATTERN.test(segment));
 }
 
-function buildStatePatchTimeline(content, display, includeInputActions = true) {
+function buildStatePatchTimeline(content, display, includeInputActions = true, depth) {
   const source = String(content || '');
   const patches = [...source.matchAll(STATE_PATCH_PATTERN)].map((match, ordinal) => {
     const prefix = source.slice(0, match.index).replace(STATE_PATCH_PATTERN, '');
     return {
-      boundary: resolveReadingSegments(prefix, display, includeInputActions).length,
+      boundary: resolveReadingSegments(prefix, display, includeInputActions, depth).length,
       ordinal,
       text: match[1].trim()
     };
   });
   return {
-    pageCount: resolveReadingSegments(source, display, includeInputActions).length,
+    pageCount: resolveReadingSegments(source, display, includeInputActions, depth).length,
     patches
   };
 }
@@ -44,9 +45,10 @@ function buildStatePatchTimeline(content, display, includeInputActions = true) {
 function buildReadingEntries(messages, isLoading, streamContent, displayedCount, display,
   rawStreamContent = streamContent, streamMessageId = '') {
   const sourceMessages = Array.isArray(messages) ? messages : [];
+  const depths = messageDepths(sourceMessages, isLoading);
   const completed = sourceMessages
     .map((message, index) => ({ message, messageIndex: index }))
-    .filter(({ message }) => message?.role === 'assistant');
+    .filter(({ message, messageIndex }) => message?.role === 'assistant' && depths[messageIndex] !== undefined);
   const lastCompleted = completed.length - 1;
   const entries = completed
     .map(({ message, messageIndex }, index) => {
@@ -54,7 +56,8 @@ function buildReadingEntries(messages, isLoading, streamContent, displayedCount,
       const timeline = buildStatePatchTimeline(
         content,
         display,
-        !isLoading && index === lastCompleted
+        !isLoading && index === lastCompleted,
+        depths[messageIndex]
       );
       return {
         content,
@@ -69,12 +72,12 @@ function buildReadingEntries(messages, isLoading, streamContent, displayedCount,
   if (isLoading) {
     const visible = String(streamContent || '').slice(0, displayedCount);
     const content = String(rawStreamContent || visible);
-    const timeline = buildStatePatchTimeline(content, display);
+    const timeline = buildStatePatchTimeline(content, display, true, 0);
     entries.push({
       content,
       key: streamMessageId || `streaming-${sourceMessages.length}`,
       messageIndex: sourceMessages.length,
-      pageCount: Math.max(resolveReadingSegments(visible, display).length, 1),
+      pageCount: Math.max(resolveReadingSegments(visible, display, true, 0).length, 1),
       patches: timeline.patches,
       streaming: true
     });

@@ -116,25 +116,8 @@ pub async fn read_text(storage: &AppStorage, id: &str, relative: &str) -> CardRe
     fs::read_to_string(path).map_err(GameCardError::from)
 }
 
-async fn install_staged(storage: &AppStorage, staging: &Path) -> CardResult<Value> {
-    let card = read_card(staging)?;
-    let id = card
-        .get("id")
-        .and_then(Value::as_str)
-        .ok_or_else(|| GameCardError::new("Game card must have a safe id"))?;
-    require_safe_id(id)?;
-    validate_card(&card, staging)?;
-    let target = card_dir(&cards_dir(storage), id)?;
-    let _guard = storage.lock(&target).await;
-    game_card_copy::preserve_sessions(&target, staging)?;
-    game_card_copy::replace(staging, &target)?;
-    drop(_guard);
-    set_active(storage, Some(id)).await?;
-    Ok(card)
-}
-
 async fn install_with_cleanup(storage: &AppStorage, staging: &Path) -> CardResult<Value> {
-    let result = install_staged(storage, staging).await;
+    let result = crate::game_card_install::install(storage, staging).await;
     if result.is_err() {
         let _ = fs::remove_dir_all(staging);
     }

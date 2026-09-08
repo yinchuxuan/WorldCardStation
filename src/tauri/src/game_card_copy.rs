@@ -56,30 +56,3 @@ pub fn preserve_sessions(target: &Path, temp: &Path) -> CardResult<()> {
     }
     Ok(())
 }
-
-pub fn replace(temp: &Path, target: &Path) -> CardResult<()> {
-    if !target.exists() {
-        fs::rename(temp, target)?;
-        return Ok(());
-    }
-    let parent = target.parent().unwrap_or_else(|| Path::new("."));
-    let backup = parent.join(format!(
-        ".{}-backup-{}",
-        target
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or("card"),
-        Uuid::new_v4()
-    ));
-    fs::rename(target, &backup)?;
-    if let Err(error) = fs::rename(temp, target) {
-        let rollback = fs::rename(&backup, target);
-        let message = rollback.map_or_else(
-            |rollback| format!("Failed to install game card: {error}; rollback failed: {rollback}"),
-            |_| format!("Failed to install game card: {error}"),
-        );
-        return Err(GameCardError::new(message));
-    }
-    let _ = fs::remove_dir_all(backup);
-    Ok(())
-}

@@ -66,6 +66,7 @@ Shared core 不依赖 DOM、React、Tauri、Node 文件系统或本地绝对路�
 ## 测试边界
 
 - `test/chat`、`test/game-card`、`test/components`：Jest renderer 和 shared core 测试。
+- `test/libs`：`libs/` 下可复用库的测试及公共测试辅助文件。
 - `test/platform`：Tauri/memory adapter contract 与 WebView 配置测试。
 - `src/tauri/src/*tests*`：存储、导入、资源协议和模型网络 Rust 测试。
 - `test/tauri-e2e`：真实 Tauri commands、资源协议、流式网络和进程重启恢复。

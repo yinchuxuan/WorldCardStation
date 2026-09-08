@@ -1,4 +1,4 @@
-import { resolveFileSource } from './contentFiles.js';
+import { resolveFileSource } from '../../shared/game-card/content/contentFiles.js';
 import { resolveScopedTextPath } from '../../shared/game-card/content/fileScopes.js';
 
 const fileEntriesByApi = new WeakMap();

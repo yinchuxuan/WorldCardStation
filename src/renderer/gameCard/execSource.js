@@ -1,24 +1,11 @@
-function resolveFilePath(requestedPath, options) {
-  const nodePath = options.path;
-  if (!nodePath || !options.baseDir) throw new Error('exec sourceFile requires a baseDir');
-  if (nodePath.isAbsolute(requestedPath)) throw new Error('exec sourceFile path must be relative');
-  const baseDir = nodePath.resolve(options.baseDir);
-  const filePath = nodePath.resolve(baseDir, requestedPath);
-  if (filePath !== baseDir && !filePath.startsWith(baseDir + nodePath.sep)) {
-    throw new Error('exec sourceFile path must stay inside game card directory');
-  }
-  return filePath;
-}
-
 function readSourceFile(filePath, options = {}) {
   if (options.fileContents && Object.prototype.hasOwnProperty.call(options.fileContents, filePath)) {
     return options.fileContents[filePath];
   }
-  const nodeFs = options.fs;
-  if (!nodeFs || typeof nodeFs.readFileSync !== 'function') {
-    throw new Error('exec sourceFile requires fs.readFileSync');
-  }
-  return nodeFs.readFileSync(resolveFilePath(filePath, options), 'utf-8');
+  if (typeof options.readFile !== 'function') throw new Error('exec sourceFile requires preloaded content');
+  const source = options.readFile(filePath);
+  if (typeof source !== 'string') throw new Error(`exec file reader must return text: ${filePath}`);
+  return source;
 }
 
 function normalizeCardPath(filePath) {

@@ -1,6 +1,6 @@
-const path = require('node:path');
 const { applyGameCard } = require('../../src/renderer/gameCard/engine');
-const { applyAction } = require('../../src/renderer/gameCard/actions');
+const { applyAction } = require('../../src/shared/game-card/engine/actions');
+const { runExecAction } = require('../../src/renderer/gameCard/execRunner');
 
 function cardWithExec(source) {
   return cardWithActions([{ type: 'exec', source }]);
@@ -44,7 +44,7 @@ describe('game card exec runtime', () => {
     const result = applyAction([{ role: 'user', content: 'hello' }], {
       type: 'exec',
       source: 'state.turn = 2; return { state };'
-    }, { state: { turn: 1 } });
+    }, { state: { turn: 1 }, runExecAction });
 
     expect(result.messages).toEqual([{ role: 'user', content: 'hello' }]);
     expect(result.state).toEqual({ turn: 2 });
@@ -65,21 +65,17 @@ describe('game card exec runtime', () => {
     expect(result.trace.rules[0].actions[0].sourceFile).toBe('scripts/timeline.js');
   });
 
-  test('exec sourceFile reads safely from the game card directory in Node runtime', () => {
-    const baseDir = path.resolve('/game-card');
-    const fakeFs = {
-      readFileSync: jest.fn(() => 'function run(ctx) { ctx.state.loaded = true; return { state: ctx.state }; }')
-    };
+  test('exec sourceFile reads a relative card path through the injected reader', () => {
+    const readFile = jest.fn(() => 'function run(ctx) { ctx.state.loaded = true; return { state: ctx.state }; }');
     const result = applyGameCard({
       card: cardWithActions([{ type: 'exec', sourceFile: 'scripts/timeline.js' }]),
       phase: 'after_response', messages: [], state: {},
-      contentBaseDir: baseDir,
-      fs: fakeFs,
-      path
+      dependencies: { readFile }
     });
 
     expect(result.state).toEqual({ loaded: true });
-    expect(fakeFs.readFileSync).toHaveBeenCalledWith(path.join(baseDir, 'scripts', 'timeline.js'), 'utf-8');
+    expect(result.trace.errors).toEqual([]);
+    expect(readFile).toHaveBeenCalledWith('scripts/timeline.js');
   });
 
   test('exec sourceFile requires a run function', () => {

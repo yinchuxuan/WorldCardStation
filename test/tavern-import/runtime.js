@@ -1,7 +1,7 @@
 import { convertTavernCard } from '../../src/shared/tavern-import/convert.js';
 import { createMemoryGameCardPlatform } from '../../src/renderer/platform/memoryGameCardPlatform.js';
 import { controlledScriptExecutor } from '../../src/renderer/platform/controlledScriptExecutor.js';
-import { scripts } from '../game-card/worldbookTestRuntime.js';
+import { scripts } from '../libs/worldbookTestRuntime.js';
 
 export function source(data = {}, spec = 'chara_card_v2') {
   return { spec, spec_version: spec.endsWith('v3') ? '3.0' : '2.0', data: {

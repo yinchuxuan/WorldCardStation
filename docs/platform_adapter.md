@@ -60,6 +60,10 @@ OpenAI-compatible 流中的 `reasoning_content`、`reasoning` 与可见的 `reas
 
 `controlledScriptExecutor.js` 在独立 Worker 中执行游戏卡 JavaScript，默认总超时为 2000 毫秒，包含 Worker 启动、执行及异步文件读取等待；超时会终止 Worker。规则入口与执行器共用默认值，内部调用仍可显式传入 `options.timeoutMs`。脚本 context 和 result 协议位于 `src/shared/game-card/exec`；DOM、native command 和本地文件能力不会进入脚本上下文。
 
+规则、Content 和 exec 共用预加载的 `fileContents` 与显式注入的读取接口，不接受 Node `fs`、`path` 或本地 `baseDir`。同步 `readFile(relativePath)` 必须返回文本；桌面异步读取通过 `resources.readText` 预加载脚本及 include，目录 scope 的延迟读取使用 `readText`。renderer 不再维护独立的 action / Content 文件适配封装。
+
+Node VM 执行分支仍供 Jest 与无 WebView 的内存管线测试使用；它不是第二个桌面 target。memory adapter、JSDoc contract 和 schema 引用收集校验也属于有实际用途的测试／开发支持，不按生产入口不可达直接删除。
+
 ## 调用方向
 
 ```txt

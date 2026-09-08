@@ -140,8 +140,8 @@ Outlet 只汇总到 `state.__worldbook[scopeId].outlets` 及 effects，不自动
 
 ## 验证
 
-仓库中的 `test/game-card/worldbook*.test.js` 覆盖真实 ST 导出形状、V2/V3 差异、选择与插入、跨轮恢复、沙盒/Worker、千条资源读取和 WA2 脚本副本一致性。运行：
+仓库中的 `test/libs/worldbook*.test.js` 覆盖真实 ST 导出形状、V2/V3 差异、选择与插入、跨轮恢复、沙盒/Worker、千条资源读取和 WA2 脚本副本一致性。运行：
 
 ```sh
-npx jest --runInBand --coverage=false test/game-card/worldbook
+npx jest --runInBand --coverage=false test/libs/worldbook
 ```

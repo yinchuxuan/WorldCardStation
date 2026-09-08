@@ -4,47 +4,26 @@ import {
   cloneMessages
 } from '../../shared/game-card/engine/engine.js';
 import { runExecAction } from './execRunner.js';
-import { createPlatformFileReader } from './platformFileReader.js';
 
-function applyGameCard(options = {}) {
-  const {
-    contentBaseDir,
-    dependencies = {},
-    fs,
-    path,
-    ...coreOptions
-  } = options;
-  const platformOptions = { baseDir: contentBaseDir, fs, path };
-  const readFile = dependencies.readFile || createPlatformFileReader(platformOptions);
+function prepareOptions({ dependencies = {}, ...coreOptions }) {
   const execute = dependencies.runExecAction || ((messages, state, action, runtimeOptions) => (
     runExecAction(messages, state, action, {
       ...runtimeOptions,
-      ...platformOptions,
       scriptExecutor: dependencies.scriptExecutor
     })
   ));
-
-  return applyCoreGameCard({
+  return {
     ...coreOptions,
-    dependencies: { readFile, readText: dependencies.readText, runExecAction: execute }
-  });
+    dependencies: { readFile: dependencies.readFile, readText: dependencies.readText, runExecAction: execute }
+  };
+}
+
+function applyGameCard(options = {}) {
+  return applyCoreGameCard(prepareOptions(options));
 }
 
 function applyGameCardAsync(options = {}) {
-  const { contentBaseDir, dependencies = {}, fs, path, ...coreOptions } = options;
-  const platformOptions = { baseDir: contentBaseDir, fs, path };
-  const readFile = dependencies.readFile || createPlatformFileReader(platformOptions);
-  const execute = dependencies.runExecAction || ((messages, state, action, runtimeOptions) => (
-    runExecAction(messages, state, action, {
-      ...runtimeOptions,
-      ...platformOptions,
-      scriptExecutor: dependencies.scriptExecutor
-    })
-  ));
-  return applyCoreGameCardAsync({
-    ...coreOptions,
-    dependencies: { readFile, readText: dependencies.readText, runExecAction: execute }
-  });
+  return applyCoreGameCardAsync(prepareOptions(options));
 }
 
 export { applyGameCard, applyGameCardAsync, cloneMessages };

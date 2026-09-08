@@ -102,8 +102,7 @@ function applyAction(messages, action, options = {}) {
     const found = withFindState(options.state || {}, action.find, messages);
     const next = applyAction(messages, { ...action, find: undefined }, {
       ...options,
-      state: found.state,
-      find: Array.isArray(action.find) ? options.find : { ...options.find, ...action.find }
+      state: found.state
     });
     return { ...next, state: found.restore(next.state || found.state) };
   }

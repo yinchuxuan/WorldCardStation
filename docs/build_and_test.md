@@ -38,6 +38,8 @@ Tauri is the only desktop target.
 
 `jest.config.js` uses jsdom and Testing Library for renderer/shared tests. The Tauri API module is mocked at the adapter boundary; business tests configure native command results through `global.platformMock`.
 
+`test/libs/` contains reusable library tests and their helpers; game-card-specific tests stay in `test/game-card/`, and Tavern conversion tests stay in `test/tavern-import/`. Run library tests with `npx jest --runInBand --coverage=false test/libs`. The default Jest suite discovers them automatically.
+
 Coverage thresholds remain 70% branches, 80% functions, 85% lines and 82% statements.
 
 `jest.integration.config.js` runs the remaining platform-independent filesystem and schema integration tests without mocks.

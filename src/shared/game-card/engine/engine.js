@@ -44,8 +44,7 @@ function applyMatchingRule(messages, state, rule, index, options) {
   const found = rule.find ? withFindState(state, rule.find, messages) : null;
   const applied = applyActions(messages, rule.then || [], {
     ...options,
-    state: found?.state || state,
-    find: found && !Array.isArray(rule.find) ? { ...options.find, ...rule.find } : options.find
+    state: found?.state || state
   });
   const finalState = found ? found.restore(applied.state) : applied.state;
   return {
@@ -68,8 +67,7 @@ async function applyMatchingRuleAsync(messages, state, rule, index, options) {
   const found = rule.find ? withFindState(state, rule.find, messages) : null;
   const applied = await applyActionsAsync(messages, rule.then || [], {
     ...options,
-    state: found?.state || state,
-    find: found && !Array.isArray(rule.find) ? { ...options.find, ...rule.find } : options.find
+    state: found?.state || state
   });
   const finalState = found ? found.restore(applied.state) : applied.state;
   return {

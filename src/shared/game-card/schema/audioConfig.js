@@ -4,12 +4,6 @@ function isObject(value) {
 
 const EMPTY_BGM = 'none';
 
-function getBgmRelativePath(card, gameState) {
-  const key = gameState?.audio?.bgm;
-  if (!key || typeof key !== 'string') return '';
-  return card?.audio?.bgm?.[key] || '';
-}
-
 function getAudioStateSchema(card) {
   const bgm = card?.audio?.bgm;
   if (!isObject(bgm)) return {};
@@ -27,4 +21,4 @@ function getAudioStateSchema(card) {
   };
 }
 
-export { EMPTY_BGM, getAudioStateSchema, getBgmRelativePath };
+export { getAudioStateSchema };

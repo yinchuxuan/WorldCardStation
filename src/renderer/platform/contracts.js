@@ -14,6 +14,7 @@
 /** @typedef {GameCardPlatform} GameCardPlatformOptions */
 
 /** @typedef {{load: () => Promise<JsonObject>, save: (value: JsonObject) => Promise<JsonObject>}} ConfigService */
+/** @typedef {{getInstructions: () => Promise<string>}} DevelopmentService */
 /**
  * @typedef {Object} BackgroundService
  * @property {() => Promise<JsonObject>} load
@@ -42,6 +43,7 @@
  */
 /**
  * @typedef {Object} RendererServices
+ * @property {DevelopmentService} development
  * @property {ConfigService} config
  * @property {BackgroundService} background
  * @property {SessionRepository} sessions

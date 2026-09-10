@@ -1,0 +1,40 @@
+.settings-development p,
+.settings-development-manual {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--md-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.settings-development .md-btn {
+  width: 100%;
+  min-height: 44px;
+  gap: 12px;
+}
+
+.settings-development .md-btn .material-icons { font-size: 20px; }
+
+.settings-development-result.success { color: var(--md-success); }
+.settings-development-result.error { color: var(--md-error); }
+
+.settings-development-manual { display: block; }
+
+.settings-development-manual textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  resize: vertical;
+  border: 1px solid var(--md-outline);
+  border-radius: 8px;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font: inherit;
+  user-select: text;
+}
+
+.settings-development button:focus-visible,
+.settings-development textarea:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}

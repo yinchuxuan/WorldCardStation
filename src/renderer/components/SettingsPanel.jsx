@@ -1,6 +1,7 @@
 import React from 'react';
 import SettingsBackground from './SettingsBackground.jsx';
 import SettingsModelConfig from './SettingsModelConfig.jsx';
+import SettingsGameCardDevelopment from './SettingsGameCardDevelopment.jsx';
 import useSettingsState from '../settings/useSettingsState.js';
 import { PropTypes } from './componentPropTypes.js';
 
@@ -47,6 +48,7 @@ function SettingsPanel({ onToggleTheme, theme, onBackgroundChange }) {
               maskApiKey={maskApiKey}
               isConfigured={isConfigured}
           />
+          <SettingsGameCardDevelopment />
         </div>
       </div>
     </div>

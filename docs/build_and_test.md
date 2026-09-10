@@ -31,6 +31,7 @@ Tauri is the only desktop target.
 - `src/renderer/styles/renderer.css` is the single platform CSS entry.
 - Tauri development starts Vite through `beforeDevCommand`.
 - Tauri production and E2E build Vite through `beforeBuildCommand`.
+- Cargo `build.rs` also generates the [offline game card devkit](./game_card/game_card_devkit.md) from local docs/templates/libs and bundles it as `devkit/`; no separate generation command is needed.
 - Production output uses WebKit/Chromium-compatible targets and local bundled fonts.
 - Model requests use Rust `reqwest` and Channel; renderer does not require provider CORS support.
 
@@ -53,6 +54,10 @@ Coverage thresholds remain 70% branches, 80% functions, 85% lines and 82% statem
 - game card imports, schema parity and path safety;
 - resource authorization, MIME and audio Range responses;
 - model request validation, streaming and cancellation.
+- offline devkit generation, version consistency, portable documentation links and template validation (`cargo test --manifest-path src/tauri/Cargo.toml devkit --lib`).
+- [project initialization](./game_card/game_card_project_init.md), no-overwrite/rollback safety and native command results (`cargo test --manifest-path src/tauri/Cargo.toml project_init`).
+- GUI agent bootstrap instructions, local resource discovery and POSIX/PowerShell quoting (`cargo test --manifest-path src/tauri/Cargo.toml development --lib`).
+
 ## Tauri E2E
 
 `test/tauri-e2e` uses WebdriverIO with the embedded Tauri WebDriver provider. The `e2e` Cargo feature enables test-only plugins, an isolated app data directory and a fixed fixture import directory.

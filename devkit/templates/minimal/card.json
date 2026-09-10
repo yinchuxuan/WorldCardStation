@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "id": "REPLACE_WITH_NEW_UUID",
+  "name": "我的游戏卡",
+  "description": "请填写游戏简介",
+  "author": "请填写作者",
+  "rules": [
+    {
+      "id": "opening",
+      "when": { "phase": "init", "length": 0 },
+      "then": [
+        { "type": "insert", "role": "assistant", "content": "故事即将开始。你想做什么？" }
+      ]
+    }
+  ]
+}

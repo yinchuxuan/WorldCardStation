@@ -2,25 +2,29 @@
    Background Settings Styles - Shared Section
    ============================================ */
 
-.model-config-section {
+.model-config-section,
+.settings-development {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--md-outline-variant);
 }
 
-.model-config-header {
+.model-config-header,
+.settings-development h3 {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-.model-config-header .material-icons {
+.model-config-header .material-icons,
+.settings-development h3 .material-icons {
   font-size: 20px;
   color: var(--md-primary);
 }
 
-.model-label {
+.model-label,
+.settings-development h3 {
   font-size: 14px;
   font-weight: 500;
   color: var(--md-on-surface);

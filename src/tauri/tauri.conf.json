@@ -53,6 +53,7 @@
   },
   "bundle": {
     "active": true,
+    "resources": { "../../dist/devkit/": "devkit/" },
     "targets": "all",
     "category": "Entertainment",
     "shortDescription": "世界站 AI roleplay game card platform",

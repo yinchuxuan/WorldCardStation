@@ -67,9 +67,8 @@ Audio 不进入 LLM prompt，不写入消息正文，也不由 display rules 处
 
 ```json
 {
-  "type": "state",
+  "type": "state.set",
   "path": "audio.bgm",
-  "op": "set",
   "value": "ensemble"
 }
 ```

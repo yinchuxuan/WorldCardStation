@@ -8,6 +8,7 @@ function requirePlatformMock() {
 }
 
 const commandMethods = {
+  get_game_card_development_instructions: ['getGameCardDevelopmentInstructions'],
   get_model_config: ['getModelConfig'],
   save_model_config: ['saveModelConfig', 'config'],
   get_background_config: ['getBackgroundConfig'],

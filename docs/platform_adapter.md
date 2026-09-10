@@ -35,10 +35,13 @@ rendererServices.config
 rendererServices.background
 rendererServices.sessions
 rendererServices.cards
+rendererServices.development
 rendererServices.window
 ```
 
 `tauriRendererServices.js` 将 contract 映射为业务级 command 和受控窗口 API，并用 `listen` 订阅背景配置变更。adapter 负责将 Rust 错误、取消和校验详情归一化为 JavaScript `Error`。
+
+`development.getInstructions()` 调用只读 `get_game_card_development_instructions`，由 native 根据当前客户端/资源目录生成 agent 起步文本，不接受 renderer 提供的本机路径。设置组件负责剪贴板写入及失败时的手动复制；该能力不初始化项目或改变游戏卡、Session、模型配置。
 
 `cards.uninstall(id)` 删除已导入游戏卡；如果目标是当前 active card，后端同时清空 active card。游戏卡选择器负责在调用前二次确认，并在卸载当前卡后切回普通聊天 Session。
 

@@ -30,6 +30,7 @@ jest.mock('@tauri-apps/api/window', () => ({
 
 // Mock native commands used through the Tauri renderer adapter.
 global.platformMock = {
+  getGameCardDevelopmentInstructions: jest.fn().mockResolvedValue('游戏卡开发指令'),
   getModelConfig: jest.fn(),
   saveModelConfig: jest.fn(),
   getBackgroundConfig: jest.fn(),

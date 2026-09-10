@@ -1,6 +1,8 @@
 # 游戏卡 JSON Import
 
+<!-- devkit:omit:start -->
 本文只定义卡内 JSON 的 `$import` 展开语义。`.gamecard` 与 PNG 图片游戏卡的打包、导入和导出见 [游戏卡分发容器](./game_card_packages.md)。
+<!-- devkit:omit:end -->
 
 JSON 标准本身不支持 import。平台在读取游戏卡时提供一个加载期扩展：
 

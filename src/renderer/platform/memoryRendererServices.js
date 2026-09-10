@@ -12,6 +12,9 @@ function createMemoryRendererServices(initial = {}) {
   const closeListeners = new Set();
   const imports = new Map();
   return {
+    development: {
+      getInstructions: async () => initial.developmentInstructions || '游戏卡开发指令（内存测试平台）'
+    },
     config: {
       load: async () => config,
       save: async value => { config = value; return config; }

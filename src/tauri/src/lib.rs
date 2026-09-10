@@ -1,5 +1,7 @@
 mod app_storage;
 mod config_commands;
+mod developer_cli;
+mod development_commands;
 mod game_card_archive;
 mod game_card_commands;
 mod game_card_copy;
@@ -19,6 +21,12 @@ mod history;
 mod json_store;
 mod model_commands;
 mod model_http;
+mod project_init;
+mod project_init_assets;
+mod project_init_error;
+mod project_init_paths;
+mod project_init_plan;
+mod project_init_write;
 mod resource_assets;
 mod resource_response;
 mod session_commands;
@@ -46,6 +54,10 @@ fn storage_dir(app: &tauri::App) -> tauri::Result<std::path::PathBuf> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    if let Some(status) = developer_cli::run(context.package_info()) {
+        std::process::exit(status);
+    }
     let builder = tauri::Builder::default();
     #[cfg(feature = "e2e")]
     let builder = builder
@@ -70,6 +82,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            development_commands::get_game_card_development_instructions,
             config_commands::get_model_config,
             config_commands::save_model_config,
             config_commands::get_background_config,
@@ -98,7 +111,7 @@ pub fn run() {
             model_commands::stream_model_request,
             model_commands::cancel_model_stream
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running Tauri application");
 }
 
@@ -118,6 +131,11 @@ pub fn export_game_card_package(
 }
 
 #[cfg(test)]
+#[path = "../build/devkit.rs"]
+mod devkit;
+#[cfg(test)]
+mod development_tests;
+#[cfg(test)]
 mod game_card_directory_tests;
 #[cfg(test)]
 mod game_card_package_tests;
@@ -127,6 +145,10 @@ mod game_card_tests;
 mod game_card_uninstall_tests;
 #[cfg(test)]
 mod model_tests;
+#[cfg(test)]
+mod project_init_tests;
+#[cfg(test)]
+mod project_init_safety_tests;
 #[cfg(test)]
 mod resource_tests;
 #[cfg(test)]

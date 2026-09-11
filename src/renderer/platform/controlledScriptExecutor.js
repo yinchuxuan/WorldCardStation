@@ -1,5 +1,6 @@
 import { getExecFileEntries } from '../gameCard/execFiles.js';
 import { scriptWorkerSource } from './scriptWorkerSource.js';
+import { assertBrowserExecSource } from '../../shared/game-card/exec/execCompilation.js';
 
 const DEFAULT_EXEC_TIMEOUT_MS = 2000;
 
@@ -66,8 +67,7 @@ function serializableContext(context) {
 }
 
 function runInBrowser(source, context, options) {
-  const blocked = /\b(Function|eval)\b/;
-  if (blocked.test(source)) return Promise.reject(new Error('exec source contains blocked browser runtime token'));
+  try { assertBrowserExecSource(source); } catch (error) { return Promise.reject(error); }
   const created = (options.workerFactory || createBrowserWorker)();
   const worker = created.worker || created;
   const release = created.release || (() => {});

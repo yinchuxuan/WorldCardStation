@@ -33,7 +33,9 @@ fn development_instructions_use_supplied_paths_and_existing_offline_documents() 
     assert!(text.contains(".wcs/development.md"));
     assert!(text.contains("不要写入 card.json"));
     assert!(text.contains("已有项目的文件必须保留"));
-    assert!(text.contains("尚未实现 --dry-run"));
+    assert!(text.contains(&format!("{command} --dry-run '.'")));
+    assert!(text.contains("notChecked"));
+    assert!(text.contains("3 表示检查未完成"));
     assert!(text.contains("保持此客户端打开"));
     assert_eq!(fs::read_dir(&temp.0).unwrap().count(), 1);
 }

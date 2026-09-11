@@ -46,6 +46,9 @@ jobs:
       - run: cargo fmt --manifest-path src/tauri/Cargo.toml --check
       - run: cargo clippy --manifest-path src/tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path src/tauri/Cargo.toml
+        if: runner.os != 'Linux'
+      - run: xvfb-run -a cargo test --manifest-path src/tauri/Cargo.toml
+        if: runner.os == 'Linux'
       - name: Tauri E2E
         if: runner.os != 'Linux'
         run: npm run test:tauri

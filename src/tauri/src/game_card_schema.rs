@@ -1,6 +1,7 @@
 use crate::game_card_error::{CardResult, GameCardError, ValidationDetail};
 use crate::game_card_paths::{existing_directory, existing_file};
 use crate::game_card_references::collect_file_references;
+use crate::game_card_source_map::child_pointer;
 use crate::game_card_state_schema::validate_state_schema;
 use serde_json::Value;
 use std::fs;
@@ -45,9 +46,12 @@ fn validate_structure(card: &Value) -> CardResult<()> {
     })?;
     let details: Vec<_> = validator
         .iter_errors(card)
-        .map(|error| ValidationDetail {
-            file: "card.json".to_string(),
-            message: format!("{}: {error}", error.instance_path()),
+        .map(|error| {
+            ValidationDetail::new(
+                "card.json",
+                format!("{}: {error}", error.instance_path()),
+                Some(error.instance_path().to_string()),
+            )
         })
         .collect();
     if details.is_empty() {
@@ -68,23 +72,20 @@ fn collect_random_range_errors(value: &Value, path: &str, errors: &mut Vec<Valid
             let min = object.get("min").and_then(Value::as_i64);
             let max = object.get("max").and_then(Value::as_i64);
             if min.zip(max).is_some_and(|(min, max)| max < min) {
-                errors.push(ValidationDetail {
-                    file: "card.json".to_string(),
-                    message: format!("{path}.max: must be >= {}", min.unwrap()),
-                });
+                errors.push(ValidationDetail::new(
+                    "card.json",
+                    format!("{path}/max: must be >= {}", min.unwrap()),
+                    Some(child_pointer(path, "max")),
+                ));
             }
         }
         for (key, child) in object {
-            let next = if path.is_empty() {
-                key.clone()
-            } else {
-                format!("{path}.{key}")
-            };
+            let next = child_pointer(path, key);
             collect_random_range_errors(child, &next, errors);
         }
     } else if let Some(items) = value.as_array() {
         for (index, child) in items.iter().enumerate() {
-            collect_random_range_errors(child, &format!("{path}[{index}]"), errors);
+            collect_random_range_errors(child, &child_pointer(path, &index.to_string()), errors);
         }
     }
 }
@@ -109,12 +110,16 @@ fn validate_files(card: &Value, root: &Path) -> CardResult<()> {
     let mut details: Vec<_> = references
         .into_iter()
         .filter_map(|reference| {
-            existing_file(root, &reference.file)
-                .err()
-                .map(|_| ValidationDetail {
-                    file: reference.file,
-                    message: format!("{}: file not found", reference.field),
-                })
+            existing_file(root, &reference.file).err().map(|error| {
+                ValidationDetail::new(
+                    "card.json",
+                    format!(
+                        "{}: {}: file not found or unsafe ({})",
+                        reference.field, reference.file, error.error
+                    ),
+                    Some(reference.pointer),
+                )
+            })
         })
         .collect();
     if let Some(files) = card.get("files").and_then(Value::as_object) {
@@ -123,10 +128,11 @@ fn validate_files(card: &Value, root: &Path) -> CardResult<()> {
                 continue;
             };
             if existing_directory(root, directory).is_err() {
-                details.push(ValidationDetail {
-                    file: directory.to_string(),
-                    message: format!("files.{id}.directory: directory not found"),
-                });
+                details.push(ValidationDetail::new(
+                    "card.json",
+                    format!("files.{id}.directory: directory not found: {directory}"),
+                    Some(child_pointer(&child_pointer("/files", id), "directory")),
+                ));
             }
         }
     }
@@ -158,17 +164,15 @@ fn validate_external_state(card: &Value, root: &Path) -> CardResult<()> {
             "load_state_schema",
             Some(file),
             vec![ValidationDetail {
-                file: file.to_string(),
-                message: error.to_string(),
+                line: Some(error.line()),
+                column: Some(error.column()),
+                ..ValidationDetail::new(file, error.to_string(), None)
             }],
         )
     })?;
     let details: Vec<_> = validate_state_schema(&value)
         .into_iter()
-        .map(|message| ValidationDetail {
-            file: file.to_string(),
-            message,
-        })
+        .map(|message| ValidationDetail::new(file, message, None))
         .collect();
     if details.is_empty() {
         Ok(())

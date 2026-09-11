@@ -73,7 +73,7 @@ fn project_init_cli_reports_help_and_rejects_invalid_commands_with_json_exit_sta
     for args in [
         vec!["--init-project"],
         vec!["--lib", "worldbook"],
-        vec!["--dry-run", "."],
+        vec!["--dry-run"],
         vec!["--init-project", "new", "--lib", "unknown"],
         vec!["--init-project", "a", "--init-project", "b"],
     ] {

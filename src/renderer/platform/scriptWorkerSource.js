@@ -1,4 +1,7 @@
+import { compileExecSource } from '../../shared/game-card/exec/execCompilation.js';
+
 const scriptWorkerSource = String.raw`
+const compileExecSource = ${compileExecSource.toString()};
 function section(content, heading) {
   const lines = String(content).split(/\r?\n/);
   const escaped = String(heading).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -60,10 +63,6 @@ function createUtils() {
     uuid: () => crypto.randomUUID()
   });
 }
-function buildSource(source, isSourceFile) {
-  if (isSourceFile) return source + '\nif (typeof run !== "function") throw new Error("exec sourceFile must define function run(ctx)");\nreturn run(__ctx);';
-  return '"use strict";\nconst ctx = __ctx;\nconst { messages, state, config, event, args, utils, files } = ctx;\n' + source;
-}
 self.onmessage = async event => {
   if (event.data.type === 'file.response') {
     settleFileRead(event.data);
@@ -79,9 +78,7 @@ self.onmessage = async event => {
       files: createFiles(data.files, data.context.state),
       utils: createUtils()
     };
-    const execute = Function('__ctx', 'self', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket',
-      'EventSource', 'BroadcastChannel', 'Worker', 'SharedWorker', 'navigator', 'location', 'caches',
-      'importScripts', 'postMessage', 'close', 'indexedDB', buildSource(data.source, data.isSourceFile));
+    const execute = compileExecSource(data.source, data.isSourceFile);
     const result = await execute(context, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined);

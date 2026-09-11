@@ -18,6 +18,28 @@ pub struct GameCardError {
 pub struct ValidationDetail {
     pub file: String,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pointer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub column: Option<usize>,
+}
+
+impl ValidationDetail {
+    pub fn new(
+        file: impl Into<String>,
+        message: impl Into<String>,
+        pointer: Option<String>,
+    ) -> Self {
+        Self {
+            file: file.into(),
+            message: message.into(),
+            pointer,
+            line: None,
+            column: None,
+        }
+    }
 }
 
 pub type CardResult<T> = Result<T, GameCardError>;

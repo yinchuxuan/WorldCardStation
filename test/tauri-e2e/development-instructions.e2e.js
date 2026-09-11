@@ -1,6 +1,8 @@
 /* global browser, $, after */
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const { invoke, refreshApp } = require('./support/tauri');
 
 async function clickCopy() {
@@ -81,8 +83,34 @@ describe('Game card development bootstrap', () => {
     }
     expect(text).toContain('--init-project');
     expect(text).toContain('--lib worldbook');
+    expect(text).toContain('--dry-run');
     expect(text).toContain('.wcs/development.md');
     expect(await Promise.all(commands.map(command => invoke(command)))).toEqual(before);
+  });
+
+  it('runs offline syntax checks while the existing GUI and its data remain unchanged', async () => {
+    const text = await invoke('get_game_card_development_instructions');
+    const { executable } = JSON.parse(text.match(/```json\n([\s\S]*?)\n```/)[1]);
+    const commands = ['get_game_cards', 'list_chat_sessions', 'get_model_config', 'get_chat_history'];
+    const before = await Promise.all(commands.map(command => invoke(command)));
+    const project = fs.mkdtempSync(path.join(os.tmpdir(), 'wcs-dry-run-e2e-'));
+    try {
+      const launch = args => JSON.parse(execFileSync(executable, args, {
+        cwd: project, env: { ...process.env, PATH: '' }, timeout: 40000, encoding: 'utf8'
+      }));
+      expect(launch(['--init-project', '.', '--lib', 'worldbook']).ok).toBe(true);
+      const card = fs.readFileSync(path.join(project, 'card.json'), 'utf8');
+      const report = launch(['--dry-run', '.']);
+      expect(report.status).toBe('valid');
+      expect(report.checked).toContain('javascript_syntax');
+      expect(report).not.toHaveProperty('tracePath');
+      expect(fs.readFileSync(path.join(project, 'card.json'), 'utf8')).toBe(card);
+      expect(fs.existsSync(path.join(project, 'sessions'))).toBe(false);
+      await expect($('.app-container')).toExist();
+      expect(await Promise.all(commands.map(command => invoke(command)))).toEqual(before);
+    } finally {
+      fs.rmSync(project, { recursive: true });
+    }
   });
 
   it('supports the real WebView clipboard or offers complete manual text if denied', async () => {

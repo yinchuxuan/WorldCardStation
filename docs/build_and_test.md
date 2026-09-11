@@ -57,6 +57,9 @@ Coverage thresholds remain 70% branches, 80% functions, 85% lines and 82% statem
 - offline devkit generation, version consistency, portable documentation links and template validation (`cargo test --manifest-path src/tauri/Cargo.toml devkit --lib`).
 - [project initialization](./game_card/game_card_project_init.md), no-overwrite/rollback safety and native command results (`cargo test --manifest-path src/tauri/Cargo.toml project_init`).
 - GUI agent bootstrap instructions, local resource discovery and POSIX/PowerShell quoting (`cargo test --manifest-path src/tauri/Cargo.toml development --lib`).
+- [client dry-run](./game_card/game_card_dry_run.md), original-source diagnostics and real offline read-only syntax checks (`cargo test --manifest-path src/tauri/Cargo.toml dry_run`). The native integration checks require a desktop WebView; use `xvfb-run -a` on headless Linux, as in CI.
+
+Cargo also bundles the dry-run checker through the existing Node/Vite build dependencies and embeds it in the executable. Installed clients do not need Node, a dev server or a second checker package.
 
 ## Tauri E2E
 

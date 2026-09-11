@@ -2,6 +2,11 @@ mod app_storage;
 mod config_commands;
 mod developer_cli;
 mod development_commands;
+mod dry_run;
+mod dry_run_assets;
+mod dry_run_host;
+mod dry_run_profile;
+mod dry_run_report;
 mod game_card_archive;
 mod game_card_commands;
 mod game_card_copy;
@@ -16,6 +21,7 @@ mod game_card_png_write;
 mod game_card_references;
 mod game_card_repository;
 mod game_card_schema;
+mod game_card_source_map;
 mod game_card_state_schema;
 mod history;
 mod json_store;
@@ -54,10 +60,7 @@ fn storage_dir(app: &tauri::App) -> tauri::Result<std::path::PathBuf> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let context = tauri::generate_context!();
-    if let Some(status) = developer_cli::run(context.package_info()) {
-        std::process::exit(status);
-    }
+    let context = developer_cli::run(tauri::generate_context!());
     let builder = tauri::Builder::default();
     #[cfg(feature = "e2e")]
     let builder = builder
@@ -131,10 +134,12 @@ pub fn export_game_card_package(
 }
 
 #[cfg(test)]
+mod development_tests;
+#[cfg(test)]
 #[path = "../build/devkit.rs"]
 mod devkit;
 #[cfg(test)]
-mod development_tests;
+mod dry_run_tests;
 #[cfg(test)]
 mod game_card_directory_tests;
 #[cfg(test)]
@@ -146,9 +151,9 @@ mod game_card_uninstall_tests;
 #[cfg(test)]
 mod model_tests;
 #[cfg(test)]
-mod project_init_tests;
-#[cfg(test)]
 mod project_init_safety_tests;
+#[cfg(test)]
+mod project_init_tests;
 #[cfg(test)]
 mod resource_tests;
 #[cfg(test)]

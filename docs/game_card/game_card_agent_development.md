@@ -1,6 +1,6 @@
 # Agent 辅助游戏卡开发设计
 
-状态：分步实现中。[离线开发包](./game_card_devkit.md)、[项目初始化与 GUI 起步指令](./game_card_project_init.md) 已实现；dry-run 与开发者模式 trace 尚未实现，相关接口和日志字段仍为拟定形式。
+状态：分步实现中。[离线开发包](./game_card_devkit.md)、[项目初始化与 GUI 起步指令](./game_card_project_init.md)、[客户端 dry-run](./game_card_dry_run.md) 已实现；开发者模式 trace 尚未实现，相关接口和日志字段仍为拟定形式。
 
 ## 目标与范围
 
@@ -77,7 +77,7 @@ Git clone、目录移动或重新打开项目不需要平台内部的“已初�
 
 ## 客户端初始化与调用
 
-客户端提供跨平台一致的参数与结果语义；可执行文件位置因系统而异。以下 `client` 仅代表实际客户端路径；`--init-project` 已实现，`--dry-run` 仍待实现：
+客户端提供跨平台一致的参数与结果语义；可执行文件位置因系统而异。以下 `client` 仅代表实际客户端路径；`--init-project` 和 `--dry-run` 均已实现：
 
 ```text
 client --init-project . --lib worldbook
@@ -173,7 +173,7 @@ game-cards/cards/<card-id>/sessions/<session-id>/
 
 ## 实施边界与验收
 
-现有基础是 Schema、共享规则核心、Worker、资源沙盒与基础 trace；离线开发包、原生初始化入口和 GUI 起步指令已实现。语法检查入口、原文件映射、开发者模式下的完整行为日志及 session 落盘仍需实现。
+现有基础是 Schema、共享规则核心、Worker、资源沙盒与基础 trace；离线开发包、原生初始化入口、GUI 起步指令和语法检查入口已实现。dry-run 已保留 JSON import 来源和脚本文件定位；实际运行阶段的位置映射、开发者模式下的完整行为日志及 session 落盘仍需实现。
 
 实施顺序：发布内置开发包与初始化能力，接通只读语法检查入口，再完善实际游玩中的开发者模式日志。检查复用平台校验器，日志接入现有运行链路；不增加模拟执行器或第二套运行时。
 

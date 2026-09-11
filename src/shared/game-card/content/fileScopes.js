@@ -49,4 +49,4 @@ function resolveRegisteredTextPath(card, fileRef) {
   return resolveScopedTextPath(card, scopeId, fileRef.slice(separator + 1));
 }
 
-export { isDirectoryScope, resolveRegisteredTextPath, resolveScopedTextPath };
+export { isDirectoryScope, requireSafeRelativePath, resolveRegisteredTextPath, resolveScopedTextPath };

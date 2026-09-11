@@ -15,7 +15,7 @@ client --init-project <目录> --lib worldbook
 - `--help` 返回 JSON，包含用法、当前内置库及实际开发包/指南路径。
 - 目录可为绝对路径或相对调用进程当前目录的路径，支持空格和中文；不存在时创建。
 - `--lib` 可重复，重复的同名库去重；当前只支持 `worldbook`，不选择时不复制任何库。
-- 未知参数、缺少参数值、重复的 `--init-project` 或未知库明确失败；`--dry-run` 尚未实现，不会被当成启动普通窗口的参数。
+- 未知参数、缺少参数值、重复的 `--init-project` 或未知库明确失败；`--dry-run` 是独立的 [只读语法检查命令](./game_card_dry_run.md)，不能和初始化混用。
 - 应由 agent 的进程工具直接启动客户端并等待退出、读取 stdout；不要通过会转交给已有应用进程的打开文件/应用命令调用。
 
 macOS 已安装应用的可执行文件为 `.app/Contents/MacOS/world-card-station-tauri`；Windows 使用安装目录的 `.exe`，Linux 使用客户端可执行文件或 AppImage。可从下面的 GUI 入口取得实际路径，不要求设置 PATH。
@@ -26,7 +26,7 @@ macOS 已安装应用的可执行文件为 `.app/Contents/MacOS/world-card-stati
 
 系统配置 → 游戏卡开发 → **复制给 agent 的开发指令**。点击时客户端根据自身位置生成文本并复制，成功提示“已复制，请粘贴到 agent 对话中”。不弹目录选择器、不创建项目、不调用模型、不安装卡片或改写配置。
 
-指令包含平台版本、实际可执行文件与开发包路径、开发指南 / DSL spec / lib 索引入口、当前目录初始化的两种选项和 `--help`。先阅读本地文档，由 agent 按需求或开发者指定选择 lib；初始化后必须阅读 `.wcs/development.md`，处理保留文件与警告，不能将初始化视为 dry-run。
+指令包含平台版本、实际可执行文件与开发包路径、开发指南 / DSL spec / lib 索引入口、当前目录初始化的两种选项、修改后的 `--dry-run` 和 `--help`。先阅读本地文档，由 agent 按需求或开发者指定选择 lib；初始化后必须阅读 `.wcs/development.md`，处理保留文件与警告，不能将初始化视为 dry-run。
 
 macOS/Linux 命令使用 POSIX 单引号引用；Windows 使用 PowerShell 调用运算符及单引号转义。同时提供原始路径和参数数组说明，便于 agent 的进程工具绕过 shell 调用；不分发启动脚本。Linux AppImage 使用原始 AppImage 文件作为启动入口，内置文档在临时挂载目录中，阅读期间保持 GUI 客户端打开。
 
@@ -96,7 +96,7 @@ stdout 是单个 JSON 对象，以换行结束；Windows GUI 子系统版本也�
 
 ## 实现与测试
 
-`developer_cli.rs` 负责启动参数、资源定位和 JSON/退出状态；`project_init*` 模块负责文件计划、路径检查和仅新增写入，不引用聊天、模型、存档或安装管理模块。
+`developer_cli.rs` 负责启动参数、资源定位和 JSON/退出状态；`project_init*` 模块负责文件计划、路径检查和仅新增写入，不引用聊天、模型、存档或安装管理模块。GUI 起步指令同时给出修改后的 `--dry-run` 调用方式。
 
 `development_commands.rs` 只生成本机起步指令，通过 `rendererServices.development.getInstructions()` 接入设置组件；不向 renderer 开放任意目录读取能力。测试另覆盖本机路径、缺失开发包、两种 shell 引用、复制成功/失败与重试、真实桌面按钮及无安装副作用。
 

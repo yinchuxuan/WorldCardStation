@@ -42,4 +42,4 @@ function resolveFileSource(ref, options) {
   return extractUniqueFileSection(content, heading);
 }
 
-export { resolveFileSource };
+export { parseFileRef, resolveFileSource };

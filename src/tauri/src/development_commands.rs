@@ -85,7 +85,12 @@ pub(crate) fn instructions(
 {command} --help
 ```
 
-初始化只准备项目，不执行游戏卡规则、不调用模型、不生成 session 或 trace，也不代表语法检查通过。当前客户端尚未实现 --dry-run，不能声称已通过平台 dry-run。
+编写或修改卡片后，在项目目录检查语法：
+```{shell}
+{command} --dry-run '.'
+```
+读取单个 JSON 报告的 diagnostics、warnings、checked 和 notChecked。退出码 0 表示通过，1 表示校验错误，2 表示参数错误，3 表示检查未完成。修复错误后再次检查。
+初始化只准备项目，不代表语法检查通过。dry-run 只检查语法和静态引用，不执行游戏卡规则、不调用模型、不生成 session 或 trace；通过不代表实际行为符合预期。
 本机可执行文件和开发包绝对路径只用于本次连接，不要写入 card.json、.wcs 文档或提交到 Git。项目中使用相对路径。
 客户端移动或重新安装后，请重新从设置页复制指令。AppImage 的内置文档位于临时挂载目录，阅读期间请保持此客户端打开。
 "#

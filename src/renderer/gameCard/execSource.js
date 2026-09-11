@@ -66,4 +66,4 @@ function resolveExecSource(action, options = {}) {
   throw new Error('exec requires source or sourceFile');
 }
 
-export { extractExecIncludes, resolveExecIncludePath, resolveExecSource };
+export { extractExecIncludes, normalizeCardPath, resolveExecIncludePath, resolveExecSource };

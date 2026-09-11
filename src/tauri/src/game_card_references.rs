@@ -1,3 +1,4 @@
+use crate::game_card_source_map::child_pointer;
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -7,6 +8,7 @@ const SCHEMA_TEXT: &str = include_str!("../../shared/game-card/schema/game-card.
 pub struct FileReference {
     pub field: String,
     pub file: String,
+    pub pointer: String,
 }
 
 fn pointer<'a>(root: &'a Value, reference: &str) -> Option<&'a Value> {
@@ -28,10 +30,17 @@ fn child_path(parent: &str, key: &str, index: bool) -> String {
     }
 }
 
-fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec<FileReference>) {
+fn walk(
+    value: &Value,
+    schema: &Value,
+    root: &Value,
+    path: &str,
+    source: &str,
+    files: &mut Vec<FileReference>,
+) {
     if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
         if let Some(target) = pointer(root, reference) {
-            walk(value, target, root, path, files);
+            walk(value, target, root, path, source, files);
         }
     }
     if schema.get("x-file").and_then(Value::as_bool) == Some(true) {
@@ -39,19 +48,20 @@ fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec
             files.push(FileReference {
                 field: path.to_string(),
                 file: file.to_string(),
+                pointer: source.to_string(),
             });
         }
     }
     for keyword in ["allOf", "anyOf", "oneOf"] {
         if let Some(branches) = schema.get(keyword).and_then(Value::as_array) {
             for branch in branches {
-                walk(value, branch, root, path, files);
+                walk(value, branch, root, path, source, files);
             }
         }
     }
     for keyword in ["then", "else"] {
         if let Some(branch) = schema.get(keyword) {
-            walk(value, branch, root, path, files);
+            walk(value, branch, root, path, source, files);
         }
     }
     if let Some(items) = value.as_array() {
@@ -62,6 +72,7 @@ fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec
                     item_schema,
                     root,
                     &child_path(path, &index.to_string(), true),
+                    &child_pointer(source, &index.to_string()),
                     files,
                 );
             }
@@ -80,6 +91,7 @@ fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec
                     child_schema,
                     root,
                     &child_path(path, key, false),
+                    &child_pointer(source, key),
                     files,
                 );
             }
@@ -100,6 +112,7 @@ fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec
             additional,
             root,
             &child_path(path, key, false),
+            &child_pointer(source, key),
             files,
         );
     }
@@ -108,7 +121,7 @@ fn walk(value: &Value, schema: &Value, root: &Value, path: &str, files: &mut Vec
 pub fn collect_file_references(card: &Value) -> Result<Vec<FileReference>, String> {
     let schema: Value = serde_json::from_str(SCHEMA_TEXT).map_err(|error| error.to_string())?;
     let mut files = Vec::new();
-    walk(card, &schema, &schema, "", &mut files);
+    walk(card, &schema, &schema, "", "", &mut files);
     let mut seen = HashSet::new();
     files.retain(|item| seen.insert(item.clone()));
     Ok(files)

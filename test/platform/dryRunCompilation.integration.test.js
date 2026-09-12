@@ -1,18 +1,23 @@
 const path = require('node:path');
 const vm = require('node:vm');
 const { buildSync } = require('esbuild');
+const { transformSync } = require('@babel/core');
 
-function bundle(entry) {
-  const result = buildSync({ entryPoints: [path.resolve(__dirname, '../../src', entry)],
+function bundle(entry, instrument = false) {
+  const filename = path.resolve(__dirname, '../../src', entry);
+  const result = buildSync({ entryPoints: [filename],
     bundle: true, minify: true, write: false, platform: 'browser', target: 'safari15',
     format: 'iife', globalName: 'Compiled' });
   const context = {};
-  vm.runInNewContext(result.outputFiles[0].text, context, { timeout: 1000 });
+  const source = result.outputFiles[0].text;
+  const code = instrument ? transformSync(source, { filename, babelrc: false, configFile: false,
+    plugins: ['babel-plugin-istanbul'] }).code : source;
+  vm.runInNewContext(code, context, { timeout: 1000 });
   return context.Compiled;
 }
 
-test('minified production Worker and dry-run retain the same self-contained exec compiler', async () => {
-  const compiled = bundle('renderer/platform/scriptWorkerSource.js');
+test.each([false, true])('minified Worker compiler remains self-contained (coverage=%s)', async instrument => {
+  const compiled = bundle('renderer/platform/scriptWorkerSource.js', instrument);
   const outputs = [];
   const context = { self: { postMessage: value => outputs.push(value) } };
   vm.runInNewContext(compiled.scriptWorkerSource, context, { timeout: 1000 });

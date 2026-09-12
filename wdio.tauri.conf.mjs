@@ -47,7 +47,6 @@ export const config = {
     startTimeout: 30000,
     env: {
       WORLD_CARD_STATION_E2E_DATA_DIR: dataDir,
-      WORLD_CARD_STATION_E2E_IMPORT_DIR: importDir,
       WORLD_CARD_STATION_E2E_IMPORT_FILE: path.join(importDir, 'card.json'),
       WORLD_CARD_STATION_E2E_BACKGROUND_PATH: backgroundPath
     }

@@ -117,8 +117,8 @@ describe('ChatPanel Component - Auto-scroll', () => {
   });
 
   test('should auto-scroll when toggling to msg history display', async () => {
-    chatPanelRenderers.renderMsgHistoryDisplay.mockImplementation((R) =>
-      R.createElement('div', { className: 'chat-msg-history-display' }, 'Msg History Content')
+    chatPanelRenderers.renderMsgHistoryDisplay.mockImplementation(() =>
+      _React.createElement('div', { className: 'chat-msg-history-display' }, 'Msg History Content')
     );
 
     ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;

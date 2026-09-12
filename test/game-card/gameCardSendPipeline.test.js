@@ -41,10 +41,10 @@ describe('game card send pipeline', () => {
     expect(result.messages).toEqual([{ role: 'user', content: 'hello' }]);
   });
 
-  test('loads no card when IPC is unavailable or fails', async () => {
+  test('distinguishes no repository from a failed card read', async () => {
     await expect(loadActiveGameCard(null)).resolves.toBeNull();
     await expect(loadActiveGameCard({ repository: { getActiveCard: jest.fn().mockRejectedValue(new Error('x')) } }))
-      .resolves.toBeNull();
+      .rejects.toThrow('x');
   });
 
   test('applies pre_send rules only when a card is active', async () => {

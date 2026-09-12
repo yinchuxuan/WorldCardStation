@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import useChatPersistence from '../../src/renderer/chat/useChatPersistence.js';
 
 describe('useChatPersistence', () => {
-  test('normalizes retry snapshots and saves all session state together', async () => {
+  test('preserves retry snapshots and saves all session state together', async () => {
     const repository = { saveHistory: jest.fn(async () => ({})) };
     const { result } = renderHook(() => useChatPersistence({
       messages: [{ role: 'user', content: 'current' }],
@@ -10,14 +10,17 @@ describe('useChatPersistence', () => {
       isLoading: false,
       repository
     }));
-    act(() => result.current.setRetryBase([
+    const retryMessages = [
       { role: 'system', content: 'temporary', ttl: 1 },
+      { role: 'system', content: 'permanent', ttl: -1 },
+      { role: 'system', content: 'multi-turn', ttl: 5 },
       { role: 'user', content: 'A\n\n---\n<wa2_turn_context>old</wa2_turn_context>' }
-    ], { score: 1 }));
+    ];
+    act(() => { result.current.markLoaded(); result.current.setRetryBase(retryMessages, { score: 1 }); });
     await act(async () => { await result.current.save(); });
     expect(repository.saveHistory).toHaveBeenCalledWith([{ role: 'user', content: 'current' }], {
       gameState: { score: 2 },
-      retryBaseMessages: [{ role: 'user', content: 'A' }],
+      retryBaseMessages: retryMessages,
       retryBaseState: { score: 1 },
       viewState: {}
     });
@@ -52,6 +55,7 @@ describe('useChatPersistence', () => {
     expect(result.current.readingPosition).toEqual({ messageId: 'reply', segmentIndex: 2 });
 
     act(() => result.current.setReadingPosition({ messageId: 'reply', segmentIndex: 3 }));
+    act(() => result.current.markLoaded());
     await act(async () => { await result.current.save(); });
     expect(repository.saveHistory).toHaveBeenLastCalledWith(expect.any(Array),
       expect.objectContaining({

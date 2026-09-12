@@ -1,29 +1,31 @@
+import React from 'react';
+
 const STREAM_FLUSH_INTERVAL_MS = 50;
 const STREAM_FLUSH_CHARS = 96;
 
-function useTypewriter(R) {
-  const [streamContent, setStreamContent] = R.useState('');
-  const [rawStreamContent, setRawStreamContent] = R.useState('');
-  const [displayedCount, setDisplayedCount] = R.useState(0);
-  const [thinkingContent, setThinkingContent] = R.useState('');
-  const [thinkingDone, setThinkingDone] = R.useState(false);
-  const [streamMessageId, setStreamMessageId] = R.useState('');
-  const streamContentRef = R.useRef('');
-  const rawContentRef = R.useRef('');
-  const appliedPatchCountRef = R.useRef(0);
-  const lastFlushedLengthRef = R.useRef(0);
-  const flushTimerRef = R.useRef(null);
-  const thinkingRef = R.useRef('');
-  const inThinkingRef = R.useRef(false);
-  const thinkingDoneRef = R.useRef(false);
+function useTypewriter() {
+  const [streamContent, setStreamContent] = React.useState('');
+  const [rawStreamContent, setRawStreamContent] = React.useState('');
+  const [displayedCount, setDisplayedCount] = React.useState(0);
+  const [thinkingContent, setThinkingContent] = React.useState('');
+  const [thinkingDone, setThinkingDone] = React.useState(false);
+  const [streamMessageId, setStreamMessageId] = React.useState('');
+  const streamContentRef = React.useRef('');
+  const rawContentRef = React.useRef('');
+  const appliedPatchCountRef = React.useRef(0);
+  const lastFlushedLengthRef = React.useRef(0);
+  const flushTimerRef = React.useRef(null);
+  const thinkingRef = React.useRef('');
+  const inThinkingRef = React.useRef(false);
+  const thinkingDoneRef = React.useRef(false);
 
-  const cancelFlush = R.useCallback(() => {
+  const cancelFlush = React.useCallback(() => {
     if (flushTimerRef.current === null) return;
     clearTimeout(flushTimerRef.current);
     flushTimerRef.current = null;
   }, []);
 
-  const flushVisibleContent = R.useCallback(() => {
+  const flushVisibleContent = React.useCallback(() => {
     cancelFlush();
     const content = streamContentRef.current;
     lastFlushedLengthRef.current = content.length;
@@ -32,12 +34,12 @@ function useTypewriter(R) {
     setDisplayedCount(content.length);
   }, [cancelFlush]);
 
-  const scheduleFlush = R.useCallback(() => {
+  const scheduleFlush = React.useCallback(() => {
     if (flushTimerRef.current !== null) return;
     flushTimerRef.current = setTimeout(flushVisibleContent, STREAM_FLUSH_INTERVAL_MS);
   }, [flushVisibleContent]);
 
-  const appendContent = R.useCallback((text) => {
+  const appendContent = React.useCallback((text) => {
     if (!text) return '';
     streamContentRef.current += text;
     rawContentRef.current += text;
@@ -50,9 +52,9 @@ function useTypewriter(R) {
     return text;
   }, [flushVisibleContent, scheduleFlush]);
 
-  R.useEffect(() => cancelFlush, [cancelFlush]);
+  React.useEffect(() => cancelFlush, [cancelFlush]);
 
-  const clearContent = R.useCallback(() => {
+  const clearContent = React.useCallback(() => {
     cancelFlush();
     streamContentRef.current = '';
     rawContentRef.current = '';
@@ -64,7 +66,7 @@ function useTypewriter(R) {
     setStreamMessageId('');
   }, [cancelFlush]);
 
-  const startStreaming = R.useCallback((messageId = '') => {
+  const startStreaming = React.useCallback((messageId = '') => {
     clearContent();
     setStreamMessageId(messageId);
     thinkingRef.current = '';
@@ -74,7 +76,7 @@ function useTypewriter(R) {
     setThinkingDone(false);
   }, [clearContent]);
 
-  const pushContent = R.useCallback((delta, type) => {
+  const pushContent = React.useCallback((delta, type) => {
     if (type === 'reasoning') {
       thinkingRef.current += delta;
       setThinkingContent(thinkingRef.current);
@@ -119,20 +121,20 @@ function useTypewriter(R) {
     return appendContent(delta);
   }, [appendContent]);
 
-  const pushProtocolContent = R.useCallback((text) => {
+  const pushProtocolContent = React.useCallback((text) => {
     if (!text) return;
     rawContentRef.current += text;
     setRawStreamContent(rawContentRef.current);
   }, []);
-  const finishStreaming = R.useCallback(() => flushVisibleContent(), [flushVisibleContent]);
-  const getAccumulatedContent = R.useCallback(() => streamContentRef.current, []);
-  const getRawContent = R.useCallback(() => rawContentRef.current, []);
-  const getAppliedPatchCount = R.useCallback(() => appliedPatchCountRef.current, []);
-  const markPatchApplied = R.useCallback((count) => {
+  const finishStreaming = React.useCallback(() => flushVisibleContent(), [flushVisibleContent]);
+  const getAccumulatedContent = React.useCallback(() => streamContentRef.current, []);
+  const getRawContent = React.useCallback(() => rawContentRef.current, []);
+  const getAppliedPatchCount = React.useCallback(() => appliedPatchCountRef.current, []);
+  const markPatchApplied = React.useCallback((count) => {
     appliedPatchCountRef.current = Math.max(appliedPatchCountRef.current, count);
   }, []);
-  const getThinkingContent = R.useCallback(() => thinkingRef.current, []);
-  const reset = R.useCallback(() => {
+  const getThinkingContent = React.useCallback(() => thinkingRef.current, []);
+  const reset = React.useCallback(() => {
     clearContent();
     thinkingRef.current = '';
     inThinkingRef.current = false;

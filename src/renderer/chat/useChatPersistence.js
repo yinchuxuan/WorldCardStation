@@ -1,5 +1,5 @@
 import React from 'react';
-import { cloneChatValue, normalizeRetryMessages } from './chatGeneration.js';
+import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
 import { createLatestSaveQueue } from './latestSaveQueue.js';
 import { rendererServices } from '../platform/index.js';
 
@@ -41,8 +41,8 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
   }, []);
 
   const setRetryBase = React.useCallback((nextMessages, nextState) => {
-    retryBaseRef.current = normalizeRetryMessages(nextMessages);
-    retryBaseStateRef.current = cloneChatValue(nextState || {});
+    retryBaseRef.current = cloneJson(nextMessages || []);
+    retryBaseStateRef.current = cloneJson(nextState || {});
   }, []);
 
   const snapshot = React.useCallback((nextMessages, nextState) => ({
@@ -54,9 +54,10 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
       viewState: viewStateRef.current
     }
   }), []);
-  const save = React.useCallback((nextMessages, nextState) => (
-    saveQueue.flush(snapshot(nextMessages, nextState))
-  ), [saveQueue, snapshot]);
+  const save = React.useCallback((nextMessages, nextState) => {
+    if (!loadedRef.current) return Promise.reject(new Error('会话尚未成功加载，不能保存'));
+    return saveQueue.flush(snapshot(nextMessages, nextState));
+  }, [saveQueue, snapshot]);
   const flush = React.useCallback(() => (
     loadedRef.current ? saveQueue.flush(snapshot()) : saveQueue.waitForIdle()
   ), [saveQueue, snapshot]);

@@ -39,7 +39,7 @@ describe('Settings game card development', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('已复制，请粘贴到 agent 对话中');
     expect(writeText).toHaveBeenCalledWith(instructions);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(global.platformMock.importGameCardFromDirectory).not.toHaveBeenCalled();
+    expect(global.platformMock.importGameCardFromFile).not.toHaveBeenCalled();
     expect(global.platformMock.setActiveGameCard).not.toHaveBeenCalled();
     expect(global.platformMock.saveModelConfig).not.toHaveBeenCalled();
   });

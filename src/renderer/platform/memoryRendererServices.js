@@ -43,12 +43,6 @@ function createMemoryRendererServices(initial = {}) {
         if (activeCardId === id) activeCardId = null;
         return { id };
       },
-      importDirectory: async () => {
-        const card = initial.importedCard || null;
-        if (card && !cards.some(item => item.id === card.id)) cards = [...cards, card];
-        activeCardId = card?.id || activeCardId;
-        return card;
-      },
       importFile: async ({ tavernOnly = false } = {}) => {
         if (initial.tavernTask) {
           imports.set(initial.tavernTask.token, { task: initial.tavernTask });

@@ -1,4 +1,3 @@
-const React = require('react');
 const { render } = require('@testing-library/react');
 const DOMPurify = require('dompurify')(window);
 const { marked } = require('marked');
@@ -56,13 +55,9 @@ describe('game card display rules', () => {
   });
 
   test('user renderer applies rules before markdown rendering', () => {
-    const element = renderers.renderUserMsg(
-      React,
-      { role: 'user', content: 'Hello **there**\n<hidden>prompt</hidden>' },
-      marked,
-      DOMPurify,
-      value => value,
-      {
+    const element = renderers.renderUserMsg({ msg: { role: 'user', content: 'Hello **there**\n<hidden>prompt</hidden>' }, marked, DOMPurify,
+      highlightQuotes: value => value,
+      display: {
         user: [{
           stage: 'before_markdown',
           type: 'regex_replace',
@@ -70,8 +65,7 @@ describe('game card display rules', () => {
           flags: 'g',
           replace: ''
         }]
-      }
-    );
+      } });
 
     const { container } = render(element);
     const html = container.querySelector('.chat-bubble-content').innerHTML;
@@ -93,20 +87,10 @@ describe('game card display rules', () => {
   });
 
   test('assistant renderer applies rules before markdown rendering', () => {
-    const element = renderers.renderAssistantMsg(
-      React,
-      { role: 'assistant', content: 'Hello **there**\n<summary>hidden</summary>' },
-      0,
-      false,
-      null,
-      '',
-      false,
-      jest.fn(),
-      jest.fn(),
-      marked,
-      DOMPurify,
-      value => value,
-      {
+    const element = renderers.renderAssistantMsg({ msg: { role: 'assistant', content: 'Hello **there**\n<summary>hidden</summary>' }, idx: 0, isStreaming: false,
+      tw: null, currentThinking: '', showStreamThinking: false, setShowStreamThinking: jest.fn(),
+      toggleThinkingForMessage: jest.fn(), marked, DOMPurify, highlightQuotes: value => value,
+      display: {
         assistant: [{
           stage: 'before_markdown',
           type: 'regex_replace',
@@ -114,8 +98,7 @@ describe('game card display rules', () => {
           flags: 'g',
           replace: ''
         }]
-      }
-    );
+      } });
 
     const { container } = render(element);
     const html = container.querySelector('.chat-bubble-content').innerHTML;

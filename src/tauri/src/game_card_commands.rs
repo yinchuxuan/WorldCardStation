@@ -15,30 +15,11 @@ pub async fn get_game_card(state: State<'_, AppStorage>, id: String) -> CardResu
     game_card_repository::get(&state, &id).await
 }
 
+#[cfg(feature = "e2e")]
 #[tauri::command]
-pub async fn save_game_card(state: State<'_, AppStorage>, card: Value) -> CardResult<Value> {
+pub async fn e2e_seed_game_card(state: State<'_, AppStorage>, card: Value) -> CardResult<Value> {
     game_card_repository::save(&state, card).await?;
     Ok(json!({}))
-}
-
-#[tauri::command]
-pub async fn import_game_card_from_directory(
-    app: AppHandle,
-    state: State<'_, AppStorage>,
-) -> CardResult<Value> {
-    #[cfg(feature = "e2e")]
-    if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_IMPORT_DIR") {
-        return game_card_repository::import(&state, std::path::Path::new(&path)).await;
-    }
-    let selected = app
-        .dialog()
-        .file()
-        .blocking_pick_folder()
-        .ok_or_else(GameCardError::canceled)?;
-    let path = selected
-        .into_path()
-        .map_err(|error| GameCardError::new(error.to_string()))?;
-    game_card_repository::import(&state, &path).await
 }
 
 #[tauri::command]

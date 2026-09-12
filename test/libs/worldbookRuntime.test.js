@@ -77,20 +77,12 @@ describe('worldbook distribution and sandbox runtime', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 
-  test('WA2 distributes the same library scripts and the library ships its own documentation', () => {
-    const wa2 = path.resolve(root, '../../game-card-examples/white-album-2');
-    for (const [file, content] of Object.entries(scripts)) expect(fs.readFileSync(path.join(wa2, file), 'utf8')).toBe(content);
+  test('the library ships its own documentation', () => {
     expect(fs.readFileSync(path.join(root, 'README.md'), 'utf8')).toContain('./SEMANTICS.md');
     expect(fs.readFileSync(path.join(root, 'SEMANTICS.md'), 'utf8')).toContain('SillyTavern');
   });
 
-  test('ships only scripts and documentation, with WA2 as the only example library copy', () => {
+  test('ships only scripts and documentation', () => {
     expect(fs.readdirSync(root).filter(name => !name.startsWith('.')).sort()).toEqual(['README.md', 'SEMANTICS.md', 'lib']);
-    const examplesRoot = path.resolve(root, '../../game-card-examples');
-    expect(fs.existsSync(path.join(examplesRoot, 'worldbook-library'))).toBe(false);
-    const copies = fs.readdirSync(examplesRoot, { withFileTypes: true })
-      .filter(item => item.isDirectory() && fs.existsSync(path.join(examplesRoot, item.name, 'lib/worldbook')))
-      .map(item => item.name);
-    expect(copies).toEqual(['white-album-2']);
   });
 });

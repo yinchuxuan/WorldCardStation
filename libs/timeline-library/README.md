@@ -118,4 +118,4 @@ WA2 的专属入口是 `scripts/plot.js`，章节逻辑位于 `scripts/chapters/
 
 非法配置/时间和读取失败沿 exec 错误链路失败，不提交本次结果。dry-run 仅检查脚本语法和静态引用，不执行本库、不会验证动态读取的节点配置；配置及行为需要运行测试或实际游玩验证。
 
-仓库测试：`npx jest --runInBand --coverage=false test/libs/timeline`。卡内脚本和文档副本一致性、真实规则引擎/Worker 读取、时间边界和错误隔离均有覆盖。
+仓库测试：`npx jest --runInBand --coverage=false test/libs/timeline`。通用脚本与文档的分发范围、真实规则引擎/Worker 读取、时间边界和错误隔离均有覆盖。

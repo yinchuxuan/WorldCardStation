@@ -33,21 +33,11 @@ function renderAssistantMessage(R, content, card, options = {}, state) {
   const renderers = ChatPanelMessageRenderers;
   const rowClass = ['chat-message-row', options.rowClassName].filter(Boolean).join(' ');
   const msgClass = ['chat-message assistant', options.messageClassName].filter(Boolean).join(' ');
-  const bubble = renderers.renderAssistantMsg(
-    R,
-    { role: 'assistant', content: String(content || '') },
-    0,
-    false,
-    null,
-    '',
-    false,
-    () => {},
-    () => {},
-    marked,
-    DOMPurify,
-    highlightQuotes,
-    resolveDisplayState(card?.display, state), undefined, undefined, options.depth ?? 0
-  );
+  const bubble = renderers.renderAssistantMsg({ msg: { role: 'assistant', content: String(content || '') }, idx: 0, isStreaming: false, tw: null,
+      currentThinking: '', showStreamThinking: false, setShowStreamThinking: () => {},
+      toggleThinkingForMessage: () => {}, marked, DOMPurify, highlightQuotes,
+      display: resolveDisplayState(card?.display, state), displayRevision: undefined, segmentedReading: undefined,
+      depth: options.depth ?? 0 });
   return R.createElement('div', { className: rowClass, 'data-gc-part': 'message-row', 'data-role': 'assistant' },
     R.createElement('div', { className: msgClass, 'data-gc-part': 'message', style: { flex: 1, minWidth: 0 } }, bubble)
   );

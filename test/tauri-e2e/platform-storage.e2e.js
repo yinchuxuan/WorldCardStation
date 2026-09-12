@@ -38,8 +38,8 @@ describe('Tauri history and game card storage', () => {
   it('should save, list, read, activate and clear game cards', async () => {
     const first = card('e2e_quest_card', 'E2E Quest');
     const second = card('e2e_second_card', 'Second Quest');
-    await invoke('save_game_card', { card: first });
-    await invoke('save_game_card', { card: second });
+    await invoke('e2e_seed_game_card', { card: first });
+    await invoke('e2e_seed_game_card', { card: second });
     const ids = (await invoke('get_game_cards')).map(item => item.id);
     expect(ids).toEqual(expect.arrayContaining([first.id, second.id]));
     expect(await invoke('get_game_card', { id: first.id })).toEqual(first);
@@ -51,7 +51,7 @@ describe('Tauri history and game card storage', () => {
 
   it('should show the active game card title after restart', async () => {
     const active = card('e2e_title_card', 'Title Quest');
-    await invoke('save_game_card', { card: active });
+    await invoke('e2e_seed_game_card', { card: active });
     await invoke('set_active_game_card', { id: active.id });
     await refreshApp();
     await expect($('.game-card-title-name')).toHaveText('Title Quest');
@@ -59,7 +59,7 @@ describe('Tauri history and game card storage', () => {
   });
 
   it('should reject unsafe card ids at the Tauri boundary', async () => {
-    const error = await invokeError('save_game_card', {
+    const error = await invokeError('e2e_seed_game_card', {
       card: { version: '1.0', id: '../escape', name: 'bad', rules: [] }
     });
     expect(error).toContain('safe id');

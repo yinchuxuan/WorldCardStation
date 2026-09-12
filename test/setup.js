@@ -48,7 +48,6 @@ global.platformMock = {
   renameChatSession: jest.fn().mockResolvedValue({ success: true }),
   deleteChatSession: jest.fn().mockResolvedValue({ success: true }),
   getGameCards: jest.fn().mockResolvedValue({ success: true, cards: [] }),
-  importGameCardFromDirectory: jest.fn().mockResolvedValue({ success: false, canceled: true, card: null }),
   importGameCardFromFile: jest.fn().mockResolvedValue({ success: false, canceled: true, card: null }),
   setActiveGameCard: jest.fn().mockResolvedValue({ success: true }),
   deleteGameCard: jest.fn().mockResolvedValue({ success: true }),

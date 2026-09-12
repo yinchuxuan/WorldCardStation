@@ -2,13 +2,12 @@
  * Tests for useTypewriter hook thinking parsing
  */
 
-const R = require('react');
 const { renderHook, act } = require('@testing-library/react');
 const useTypewriter = require('../../src/renderer/chat/useTypewriter.js').default;
 
 describe('useTypewriter thinking parsing', () => {
   test('should separate thinking content from regular content', () => {
-    const { result } = renderHook(() => useTypewriter(R));
+    const { result } = renderHook(() => useTypewriter());
 
     act(() => { result.current.startStreaming(); });
     act(() => { result.current.pushContent('<thinking>Let me think'); });
@@ -25,7 +24,7 @@ describe('useTypewriter thinking parsing', () => {
   });
 
   test('should handle thinking tag split across chunks', () => {
-    const { result } = renderHook(() => useTypewriter(R));
+    const { result } = renderHook(() => useTypewriter());
 
     act(() => { result.current.startStreaming(); });
     let appended = '';

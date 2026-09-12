@@ -56,14 +56,15 @@ describe('useChatGeneration retry state snapshot', () => {
     });
   });
 
-  test('removes transient turn context before rerunning pre_send', async () => {
+  test('restores the complete retry snapshot before rerunning pre_send', async () => {
     generationServices.preparePreSendMessages = jest.fn(async ({ messages, state }) => ({ messages, state, applied: false, card: { id: 'card' } }));
-    const { result } = renderRetryGeneration({ retryBaseMessages: [
+    const retryBaseMessages = [
       { role: 'system', content: 'old state', ttl: 1 },
       { role: 'user', content: '选择A\n\n---\n<wa2_turn_context>\n旧上下文\n</wa2_turn_context>' }
-    ] });
+    ];
+    const { result } = renderRetryGeneration({ retryBaseMessages });
     await act(async () => { await result.current.retry(); });
-    expect(generationServices.preparePreSendMessages.mock.calls[0][0].messages).toEqual([{ role: 'user', content: '选择A' }]);
+    expect(generationServices.preparePreSendMessages.mock.calls[0][0].messages).toEqual(retryBaseMessages);
   });
 
   test('does not rely on structuredClone for persisted state', async () => {

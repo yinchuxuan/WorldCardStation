@@ -1,24 +1,22 @@
-import * as chatGeneration from './chatGeneration.js';
+import React from 'react';
+import { findLastUserIndex, retryUserContent } from './retryMessages.js';
 
-function useLastUserMessageEdit(R, messages = [], isLoading = false) {
-  const helper = chatGeneration;
-  const [editingIndex, setEditingIndex] = R.useState(null);
-  const [content, setContent] = R.useState('');
-  const lastUserIndex = helper ? helper.findLastUserIndex(messages) : -1;
-  const retrySource = lastUserIndex >= 0
-    ? helper?.stripTurnContext(messages[lastUserIndex]?.content) || ''
-    : '';
+function useLastUserMessageEdit({ messages = [], isLoading = false, retryBaseMessages } = {}) {
+  const [editingIndex, setEditingIndex] = React.useState(null);
+  const [content, setContent] = React.useState('');
+  const lastUserIndex = findLastUserIndex(messages);
+  const retrySource = retryUserContent(messages, retryBaseMessages);
 
-  R.useEffect(() => {
+  React.useEffect(() => {
     if (editingIndex === null) return;
     if (isLoading || editingIndex !== lastUserIndex) setEditingIndex(null);
   }, [editingIndex, isLoading, lastUserIndex]);
 
-  const start = R.useCallback((index, value) => {
+  const start = React.useCallback((index) => {
     if (isLoading || index !== lastUserIndex) return;
     setEditingIndex(index);
-    setContent(helper?.stripTurnContext(value) || '');
-  }, [helper, isLoading, lastUserIndex]);
+    setContent(retrySource);
+  }, [isLoading, lastUserIndex, retrySource]);
 
   return {
     content,

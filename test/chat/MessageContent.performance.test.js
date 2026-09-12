@@ -63,7 +63,7 @@ describe('MessageContent rendering performance', () => {
     const pipeline = createPipeline();
     let typewriter;
     function StreamingHarness() {
-      typewriter = useTypewriter(React);
+      typewriter = useTypewriter();
       return <MessageContent content={typewriter.streamContent} role="assistant"
         displayRevision="display-1" {...pipeline} />;
     }

@@ -97,11 +97,6 @@ function createTauriRendererServices(client = tauriBridge) {
         invalidateGameCardRuntimeCache();
         return result;
       },
-      importDirectory: async () => {
-        const card = await call('import_game_card_from_directory', {}, 'card');
-        invalidateGameCardRuntimeCache();
-        return card;
-      },
       importFile: async ({ tavernOnly = false } = {}) => {
         const card = await call('import_game_card_from_file', tavernOnly ? { tavernOnly: true } : {}, 'card');
         invalidateGameCardRuntimeCache();

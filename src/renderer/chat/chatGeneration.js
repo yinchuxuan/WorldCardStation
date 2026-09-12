@@ -5,42 +5,6 @@ import { finishChatGeneration } from './finishChatGeneration.js';
 import { generateValidatedResponse } from './validatedGeneration.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
 
-function stripTurnContext(content) {
-  return typeof content === 'string'
-    ? content.replace(/\n*---\s*\n\s*<wa2_turn_context>[\s\S]*?<\/wa2_turn_context>\s*$/g, '')
-    : content;
-}
-
-function normalizeRetryMessages(messages) {
-  return cloneChatValue(messages || []).filter(msg => msg?.ttl === undefined).map(msg => (
-    msg?.role === 'user' ? { ...msg, content: stripTurnContext(msg.content) } : msg
-  ));
-}
-
-function findLastUserIndex(messages = []) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (messages[i]?.role === 'user') return i;
-  }
-  return -1;
-}
-
-function buildRetryMessages(messages, retryBaseMessages, editedContent) {
-  const visibleLastUser = findLastUserIndex(messages);
-  if (visibleLastUser < 0) return null;
-  const retryMessages = retryBaseMessages
-    ? normalizeRetryMessages(retryBaseMessages)
-    : messages.slice(0, visibleLastUser + 1);
-  const retryLastUser = findLastUserIndex(retryMessages);
-  if (retryLastUser < 0) return null;
-  const nextMessages = retryMessages.slice(0, retryLastUser + 1);
-  if (editedContent !== undefined) {
-    const content = String(editedContent || '');
-    if (!content.trim()) return null;
-    nextMessages[retryLastUser] = { ...nextMessages[retryLastUser], content };
-  }
-  return nextMessages;
-}
-
 async function runChatGeneration(options) {
   const capture = options.traceContext || runtimeTrace.capture();
   const operation = capture.begin('generation', { messages: options.messages, state: options.state || {} });
@@ -165,11 +129,5 @@ function handleGenerationException(err, options, preSend, baseMessages, baseStat
   return false;
 }
 
-export {
-  buildRetryMessages,
-  cloneChatValue,
-  findLastUserIndex,
-  normalizeRetryMessages,
-  runChatGeneration,
-  stripTurnContext
-};
+export { buildRetryMessages, findLastUserIndex } from './retryMessages.js';
+export { cloneChatValue, runChatGeneration };

@@ -13,25 +13,14 @@ function renderAssistantMsg(msg) {
 
 describe('chat panel message visibility', () => {
   test('main dialogue renderer hides system messages', () => {
-    const result = ChatPanelMessageRenderers.renderMessages(
-      React,
-      [
+    const result = ChatPanelMessageRenderers.renderMessages({ messages: [
         { role: 'system', content: 'hidden rules' },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'ok' }
       ],
-      false,
-      {},
-      null,
-      true,
-      renderMarkdown,
-      renderAssistantMsg,
-      () => null,
-      null,
-      false,
-      jest.fn(),
-      { apiUrl: 'http://api.example.com' }
-    );
+      isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
+      collapseRenderer: null, isHistoryExpanded: false, handleExpandHistory: jest.fn(),
+      modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const container = render(result);
     expect(container.container.textContent).toContain('hello');
@@ -40,25 +29,14 @@ describe('chat panel message visibility', () => {
   });
 
   test('main dialogue renderer shows user visible system messages', () => {
-    const result = ChatPanelMessageRenderers.renderMessages(
-      React,
-      [
+    const result = ChatPanelMessageRenderers.renderMessages({ messages: [
         { role: 'system', content: 'visible status', _meta: { visibility: 'user_visible' } },
         { role: 'system', content: 'hidden rules' },
         { role: 'user', content: 'hello' }
       ],
-      false,
-      {},
-      null,
-      true,
-      renderMarkdown,
-      renderAssistantMsg,
-      () => null,
-      null,
-      true,
-      jest.fn(),
-      { apiUrl: 'http://api.example.com' }
-    );
+      isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
+      collapseRenderer: null, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const container = render(result);
     expect(container.container.textContent).toContain('visible status');
@@ -67,21 +45,14 @@ describe('chat panel message visibility', () => {
   });
 
   test('collapsed dialogue renderer hides system messages', () => {
-    const result = MessageCollapseRenderer.render(
-      React,
-      [
+    const result = MessageCollapseRenderer.render({ rawMessages: [
         { role: 'system', content: 'hidden rules' },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'ok' }
       ],
-      false,
-      {},
-      renderMarkdown,
-      renderAssistantMsg,
-      () => null,
-      true,
-      jest.fn()
-    );
+      isLoading: false, typewriter: {}, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: () => null, isExpanded: true,
+      onExpand: jest.fn() });
 
     const container = render(result);
     expect(container.container.textContent).toContain('hello');
@@ -90,21 +61,14 @@ describe('chat panel message visibility', () => {
   });
 
   test('collapsed dialogue renderer shows user visible system messages', () => {
-    const result = MessageCollapseRenderer.render(
-      React,
-      [
+    const result = MessageCollapseRenderer.render({ rawMessages: [
         { role: 'system', content: 'visible status', _meta: { visibility: 'user_visible' } },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'ok' }
       ],
-      false,
-      {},
-      renderMarkdown,
-      renderAssistantMsg,
-      () => null,
-      true,
-      jest.fn()
-    );
+      isLoading: false, typewriter: {}, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: () => null, isExpanded: true,
+      onExpand: jest.fn() });
 
     const container = render(result);
     expect(container.container.textContent).toContain('visible status');

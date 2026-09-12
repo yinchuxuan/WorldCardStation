@@ -51,7 +51,7 @@ describe('Tauri renderer adapters', () => {
   test('reuses the active card until an import advances the runtime revision', async () => {
     let activeCard = { id: 'card', version: '1' };
     const invoke = jest.fn(async command => {
-      if (command === 'import_game_card_from_directory') {
+      if (command === 'import_game_card_from_file') {
         activeCard = { id: 'card', version: '2' };
         return { success: true, card: activeCard };
       }
@@ -63,14 +63,14 @@ describe('Tauri renderer adapters', () => {
 
     const first = await platform.repository.getActiveCard();
     const repeated = await platform.repository.getActiveCard();
-    await services.cards.importDirectory();
+    await services.cards.importFile();
     const reloaded = await platform.repository.getActiveCard();
 
     expect(repeated).toBe(first);
     expect(reloaded).toEqual({ id: 'card', version: '2' });
     expect(invoke.mock.calls.map(([command]) => command)).toEqual([
       'get_active_game_card',
-      'import_game_card_from_directory',
+      'import_game_card_from_file',
       'get_active_game_card'
     ]);
   });
@@ -96,7 +96,7 @@ describe('Tauri renderer adapters', () => {
     await expect(rejected.repository.getActiveCard()).rejects.toMatchObject({
       message: 'invalid card', stage: 'validate', file: 'card.json', details: failure.details
     });
-    await expect(business.cards.importDirectory()).rejects.toMatchObject({
+    await expect(business.cards.importFile()).rejects.toMatchObject({
       message: 'canceled', canceled: true
     });
   });

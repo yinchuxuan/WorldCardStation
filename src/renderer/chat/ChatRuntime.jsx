@@ -1,10 +1,8 @@
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import React from 'react';
+import ChatMessages from './ChatMessages.jsx';
 import { PropTypes } from '../components/componentPropTypes.js';
 import ChatInputArea from '../ChatInputArea.jsx';
 import ChatHeader from '../components/ChatHeader.jsx';
-import ChatPanelMessageRenderers from '../components/ChatPanelMessageRenderers.jsx';
 import ChatPanelRenderers from '../components/ChatPanelRenderers.jsx';
 import GameCardBackgroundRuntime from '../components/GameCardBackgroundRuntime.js';
 import GameCardBgmPlayer from '../components/GameCardBgmPlayer.jsx';
@@ -12,10 +10,8 @@ import GameCardErrorPanel from '../components/GameCardErrorPanel.jsx';
 import GameCardStyleHost from '../components/GameCardStyleHost.jsx';
 import GameCardTitleControl from '../components/GameCardTitleControl.jsx';
 import GameCardUIRoot from '../components/GameCardUIRoot.jsx';
-import MessageCollapseRenderer from '../components/MessageCollapseRenderer.jsx';
 import PlatformRequestErrorNotice from '../components/PlatformRequestErrorNotice.jsx';
 import PlatformResponseWarningNotice from '../components/PlatformResponseWarningNotice.jsx';
-import { highlightQuotes } from '../components/highlightQuotes.js';
 import useLastUserMessageEdit from './useLastUserMessageEdit.js';
 import useSegmentedReading from './useSegmentedReading.js';
 import useTypewriter from './useTypewriter.js';
@@ -53,7 +49,7 @@ function ChatRuntime({
   const { display, displayRevision, depths } = useChatDisplay(runtime.activeCard?.display, runtime.gameState, messages, isLoading);
   const segmentedReading = display?.segmentedReading === true;
   const modelConfig = useModelConfig();
-  const typewriter = useTypewriter(React);
+  const typewriter = useTypewriter();
   const presentation = useGameCardPresentation();
   const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading });
   const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
@@ -86,7 +82,8 @@ function ChatRuntime({
   });
   const gameCards = useGameCardSwitching({ isLoading, presentation, runtime, session });
   React.useEffect(() => { setRequestError(null); setResponseWarning(null); }, [session.revision]);
-  const editUserMessage = useLastUserMessageEdit(React, messages, isLoading);
+  const editUserMessage = useLastUserMessageEdit({ messages, isLoading,
+    retryBaseMessages: persistence.retryBaseRef.current });
   const handleReadProgress = useReadingStatePatches({
     card: runtime.activeCard,
     messages,
@@ -132,27 +129,6 @@ function ChatRuntime({
   )));
   const streamThinking = typewriter.getThinkingContent();
   const currentThinking = isLoading && streamThinking ? streamThinking : null;
-  const renderUser = (text, message) => ChatPanelMessageRenderers.renderUserMsg(
-    React, { content: text }, marked, DOMPurify, highlightQuotes, display, displayRevision, depths[message?._renderIndex]
-  );
-  const renderAssistant = (msg, index, streaming) => ChatPanelMessageRenderers.renderAssistantMsg(
-    React, msg, index, streaming, typewriter, currentThinking, showStreamThinking,
-    setShowStreamThinking, toggleThinking, marked, DOMPurify, highlightQuotes, display, displayRevision,
-    {
-      enabled: segmentedReading && (
-        streaming ? segmented.isStreaming : index === segmented.messageIndex
-      ),
-      pageIndex: segmented.pageIndex,
-      includeInputActions: !segmented.isHistory
-    }, streaming ? 0 : depths[index]
-  );
-  const renderedMessages = ChatPanelMessageRenderers.renderMessages(
-    React, segmented.displayMessages, segmented.displayIsLoading, typewriter,
-    currentThinking, showStreamThinking, renderUser, renderAssistant,
-    (last, loading) => ChatPanelMessageRenderers.renderRetryBtn(React, last, loading, handleRetry),
-    MessageCollapseRenderer, !segmentedReading && scroll.isHistoryExpanded,
-    segmentedReading ? undefined : scroll.expandHistory, modelConfig, editUserMessage
-  );
   return <div className="chat-panel" data-gc-part="chat-panel"
     ref={chatPanelRef} onClick={showMsgHistory ? undefined : segmented.advanceVisiblePage}>
     <PlatformRequestErrorNotice error={requestError} onClose={() => setRequestError(null)} />
@@ -182,7 +158,12 @@ function ChatRuntime({
       <div className="chat-history" data-gc-part="chat-history" data-view={showMsgHistory ? 'history' : 'messages'} ref={scroll.chatHistoryRef}>
         <div className="chat-reading-veil game-card-visual-panel" data-gc-part="chat-reading-veil" aria-hidden="true" />
         {runtime.runtimeError ? <GameCardErrorPanel error={runtime.runtimeError} /> : null}
-        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(React, msgHistoryMessages) : renderedMessages}
+        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(msgHistoryMessages) : <ChatMessages
+          display={display} displayRevision={displayRevision} depths={depths}
+          segmentedReading={segmentedReading} segmented={segmented} typewriter={typewriter}
+          currentThinking={currentThinking} showStreamThinking={showStreamThinking}
+          setShowStreamThinking={setShowStreamThinking} toggleThinking={toggleThinking}
+          handleRetry={handleRetry} scroll={scroll} modelConfig={modelConfig} editUserMessage={editUserMessage} />}
       </div>
       <div className="chat-input-hover-trigger" data-gc-part="chat-input-trigger" onMouseEnter={() => setIsInputTriggerHovered(true)} onMouseLeave={() => setIsInputTriggerHovered(false)} />
     </div>

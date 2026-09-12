@@ -61,9 +61,8 @@ CollapsedMessageList.propTypes = {
 const MessageCollapseRenderer = {
   findLastAssistantIndex: messages => findLastRoleIndex(messages, 'assistant'),
   findLastUserIndex: messages => findLastRoleIndex(messages, 'user'),
-  resetPull() {},
-  render(_React, rawMessages, isLoading, typewriter, renderUserMessage, renderAssistantMessage,
-    renderRetryButton, isExpanded, onExpand) {
+  render({ rawMessages, isLoading, typewriter, renderUserMessage, renderAssistantMessage,
+    renderRetryButton, isExpanded, onExpand }) {
     const messages = selectVisibleMessages(rawMessages);
     if (messages.length === 0 && !isLoading) return null;
     return <CollapsedMessageList messages={messages} isLoading={isLoading} typewriter={typewriter}

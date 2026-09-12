@@ -4,7 +4,7 @@
 
 这是随游戏卡分发的普通 JavaScript library：读取酒馆格式世界书配置，选择条目，再生成本轮 LLM 消息。只实现世界书运行时，不负责 PNG/CHARX 导入、编辑器或平台级世界书管理。
 
-本目录只分发通用脚本和文档，不包含示例卡、世界书配置或条目正文。实际游戏卡复制其中的 `lib/worldbook/`，维护自己的 `worldbook/config.json` 和 Markdown 正文。仓库中的接入示例仅保留 `game-card-examples/white-album-2/`；测试数据位于 `test/fixtures/worldbook/`，不包含 library 副本，也不随库分发。版本由卡作者固定，不依赖平台源码、npm、网络或系统文件。修改 library 后应整体替换脚本目录，不能混用不同版本的模块。
+本目录只分发通用脚本和文档，不包含示例卡、世界书配置或条目正文。实际游戏卡复制其中的 `lib/worldbook/`，维护自己的 `worldbook/config.json` 和 Markdown 正文。测试数据位于 `test/fixtures/worldbook/`，不包含 library 副本，也不随库分发。版本由卡作者固定，不依赖平台源码、npm、网络或系统文件。修改 library 后应整体替换脚本目录，不能混用不同版本的模块。
 
 平台没有特殊的 lib 类型或 worldbook action。入口仍然是普通 `exec sourceFile`，只使用 `ctx.messages/state/args/files/utils`，遵守相同的目录沙盒和超时限制。详细行为与兼容边界见 [运行语义](./SEMANTICS.md)。
 
@@ -140,7 +140,7 @@ Outlet 只汇总到 `state.__worldbook[scopeId].outlets` 及 effects，不自动
 
 ## 验证
 
-仓库中的 `test/libs/worldbook*.test.js` 覆盖真实 ST 导出形状、V2/V3 差异、选择与插入、跨轮恢复、沙盒/Worker、千条资源读取和 WA2 脚本副本一致性。运行：
+仓库中的 `test/libs/worldbook*.test.js` 覆盖真实 ST 导出形状、V2/V3 差异、选择与插入、跨轮恢复、沙盒/Worker、千条资源读取和脚本与文档的分发范围。运行：
 
 ```sh
 npx jest --runInBand --coverage=false test/libs/worldbook

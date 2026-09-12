@@ -6,20 +6,9 @@ const renderers = require('../../src/renderer/components/ChatPanelMessageRendere
 const MessageCollapseRenderer = require('../../src/renderer/components/MessageCollapseRenderer').default;
 
 function renderAssistant(msg, toggle = jest.fn()) {
-  return render(renderers.renderAssistantMsg(
-    React,
-    msg,
-    0,
-    false,
-    null,
-    '',
-    false,
-    jest.fn(),
-    toggle,
-    marked,
-    DOMPurify,
-    value => value
-  ));
+  return render(renderers.renderAssistantMsg({ msg, idx: 0, isStreaming: false, tw: null, currentThinking: '', showStreamThinking: false,
+      setShowStreamThinking: jest.fn(), toggleThinkingForMessage: toggle, marked, DOMPurify,
+      highlightQuotes: value => value }));
 }
 
 function renderMarkdown(text) {
@@ -64,20 +53,9 @@ describe('ChatPanel thinking renderer', () => {
 
   test('streaming thinking reopens by clicking streamed content after hidden', () => {
     const setShowStreamThinking = jest.fn();
-    const { container } = render(renderers.renderAssistantMsg(
-      React,
-      'partial answer',
-      0,
-      true,
-      { displayedCount: 7 },
-      'stream reasoning',
-      false,
-      setShowStreamThinking,
-      jest.fn(),
-      marked,
-      DOMPurify,
-      value => value
-    ));
+    const { container } = render(renderers.renderAssistantMsg({ msg: 'partial answer', idx: 0, isStreaming: true, tw: { displayedCount: 7 }, currentThinking: 'stream reasoning',
+      showStreamThinking: false, setShowStreamThinking, toggleThinkingForMessage: jest.fn(), marked, DOMPurify,
+      highlightQuotes: value => value }));
 
     expect(container.querySelector('.chat-thinking-text')).toBeNull();
     expect(container.querySelector('.chat-bubble-content').textContent.trim()).toBe('partial');
@@ -88,20 +66,17 @@ describe('ChatPanel thinking renderer', () => {
 
   test('toggles original assistant index after hidden messages are filtered', () => {
     const toggle = jest.fn();
-    const renderAssistantMsg = (msg, idx, isStreaming) => renderers.renderAssistantMsg(
-      React, msg, idx, isStreaming, { displayedCount: 0 }, '', true, jest.fn(),
-      toggle, marked, DOMPurify, value => value
-    );
-    const result = renderers.renderMessages(
-      React,
-      [
+    const renderAssistantMsg = (msg, idx, isStreaming) => renderers.renderAssistantMsg({ msg, idx, isStreaming, tw: { displayedCount: 0 }, currentThinking: '', showStreamThinking: true,
+      setShowStreamThinking: jest.fn(), toggleThinkingForMessage: toggle, marked, DOMPurify,
+      highlightQuotes: value => value });
+    const result = renderers.renderMessages({ messages: [
         { role: 'system', content: 'rules', _meta: { visibility: 'llm_only' } },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'answer', _thinking: 'reasoning' }
       ],
-      false, {}, null, true, renderMarkdown, renderAssistantMsg, () => null,
-      null, true, jest.fn(), { apiUrl: 'http://api.example.com' }
-    );
+      isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
+      collapseRenderer: null, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const { container } = render(result);
     fireEvent.click(container.querySelector('.chat-message-bubble.bubble-clickable'));
@@ -110,20 +85,17 @@ describe('ChatPanel thinking renderer', () => {
 
   test('collapsed renderer toggles original assistant index after hidden messages', () => {
     const toggle = jest.fn();
-    const renderAssistantMsg = (msg, idx, isStreaming) => renderers.renderAssistantMsg(
-      React, msg, idx, isStreaming, { displayedCount: 0 }, '', true, jest.fn(),
-      toggle, marked, DOMPurify, value => value
-    );
-    const result = renderers.renderMessages(
-      React,
-      [
+    const renderAssistantMsg = (msg, idx, isStreaming) => renderers.renderAssistantMsg({ msg, idx, isStreaming, tw: { displayedCount: 0 }, currentThinking: '', showStreamThinking: true,
+      setShowStreamThinking: jest.fn(), toggleThinkingForMessage: toggle, marked, DOMPurify,
+      highlightQuotes: value => value });
+    const result = renderers.renderMessages({ messages: [
         { role: 'system', content: 'rules', _meta: { visibility: 'llm_only' } },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'answer', _thinking: 'reasoning' }
       ],
-      false, {}, null, true, renderMarkdown, renderAssistantMsg, () => null,
-      MessageCollapseRenderer, true, jest.fn(), { apiUrl: 'http://api.example.com' }
-    );
+      isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
+      collapseRenderer: MessageCollapseRenderer, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const { container } = render(result);
     fireEvent.click(container.querySelector('.chat-message-bubble.bubble-clickable'));

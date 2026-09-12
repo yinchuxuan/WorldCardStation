@@ -4,7 +4,6 @@ const { applyUiStateActionEvent } = require('../../src/renderer/gameCard/uiState
 
 function runtimeFiles(increment = 1, body = 'first body') {
   return {
-    'files.json': JSON.stringify({ event: 'events/event.md' }),
     'state/schema.json': JSON.stringify({
       schema: { score: { type: 'number', min: 0, max: 10, onInvalid: 'clamp' } }
     }),
@@ -31,7 +30,7 @@ function createCard() {
     version: '1',
     id: 'cache-card',
     name: 'Cache Card',
-    files: { $import: 'files.json' },
+    files: { event: 'events/event.md' },
     stateSchema: 'state/schema.json',
     rules: []
   };
@@ -67,7 +66,6 @@ describe('game card runtime resource cache', () => {
     expect(clamped.state.score).toBe(10);
     expect(clamped.trace.changedKeys).toEqual(['score']);
     expect(readCounts(readText)).toEqual({
-      'files.json': 1,
       'state/schema.json': 1,
       'events/event.md': 1,
       'ui/action.js': 1,
@@ -88,7 +86,9 @@ describe('game card runtime resource cache', () => {
 
     expect(before.state).toMatchObject({ score: 1, body: 'old body' });
     expect(after.state).toMatchObject({ score: 5, body: 'new body' });
-    expect(Object.values(readCounts(readText))).toEqual([2, 2, 2, 2, 2]);
+    expect(readCounts(readText)).toEqual({
+      'state/schema.json': 2, 'events/event.md': 2, 'ui/action.js': 2, 'ui/helper.js': 2
+    });
   });
 
   test('caches source reads without hiding repeated script failures', async () => {

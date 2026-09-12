@@ -108,8 +108,8 @@ pub fn run() {
             session_commands::delete_chat_session,
             game_card_commands::get_game_cards,
             game_card_commands::get_game_card,
-            game_card_commands::save_game_card,
-            game_card_commands::import_game_card_from_directory,
+            #[cfg(feature = "e2e")]
+            game_card_commands::e2e_seed_game_card,
             game_card_commands::import_game_card_from_file,
             game_card_commands::set_active_game_card,
             game_card_commands::delete_game_card,
@@ -151,6 +151,8 @@ mod dry_run_tests;
 mod game_card_directory_tests;
 #[cfg(test)]
 mod game_card_file_import_tests;
+#[cfg(test)]
+mod game_card_import_data_tests;
 #[cfg(test)]
 mod game_card_package_tests;
 #[cfg(test)]

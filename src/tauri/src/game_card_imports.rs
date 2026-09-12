@@ -109,6 +109,7 @@ fn expand(
         Value::Array(items) => {
             let mut output = Vec::new();
             for (index, item) in items.into_iter().enumerate() {
+                let splice_import = import_path(&item).is_some();
                 let child = expand(
                     item,
                     root,
@@ -119,7 +120,7 @@ fn expand(
                     },
                 )?;
                 match child.card {
-                    Value::Array(expanded) => {
+                    Value::Array(expanded) if splice_import => {
                         for (index, item) in expanded.into_iter().enumerate() {
                             append_sources(
                                 &mut sources,

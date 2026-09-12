@@ -18,7 +18,7 @@ describe('Tauri WebView compatibility policy', () => {
     expect(csp['object-src']).toBe("'none'");
   });
 
-  test('uses native streaming without broadening native capabilities', () => {
+  test('uses native streaming with only the required window permissions', () => {
     const cargo = read('src/tauri/Cargo.toml');
     const lib = read('src/tauri/src/lib.rs');
     const capability = JSON.parse(read('src/tauri/capabilities/default.json'));
@@ -26,8 +26,10 @@ describe('Tauri WebView compatibility policy', () => {
     expect(cargo).toContain('reqwest =');
     expect(lib).toContain('model_commands::stream_model_request');
     expect(lib).toContain('model_commands::cancel_model_stream');
+    expect(capability.windows).toEqual(['main']);
     expect(capability.permissions).toEqual([
       'core:default',
+      'core:window:allow-destroy', // Close only after the renderer has flushed session data.
       'core:window:allow-set-fullscreen'
     ]);
   });

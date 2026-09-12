@@ -13,7 +13,7 @@ function mockTauriClient() {
       list_chat_sessions: { sessions: [], activeId: null }, get_active_chat_session: null,
       create_chat_session: { id: 'session-1' }, set_active_chat_session: { id: args.id },
       rename_chat_session: { id: args.id, title: args.title }, delete_chat_session: { activeId: null },
-      get_game_cards: [], set_active_game_card: {}, import_game_card_from_directory: null,
+      get_game_cards: [], set_active_game_card: {},
       import_game_card_from_file: null, delete_game_card: {}
     };
     return values[command];

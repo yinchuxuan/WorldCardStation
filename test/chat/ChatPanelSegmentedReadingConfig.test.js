@@ -1,15 +1,16 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const React = require('react');
 const { act, fireEvent, render, screen, waitFor } = require('@testing-library/react');
 const {
   SEGMENT_TRANSITION_MS
 } = require('../../src/renderer/chat/useSegmentedReading');
-const { card: whiteAlbumCard } = require('../game-card/whiteAlbumTestCard');
-const whiteAlbumRootSource = fs.readFileSync(
-  path.join(__dirname, '../../game-card-examples/white-album-2/ui/root.js'),
-  'utf8'
-);
+const readingRootSource = `
+  function Root({ React, emit }) {
+    return React.createElement('nav', null,
+      React.createElement('button', { onClick: () => emit({ type: 'reading.previous' }) }, '上一页'),
+      React.createElement('button', { onClick: () => emit({ type: 'reading.next' }) }, '下一页')
+    );
+  }
+`;
 
 function activeCard(display, ui) {
   return {
@@ -80,21 +81,13 @@ describe('game card segmented reading config', () => {
     expect(screen.getByText('第三段。')).toBeInTheDocument();
   });
 
-  test('keeps the WA2 choice overlay visible until the selected input is sent', async () => {
-    const choiceReply = [
-      '第一段。',
-      '',
-      '<choices>',
-      'A. 去音乐室。',
-      '',
-      'B. 前往天台。',
-      '',
-      'C. 留在教室。',
-      '',
-      'D. 独自回家。',
-      '</choices>'
-    ].join('\n');
-    global.platformMock.getActiveGameCard.mockResolvedValue(activeCard(whiteAlbumCard.display));
+  test('keeps input choices visible until the selected input is sent', async () => {
+    const choices = ['去音乐室。', '前往天台。', '留在教室。', '独自回家。'];
+    const buttons = choices.map((choice, index) => (
+      `<button class="input-choice" data-gc-chat-input-value="${String.fromCharCode(65 + index)}. ${choice}"><span>${choice}</span></button>`
+    )).join('');
+    const choiceReply = `第一段。\n\n<div class="choice-overlay"><p>请选择下一步行动</p>${buttons}</div>`;
+    global.platformMock.getActiveGameCard.mockResolvedValue(activeCard({ segmentedReading: true }));
     global.fetch
       .mockResolvedValueOnce(streamingMock(choiceReply))
       .mockResolvedValueOnce(streamingMock('下一轮正文。'));
@@ -106,8 +99,8 @@ describe('game card segmented reading config', () => {
     fireEvent.click(container.querySelector('[data-gc-part="chat-panel"]'));
 
     expect(screen.getByText('请选择下一步行动')).toBeInTheDocument();
-    expect(container.querySelector('.wa2-choice-overlay')).not.toBeNull();
-    expect(container.querySelectorAll('.wa2-choice')).toHaveLength(4);
+    expect(container.querySelector('.choice-overlay')).not.toBeNull();
+    expect(container.querySelectorAll('.input-choice')).toHaveLength(4);
 
     const choice = screen.getByText('前往天台。');
     const mouseDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
@@ -117,15 +110,15 @@ describe('game card segmented reading config', () => {
     const input = screen.getByPlaceholderText('输入您的回答...');
     expect(input).toHaveValue('B. 前往天台。');
     expect(input).toHaveFocus();
-    expect(container.querySelector('.wa2-choice-overlay')).not.toBeNull();
+    expect(container.querySelector('.choice-overlay')).not.toBeNull();
 
     act(() => choice.closest('button').focus());
     fireEvent.keyDown(choice.closest('button'), { key: 'Enter', code: 'Enter' });
-    await waitFor(() => expect(container.querySelector('.wa2-choice-overlay')).toBeNull());
+    await waitFor(() => expect(container.querySelector('.choice-overlay')).toBeNull());
     await screen.findByText('下一轮正文。');
   });
 
-  test('lets the WA2 arrow keys move between current and historical reading pages', async () => {
+  test('lets card UI navigate between current and historical reading pages', async () => {
     const messages = [
       {
         id: 'old-reply',
@@ -152,22 +145,22 @@ describe('game card segmented reading config', () => {
     ));
     global.platformMock.readGameCardFile.mockResolvedValue({
       success: true,
-      content: whiteAlbumRootSource
+      content: readingRootSource
     });
     const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
     render(React.createElement(ChatPanel));
 
     await screen.findByText('新第一段。');
-    await waitFor(() => expect(document.querySelector('.wa2-ui-root')).not.toBeNull());
+    const previous = await screen.findByRole('button', { name: '上一页' });
     jest.useFakeTimers();
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    fireEvent.click(previous);
 
     expect(screen.getByText('旧第二段。')).toBeInTheDocument();
     expect(screen.queryByText('旧选项')).toBeNull();
     expect(screen.queryByText('新第一段。')).toBeNull();
 
     act(() => jest.advanceTimersByTime(SEGMENT_TRANSITION_MS));
-    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
     expect(screen.getByText('新第一段。')).toBeInTheDocument();
   });
 

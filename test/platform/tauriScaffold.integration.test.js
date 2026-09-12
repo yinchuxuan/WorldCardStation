@@ -70,7 +70,7 @@ describe('Tauri desktop scaffold', () => {
     });
   });
 
-  test('registers the game card repository and native directory picker', () => {
+  test('registers the repository and file picker without legacy write or folder commands', () => {
     const cargo = fs.readFileSync(path.join(rootDir, 'src/tauri/Cargo.toml'), 'utf8');
     const lib = fs.readFileSync(path.join(rootDir, 'src/tauri/src/lib.rs'), 'utf8');
     const schema = fs.readFileSync(path.join(rootDir, 'src/tauri/src/game_card_schema.rs'), 'utf8');
@@ -81,14 +81,17 @@ describe('Tauri desktop scaffold', () => {
     [
       'get_game_cards',
       'get_game_card',
-      'save_game_card',
-      'import_game_card_from_directory',
       'import_game_card_from_file',
       'set_active_game_card',
       'delete_game_card',
       'get_active_game_card',
       'read_game_card_file'
     ].forEach(command => expect(lib).toContain(`game_card_commands::${command}`));
+    expect(lib).not.toContain('game_card_commands::save_game_card');
+    expect(lib).not.toContain('game_card_commands::import_game_card_from_directory');
+    expect(lib).toMatch(/#\[cfg\(feature = "e2e"\)\]\s+game_card_commands::e2e_seed_game_card/);
+    const commands = fs.readFileSync(path.join(rootDir, 'src/tauri/src/game_card_commands.rs'), 'utf8');
+    expect(commands).toMatch(/#\[cfg\(feature = "e2e"\)\]\s+#\[tauri::command\]\s+pub async fn e2e_seed_game_card/);
     expect(lib).toContain('config_commands::select_background_image');
     expect(lib).toContain('register_asynchronous_uri_scheme_protocol("local"');
     expect(schema).toContain('include_str!("../../shared/game-card/schema/game-card.schema.json")');

@@ -1,4 +1,3 @@
-const React = require('react');
 const { act, render, renderHook } = require('@testing-library/react');
 const DOMPurify = require('dompurify')(window);
 const { marked } = require('marked');
@@ -11,23 +10,10 @@ const {
 const useSegmentedReading = require('../../src/renderer/chat/useSegmentedReading').default;
 
 function renderSegmented(content, pageIndex, display, thinkingToggle = jest.fn()) {
-  return render(renderers.renderAssistantMsg(
-    React,
-    { role: 'assistant', content, _thinking: 'reasoning' },
-    0,
-    false,
-    null,
-    '',
-    false,
-    jest.fn(),
-    thinkingToggle,
-    marked,
-    DOMPurify,
-    value => value,
-    display,
-    JSON.stringify(display || null),
-    { enabled: true, pageIndex }
-  ));
+  return render(renderers.renderAssistantMsg({ msg: { role: 'assistant', content, _thinking: 'reasoning' }, idx: 0, isStreaming: false, tw: null,
+      currentThinking: '', showStreamThinking: false, setShowStreamThinking: jest.fn(),
+      toggleThinkingForMessage: thinkingToggle, marked, DOMPurify, highlightQuotes: value => value, display,
+      displayRevision: JSON.stringify(display || null), segmentedReading: { enabled: true, pageIndex } }));
 }
 
 function clickEvent(overrides = {}) {

@@ -26,7 +26,6 @@ const commandMethods = {
   rename_chat_session: ['renameChatSession', 'id', 'title'],
   delete_chat_session: ['deleteChatSession', 'id'],
   get_game_cards: ['getGameCards'],
-  import_game_card_from_directory: ['importGameCardFromDirectory'],
   import_game_card_from_file: ['importGameCardFromFile'],
   set_active_game_card: ['setActiveGameCard', 'id'],
   delete_game_card: ['deleteGameCard', 'id'],

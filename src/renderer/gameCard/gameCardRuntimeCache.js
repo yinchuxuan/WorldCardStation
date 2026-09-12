@@ -1,4 +1,3 @@
-import { expandCardImports } from './cardImportExpander.js';
 import { extractExecIncludes, resolveExecIncludePath } from './execSource.js';
 import { collectExecSourcePaths, collectFileContentPaths } from './resourcePreload.js';
 import { loadExternalStateSchema } from './stateSchemaLoader.js';
@@ -49,8 +48,7 @@ function loadCachedRuntimeCard(card, resources) {
       ...resources,
       readText: (_cardId, filePath) => readCachedCardText(card, resources, filePath)
     };
-    entry.card = expandCardImports(card, cachedResources)
-      .then(expanded => loadExternalStateSchema(expanded, cachedResources))
+    entry.card = loadExternalStateSchema(card, cachedResources)
       .then(runtimeCard => {
         if (runtimeCard && typeof runtimeCard === 'object') {
           const cardEntries = entriesByCard.get(runtimeCard) || new WeakMap();

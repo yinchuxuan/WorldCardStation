@@ -79,9 +79,10 @@ fn collect_random_range_errors(value: &Value, path: &str, errors: &mut Vec<Valid
                 ));
             }
         }
-        for (key, child) in object {
-            let next = child_pointer(path, key);
-            collect_random_range_errors(child, &next, errors);
+        if !object.contains_key("type") {
+            if let Some(actions) = object.get("then") {
+                collect_random_range_errors(actions, &child_pointer(path, "then"), errors);
+            }
         }
     } else if let Some(items) = value.as_array() {
         for (index, child) in items.iter().enumerate() {
@@ -92,7 +93,9 @@ fn collect_random_range_errors(value: &Value, path: &str, errors: &mut Vec<Valid
 
 fn validate_data_constraints(card: &Value) -> CardResult<()> {
     let mut details = Vec::new();
-    collect_random_range_errors(card, "", &mut details);
+    if let Some(rules) = card.get("rules") {
+        collect_random_range_errors(rules, "/rules", &mut details);
+    }
     if details.is_empty() {
         Ok(())
     } else {

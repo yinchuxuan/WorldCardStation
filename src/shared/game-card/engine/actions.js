@@ -101,14 +101,15 @@ function applyReplace(messages, action, options) {
   return { messages: nextMessages, trace: buildTrace(action, matches, true, messages, nextMessages) };
 }
 
-function applyAction(messages, action, options = {}) {
+function applyAction(messages, action, options = {}, applyNestedActions = applyActions) {
   if (action?.find) {
     const found = withFindState(options.state || {}, action.find, messages, options);
     const next = applyAction(messages, { ...action, find: undefined }, {
       ...options,
       state: found.state
-    });
-    return { ...next, state: found.restore(next.state || found.state) };
+    }, applyNestedActions);
+    const restore = result => ({ ...result, state: found.restore(result.state || found.state) });
+    return next?.then ? next.then(restore) : restore(next);
   }
   if (action?.when) {
     const phase = options.event?.phase || action.when.phase || 'pre_send';
@@ -117,8 +118,11 @@ function applyAction(messages, action, options = {}) {
       return { messages, state: options.state || {}, trace: skippedTrace(action, messages, 'when_not_matched') };
     }
   }
-  if (Array.isArray(action?.then) && action.type === undefined) return groupResult(messages,
-    applyActions(messages, action.then, { ...options, pointer: `${options.pointer}/then` }));
+  if (Array.isArray(action?.then) && action.type === undefined) {
+    const result = applyNestedActions(messages, action.then, { ...options, pointer: `${options.pointer}/then` });
+    const finish = applied => groupResult(messages, applied);
+    return result?.then ? result.then(finish) : finish(result);
+  }
   if (action?.type === 'insert') return applyInsert(messages, action, { ...options, messages });
   if (action?.type === 'remove') return applyRemove(messages, action, options);
   if (action?.type === 'replace') return applyReplace(messages, action, options);

@@ -1,8 +1,0 @@
-{
-  "stylesheet": "ui.css",
-  "root": {
-    "type": "react",
-    "source": "ui/root.js",
-    "style": "ui/root.css"
-  }
-}

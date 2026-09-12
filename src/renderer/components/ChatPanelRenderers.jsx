@@ -1,7 +1,7 @@
 import React from 'react';
 
 const ChatPanelRenderers = {
-  renderMsgHistoryDisplay(_React, msgHistoryMessages) {
+  renderMsgHistoryDisplay(msgHistoryMessages) {
     if (!msgHistoryMessages || msgHistoryMessages.length === 0) {
       return <div className="chat-empty">
         <span className="material-icons empty-icon">inbox</span>

@@ -1,6 +1,4 @@
 const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
-const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
-const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
 
 describe('browser game card find runtime', () => {
   test('rule find still resolves after content resolver is loaded', () => {
@@ -62,39 +60,28 @@ describe('browser game card find runtime', () => {
     expect(result.state.slot).toBe('fixed');
   });
 
-  test('white album browser runtime appends tail context to latest user message', async () => {
-    const { card, stateSchema: schema, llmStateContract, libraryFileContents } = require('./whiteAlbumTestCard');
-    const loadedCard = mergeAudioStateSchema({ ...card, state: { ...card.state, schema } });
-    const fileContents = {
-      'first_msg.md': '开场',
-      'system_prompt.md': '系统提示',
-      'roleplay_rules.md': '规则',
-      'plot/chapter-1.md': '# 剧情引导\n## 剧情大纲\n大纲\n## FreePlot1\n自由节点\n## 剧情限制\n限制',
-      'state/schema.json': JSON.stringify(schema),
-      'state/llm_schema.md': llmStateContract,
-      'state/state_update_rules.md': '规则',
-      'scripts/plot.js': 'function run(ctx) { ctx.state.temp = { plotFile: "plot.chapter.1", PlotType: "FreePlot1", plotDirectionRoll: 50, includeFreeGuide: true }; ctx.state.audio.bgm = "normal"; return { state: ctx.state }; }',
-      'scripts/chapters/chapter-1.js': '',
-      ...libraryFileContents
+  test('find selects file context appended only to the latest user message', async () => {
+    const card = {
+      version: '1', id: 'find-context', name: 'Find Context', files: { plot: 'plot.md' },
+      rules: [{
+        when: { phase: 'pre_send' },
+        find: [{ name: 'section', from: { role: 'assistant', occurrence: 'last' },
+          match: { regex: '^section:(.+)$', group: 1 } }],
+        then: [{ type: 'replace', predicate: { role: 'user', occurrence: 'last' },
+          content: '{{original_content}}\n\n<context>{{file:plot#$temp.find.section}}</context>' }]
+      }]
     };
-    const init = applyGameCard({
-      card: loadedCard,
-      phase: 'init',
-      messages: [],
-      state: ensureStateDefaults(loadedCard.state.schema, {}).state,
-      fileContents
-    });
     const result = await applyGameCardAsync({
-      card: loadedCard,
+      card,
       phase: 'pre_send',
-      messages: [...init.messages, { role: 'user', content: '继续' }],
-      state: init.state,
-      fileContents
+      messages: [{ role: 'user', content: '旧输入' }, { role: 'assistant', content: 'section:Scene' },
+        { role: 'user', content: '继续' }],
+      state: {},
+      fileContents: { 'plot.md': '# Plot\n## Scene\n场景引导\n## Other\n其它引导' }
     });
-    const user = result.messages.find((msg) => msg.role === 'user');
 
     expect(result.trace.errors).toEqual([]);
-    expect(user.content).toContain('<wa2_turn_context>');
-    expect(user.content).toContain('自由节点');
+    expect(result.messages[0].content).toBe('旧输入');
+    expect(result.messages[2].content).toBe('继续\n\n<context>场景引导</context>');
   });
 });

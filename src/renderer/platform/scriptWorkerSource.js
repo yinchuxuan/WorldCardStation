@@ -1,7 +1,7 @@
-import { compileExecSource } from '../../shared/game-card/exec/execCompilation.js';
+import { execCompilerSource } from '../../shared/game-card/exec/execCompilation.js';
 
 const scriptWorkerSource = String.raw`
-const compileExecSource = ${compileExecSource.toString()};
+const compileExecSource = ${execCompilerSource};
 function section(content, heading) {
   const lines = String(content).split(/\r?\n/);
   const escaped = String(heading).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');

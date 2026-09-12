@@ -40,9 +40,9 @@ describe('MessageCollapseRenderer', () => {
     const renderAssistantMsg = (msg) => R.createElement('div', { className: 'assistant' }, msg.content);
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render(
-      R, messages, false, mockTw, renderMarkdown, renderAssistantMsg, renderRetryBtn, false, () => {}
-    );
+    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
+      onExpand: () => {} });
 
     const container = _render(result);
     expect(container.container.querySelector('.collapsed-history')).toBeInTheDocument();
@@ -60,9 +60,9 @@ describe('MessageCollapseRenderer', () => {
     const renderAssistantMsg = (msg) => R.createElement('div', { className: 'assistant' }, msg.content);
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render(
-      R, messages, false, mockTw, renderMarkdown, renderAssistantMsg, renderRetryBtn, true, () => {}
-    );
+    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: true,
+      onExpand: () => {} });
 
     const container = _render(result);
     expect(container.container.querySelector('.collapsed-history')).not.toBeInTheDocument();
@@ -78,9 +78,9 @@ describe('MessageCollapseRenderer', () => {
     const renderAssistantMsg = () => null;
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render(
-      R, messages, false, mockTw, renderMarkdown, renderAssistantMsg, renderRetryBtn, false, () => {}
-    );
+    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
+      onExpand: () => {} });
 
     const container = _render(result);
     expect(container.container.querySelector('.pinned-divider')).toBeInTheDocument();
@@ -95,9 +95,9 @@ describe('MessageCollapseRenderer', () => {
     const renderAssistantMsg = () => R.createElement('div', { className: 'streaming' }, 'streaming');
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render(
-      R, messages, true, mockTw, renderMarkdown, renderAssistantMsg, renderRetryBtn, false, () => {}
-    );
+    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: true, typewriter: mockTw, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
+      onExpand: () => {} });
 
     const container = _render(result);
     expect(container.container.querySelector('.streaming')).toBeInTheDocument();
@@ -108,7 +108,8 @@ describe('MessageCollapseRenderer', () => {
   });
 
   test('render returns null for empty messages and not loading', () => {
-    const result = MessageCollapseRenderer.render(R, [], false, null, () => {}, () => {}, () => null, false, () => {});
+    const result = MessageCollapseRenderer.render({ rawMessages: [], isLoading: false, typewriter: null, renderUserMessage: () => {},
+      renderAssistantMessage: () => {}, renderRetryButton: () => null, isExpanded: false, onExpand: () => {} });
     expect(result).toBe(null);
   });
 
@@ -125,9 +126,9 @@ describe('MessageCollapseRenderer', () => {
     const renderAssistantMsg = () => null;
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render(
-      R, messages, false, mockTw, renderMarkdown, renderAssistantMsg, renderRetryBtn, false, () => {}
-    );
+    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
+      onExpand: () => {} });
 
     const container = _render(result);
     expect(container.container.textContent).toContain('4');

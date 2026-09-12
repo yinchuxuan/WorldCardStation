@@ -1,5 +1,6 @@
 const { prepareInitMessages, preparePreSendMessages } = require('../../src/renderer/gameCard/sendPipeline');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
+const { expandCardImports } = require('../platform/cardImportExpander');
 
 const platform = createTestGameCardPlatform(() => global.platformMock);
 
@@ -25,7 +26,7 @@ describe('game card send pipeline imports', () => {
     global.platformMock.readGameCardFile.mockImplementation(readGameCardFile);
   });
 
-  test('expands imported files before applying pre_send replacements', async () => {
+  test('applies pre_send replacements to imports already expanded by the repository', async () => {
     const card = {
       version: '1',
       id: 'send-card',
@@ -36,7 +37,7 @@ describe('game card send pipeline imports', () => {
 
     const result = await preparePreSendMessages({
       messages: [{ role: 'user', content: 'go' }],
-      card,
+      card: await expandCardImports(card, platform.resources),
       platform
     });
 
@@ -48,16 +49,16 @@ describe('game card send pipeline imports', () => {
       .toHaveBeenCalledWith('send-card', 'plot_guides.md');
   });
 
-  test('expands imports when initializing an existing history', async () => {
+  test('initializes existing history with repository-expanded imports', async () => {
     const result = await prepareInitMessages({
       messages: [{ role: 'user', content: 'existing' }],
-      card: {
+      card: await expandCardImports({
         version: '1',
         id: 'send-card',
         name: 'Send Card',
         files: { $import: 'files.json' },
         rules: []
-      },
+      }, platform.resources),
       platform
     });
 

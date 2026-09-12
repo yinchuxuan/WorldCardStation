@@ -18,6 +18,7 @@ function useChatSession({
 }) {
   const [revision, setRevision] = React.useState(0);
   const loadCurrent = React.useCallback(async () => {
+    persistence.reset();
     try {
       const result = await repository.loadHistory();
       persistence.hydrate(result);
@@ -25,22 +26,24 @@ function useChatSession({
       const loadedState = result.gameState || {};
       await runtimeTrace.bind(result.traceScope || null, loadedMessages, loadedState);
       const init = await generationServices.prepareInitMessages({ messages: loadedMessages, state: loadedState });
+      if (init.error || init.trace?.errors?.length) {
+        throw normalizeGameCardError({ ...init, error: init.error || init.trace.errors.join('\n') });
+      }
       const initializedMessages = init.changed ? init.messages : loadedMessages;
       const nextMessages = ensureMessageIds(initializedMessages);
       const idsAdded = nextMessages !== initializedMessages;
       const nextState = init.state || loadedState;
-      setRuntimeError(init.error ? normalizeGameCardError(init) : null);
+      setRuntimeError(null);
       setMessages(nextMessages);
       setGameState(nextState);
       runtimeTrace.update(nextMessages, nextState);
       onSessionLoaded?.({ card: init.card || null, state: nextState });
+      persistence.markLoaded();
       if (init.changed || idsAdded) await persistence.save(nextMessages, nextState);
       return result;
     } catch (error) {
       setRuntimeError(normalizeGameCardError(error));
       return null;
-    } finally {
-      persistence.markLoaded();
     }
   }, [onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError]);
 
@@ -57,22 +60,20 @@ function useChatSession({
   }, [isLoading, persistence]);
 
   const reload = React.useCallback(async () => {
-    persistence.reset();
     typewriter.clearStreaming();
     onResetView?.();
     return load();
-  }, [load, onResetView, persistence, typewriter]);
+  }, [load, onResetView, typewriter]);
 
   const switchSession = React.useCallback(async (id) => {
     setRevision(value => value + 1);
     await saveCurrent();
     const result = await repository.setActive(id);
-    persistence.reset();
     typewriter.clearStreaming();
     onResetView?.();
     await loadCurrent();
     return { success: true, ...result };
-  }, [loadCurrent, onResetView, persistence, repository, saveCurrent, typewriter]);
+  }, [loadCurrent, onResetView, repository, saveCurrent, typewriter]);
 
   return { load, reload, revision, saveCurrent, switchSession };
 }

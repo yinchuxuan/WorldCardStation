@@ -60,7 +60,7 @@ const ChatPanelMessageRenderers = {
     return selectVisibleMessages(messages);
   },
 
-  renderMarkdown(_React, text, marked, DOMPurify, highlightQuotes, role = 'user', display, displayRevision, depth) {
+  renderMarkdown({ text, marked, DOMPurify, highlightQuotes, role = 'user', display, displayRevision, depth }) {
     return <div className="chat-message-bubble" data-gc-part="message-bubble">
       <MessageContent content={text} role={role} display={display} displayRevision={displayRevision} depth={depth}
         markdown={marked} sanitizer={DOMPurify} quoteHighlighter={highlightQuotes}
@@ -69,13 +69,11 @@ const ChatPanelMessageRenderers = {
     </div>;
   },
 
-  renderUserMsg(R, msg, marked, DOMPurify, highlightQuotes, display, displayRevision, depth) {
-    return this.renderMarkdown(
-      R, msg.content, marked, DOMPurify, highlightQuotes, 'user', display, displayRevision, depth
-    );
+  renderUserMsg({ msg, marked, DOMPurify, highlightQuotes, display, displayRevision, depth }) {
+    return this.renderMarkdown({ text: msg.content, marked, DOMPurify, highlightQuotes, role: 'user', display, displayRevision, depth });
   },
 
-  renderEditableUserMsg(R, msg, renderIndex, renderMarkdown, editUserMessage) {
+  renderEditableUserMsg({ msg, renderIndex, renderMarkdown, editUserMessage }) {
     if (!editUserMessage?.canEdit?.(renderIndex)) return renderMarkdown(msg.content, msg);
     if (editUserMessage.isEditing(renderIndex)) {
       const rows = Math.max(1, String(editUserMessage.content || '').split('\n').length);
@@ -88,15 +86,15 @@ const ChatPanelMessageRenderers = {
       </div>;
     }
     const bubble = renderMarkdown(msg.content, msg);
-    return R.cloneElement(bubble, {
+    return React.cloneElement(bubble, {
       className: `${bubble.props.className || ''} chat-message-editable-bubble`,
-      onClick: event => { if (!event.defaultPrevented) editUserMessage.start(renderIndex, msg.content); }
+      onClick: event => { if (!event.defaultPrevented) editUserMessage.start(renderIndex); }
     });
   },
 
-  renderAssistantMsg(_React, msg, idx, isStreaming, tw, currentThinking, showStreamThinking,
+  renderAssistantMsg({ msg, idx, isStreaming, tw, currentThinking, showStreamThinking,
     setShowStreamThinking, toggleThinkingForMessage, marked, DOMPurify, highlightQuotes, display,
-    displayRevision, segmentedReading, depth) {
+    displayRevision, segmentedReading, depth }) {
     const thinking = isStreaming ? currentThinking : msg._thinking;
     const showThinking = isStreaming ? showStreamThinking : msg._thinkingVisible === true;
     const rawContent = isStreaming ? msg.slice(0, tw.displayedCount) : msg.content;
@@ -130,7 +128,7 @@ const ChatPanelMessageRenderers = {
     </div>;
   },
 
-  renderRetryBtn(_React, isLast, isLoading, handleRetry) {
+  renderRetryBtn({ isLast, isLoading, handleRetry }) {
     if (!isLast || isLoading) return null;
     return <button className="md-btn retry-btn retry-side-indicator"
       onClick={event => { event.stopPropagation(); handleRetry(); }}
@@ -139,9 +137,9 @@ const ChatPanelMessageRenderers = {
     </button>;
   },
 
-  renderMessages(R, messages, isLoading, tw, currentThinking, showStreamThinking, renderMarkdown,
+  renderMessages({ messages, isLoading, tw, renderMarkdown,
     renderAssistantMsg, renderRetryBtn, collapseRenderer, isHistoryExpanded, handleExpandHistory,
-    modelConfig, editUserMessage) {
+    modelConfig, editUserMessage }) {
     const visibleMessages = this.filterDialogueMessages(messages);
     if (visibleMessages.length === 0 && !isLoading) {
       return <div className="chat-empty">
@@ -151,12 +149,13 @@ const ChatPanelMessageRenderers = {
       </div>;
     }
     const renderUserMessage = (msg, renderIndex) => (
-      this.renderEditableUserMsg(R, msg, renderIndex, renderMarkdown, editUserMessage)
+      this.renderEditableUserMsg({ msg, renderIndex, renderMarkdown, editUserMessage })
     );
     renderUserMessage.usesMessageObject = true;
     if (collapseRenderer) {
-      return collapseRenderer.render(R, visibleMessages, isLoading, tw, renderUserMessage,
-        renderAssistantMsg, renderRetryBtn, isHistoryExpanded, handleExpandHistory);
+      return collapseRenderer.render({ rawMessages: visibleMessages, isLoading, typewriter: tw, renderUserMessage,
+        renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: isHistoryExpanded,
+        onExpand: handleExpandHistory });
     }
     const lastUserIndex = findLastRoleIndex(visibleMessages, 'user');
     const displayMessages = isLoading ? [...visibleMessages, {

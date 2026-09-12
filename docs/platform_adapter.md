@@ -26,6 +26,8 @@ Tauri 是唯一桌面 target；memory adapter 用于 unit test，不参与生产
 
 `memoryGameCardPlatform.js` 从内存中的 card、文本和 URL 读取资源。聊天管线与 shared core 单元测试应优先使用它。
 
+repository 返回已经完成 `$import` 展开的卡，renderer 只加载外部 state schema 和运行资源；需要原始 import fixture 的测试在测试适配边界模拟 native 展开。读取 active card 失败必须传播错误，不能解释为普通聊天。
+
 ## Renderer Services
 
 配置、背景、Session 与游戏卡安装管理 contract 集中定义在 `src/renderer/platform/contracts.js`：
@@ -84,6 +86,8 @@ Unit tests
 ```
 
 新增平台能力时先扩展业务级 contract，再实现 Rust command 和 adapter。不要在组件或 shared core 中直接 import Tauri API，也不要复制游戏卡 schema 或规则引擎。
+
+生产导入只提供 `cards.importFile()`，项目 `card.json` 仍复用 native 底层目录安装管线，不再暴露独立目录选择接口。`e2e_seed_game_card` 仅在 `e2e` feature 注册，供测试创建 fixture；正式构建没有跳过导入校验直接写卡的 command。
 
 ## Contract Tests
 

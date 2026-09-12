@@ -33,15 +33,12 @@ describe('timeline distribution and sandbox runtime', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 
-  test('ships only code and documentation, with identical scripts and README in WA2', () => {
-    const wa2 = path.resolve(root, '../../game-card-examples/white-album-2');
+  test('ships only generic code and documentation', () => {
     expect(fs.readdirSync(root).sort()).toEqual(['README.md', 'lib']);
-    for (const [file, source] of Object.entries(scripts)) {
-      expect(fs.readFileSync(path.join(wa2, file), 'utf8')).toBe(source);
+    for (const source of Object.values(scripts)) {
       expect(source).not.toMatch(/setsuna|touma|chapter2|randomInt/);
       expect(source.trimEnd().split('\n').length).toBeLessThanOrEqual(200);
     }
-    expect(fs.readFileSync(path.join(wa2, 'lib/timeline/README.md'), 'utf8'))
-      .toBe(fs.readFileSync(path.join(root, 'README.md'), 'utf8'));
+    expect(fs.readFileSync(path.join(root, 'README.md'), 'utf8')).toContain('lib/timeline/core.js');
   });
 });

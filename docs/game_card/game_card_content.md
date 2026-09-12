@@ -41,6 +41,8 @@ Content 描述符描述如何生成一条消息的 `content` 值。
 
 目录 fileRef 必须在规则中写成静态字面量，以便执行前加载；state 动态引用只接受精确 file ID。fileRef 始终经过顶层 `files` 授权，不支持裸文件路径。
 
+预加载只解析规则中实际的 Content 字段及其分支，不解释 `exec.args`、state action 的普通 JSON 值、predicate 文本或 transform 参数中的字面量。
+
 ## Markdown 章节
 
 `{{file:fileRef#标题}}` 会在对应 Markdown 文件中查找标题文本完全相同的唯一标题，不要求写 `##` / `###` 层级：

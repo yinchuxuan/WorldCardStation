@@ -1,5 +1,6 @@
 const { applyUiScriptRunEvent, normalizeUiScriptRunEvent } = require('../../src/renderer/gameCard/uiScripts');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
+const { expandCardImports } = require('../platform/cardImportExpander');
 
 describe('game card ui scripts', () => {
   test('normalizes sourceFile and named card scripts', () => {
@@ -36,7 +37,7 @@ describe('game card ui scripts', () => {
     expect(result.trace.changedKeys).toEqual(['score', 'events']);
   });
 
-  test('resolves named scripts from imported ui config', async () => {
+  test('resolves named scripts from repository-expanded ui config', async () => {
     const api = {
       readGameCardFile: jest.fn(async (_id, filePath) => ({
         success: true,
@@ -48,7 +49,7 @@ describe('game card ui scripts', () => {
     const result = await applyUiScriptRunEvent({
       event: { type: 'game.script.run', name: 'pick', payload: { id: 'answer' } },
       state: {},
-      card: { id: 'card', ui: { $import: 'ui.json' } },
+      card: await expandCardImports({ id: 'card', ui: { $import: 'ui.json' } }, createTestGameCardPlatform(api).resources),
       platform: createTestGameCardPlatform(api)
     });
 

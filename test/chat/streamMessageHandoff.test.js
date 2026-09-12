@@ -13,17 +13,9 @@ function renderAssistant(value, _index, streaming) {
 }
 
 function HandoffView({ isLoading, messages }) {
-  return MessageCollapseRenderer.render(
-    React,
-    messages,
-    isLoading,
-    { streamContent: '当前段落', streamMessageId: 'reply' },
-    content => <div>{content}</div>,
-    renderAssistant,
-    () => null,
-    false,
-    () => {}
-  );
+  return MessageCollapseRenderer.render({ rawMessages: messages, isLoading, typewriter: { streamContent: '当前段落', streamMessageId: 'reply' },
+      renderUserMessage: content => <div>{content}</div>, renderAssistantMessage: renderAssistant,
+      renderRetryButton: () => null, isExpanded: false, onExpand: () => {} });
 }
 
 describe('stream message handoff', () => {

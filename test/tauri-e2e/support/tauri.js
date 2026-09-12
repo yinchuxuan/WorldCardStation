@@ -59,7 +59,7 @@ async function toggleHistory() {
 }
 
 async function saveCard(card, files = {}) {
-  await invoke('save_game_card', { card });
+  await invoke('e2e_seed_game_card', { card });
   if (Object.keys(files).length) {
     await writeCardFiles(card.id, files);
   }

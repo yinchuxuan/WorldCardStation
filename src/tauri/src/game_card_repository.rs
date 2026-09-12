@@ -43,6 +43,7 @@ pub async fn list(storage: &AppStorage) -> CardResult<Vec<Value>> {
     Ok(cards)
 }
 
+#[cfg(any(test, feature = "e2e"))]
 pub async fn save(storage: &AppStorage, card: Value) -> CardResult<()> {
     let id = card
         .get("id")

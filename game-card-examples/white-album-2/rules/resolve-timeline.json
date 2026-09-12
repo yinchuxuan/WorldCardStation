@@ -2,6 +2,6 @@
   "id": "wa2-resolve-timeline",
   "when": { "phase": "pre_send" },
   "then": [
-    { "type": "exec", "sourceFile": "scripts/timeline.js" }
+    { "type": "exec", "sourceFile": "scripts/plot.js", "args": { "timeline": "timeline" } }
   ]
 }]

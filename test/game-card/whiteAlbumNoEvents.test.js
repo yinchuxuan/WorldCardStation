@@ -11,7 +11,7 @@ describe('white album 2 event removal', () => {
     const files = readJson('files.json');
     const ui = readJson('ui.json');
     const source = [
-      readText('scripts/timelines/chapter-2.js'),
+      readText('scripts/chapters/chapter-2.js'),
       readText('ui/root.js'),
       readText('ui/root.css')
     ].join('\n');

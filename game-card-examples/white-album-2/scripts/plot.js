@@ -1,36 +1,17 @@
 /* eslint-disable no-unused-vars */
 /* global include, resolveAttitudeSection, resolveChapter1EventCategory, resolveChapter1Timeline, resolveChapter2EventCategory, resolveChapter2Timeline, resolvePlotMood */
+/* global clampTimelineTime, parseTimelineTime */
 /* exported run */
 
-include("./timelines/chapter-1.js");
-include("./timelines/chapter-2.js");
+include("lib/timeline/core.js");
+include("./chapters/chapter-1.js");
+include("./chapters/chapter-2.js");
 
-function run(ctx) {
+async function run(ctx) {
   const { state, utils } = ctx;
 
   function ensureObject(path) {
     if (!state[path] || typeof state[path] !== 'object') state[path] = {};
-  }
-
-  function parseTime(value) {
-    const match = String(value || '').match(/^(\d{4})\.(\d{1,2})\.(\d{1,2}):\s*(\d{1,2}):(\d{2})/);
-    if (!match) return Number.NEGATIVE_INFINITY;
-    const [, year, month, day, hour, minute] = match;
-    return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
-  }
-
-  function clampCurrentTimeToSlotEnd() {
-    const currentTime = state.timeline.currentTime;
-    const slotEnd = state.timeline.currentSlotEnd;
-    const currentValue = parseTime(currentTime);
-    const endValue = parseTime(slotEnd);
-    state.temp.timelineTimeClamped = false;
-    state.temp.timelineRequestedTime = '';
-    if (!Number.isFinite(currentValue) || !Number.isFinite(endValue) || currentValue <= endValue) return;
-
-    state.timeline.currentTime = slotEnd;
-    state.temp.timelineTimeClamped = true;
-    state.temp.timelineRequestedTime = currentTime;
   }
 
   function chapterKey() {
@@ -39,8 +20,8 @@ function run(ctx) {
     }
 
     const currentTime = state.timeline && state.timeline.currentTime;
-    const chapter2Start = parseTime('2007.10.23: 17:00 星期二');
-    return parseTime(currentTime) > chapter2Start ? 'chapter_2' : 'chapter_1';
+    const chapter2Start = parseTimelineTime('2007.10.23: 17:00 星期二');
+    return parseTimelineTime(currentTime) > chapter2Start ? 'chapter_2' : 'chapter_1';
   }
 
   function applyAttitudeSections() {
@@ -94,9 +75,12 @@ function run(ctx) {
   ensureObject('temp');
   ensureObject('story');
 
-  clampCurrentTimeToSlotEnd();
+  const time = clampTimelineTime(state.timeline.currentTime, state.timeline.currentSlotEnd);
+  state.timeline.currentTime = time.currentTime;
+  state.temp.timelineTimeClamped = time.clamped;
+  state.temp.timelineRequestedTime = time.clamped ? time.requestedTime : '';
   const resolver = resolvers[chapterKey()] || resolveChapter1Timeline;
-  const result = resolver(state, ctx);
+  const result = await resolver(state, ctx);
 
   state.timeline.currentSlot = result.slotId || result.plotType;
   state.timeline.currentSlotEnd = result.end;
@@ -108,5 +92,13 @@ function run(ctx) {
   if (result.plotKind === 'free') applyFreePlot();
   else if (result.plotKind === 'fixed') applyFixedPlot();
 
-  return { state };
+  const diagnostics = result.diagnostics || {
+    selected: state.timeline.currentSlot, matched: [], fallbackUsed: false,
+    warnings: [], selectionSkipped: 'afterstory'
+  };
+  return { state, effects: { timeline: {
+    ...time, ...diagnostics, chapter: result.chapter,
+    slotId: state.timeline.currentSlot, plotType: result.plotType,
+    plotFile: result.plotFile, end: result.end
+  } } };
 }

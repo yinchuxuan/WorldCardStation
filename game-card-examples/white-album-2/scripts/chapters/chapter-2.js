@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-/* global inTimelineRange */
+/* global loadTimelineConfig, selectTimelineSlot */
 /* exported resolveChapter2EventCategory, resolveChapter2Timeline */
 
 function resolveChapter2EventCategory(roll) {
@@ -108,7 +108,7 @@ function applySlotPlotOverrides(state, slot) {
   }, branchedSlot);
 }
 
-function resolveChapter2Timeline(state) {
+async function resolveChapter2Timeline(state, ctx) {
   if (readStatePath(state, 'story.chapter2SuccessReached')) {
     return {
       chapter: 'chapter_2',
@@ -131,70 +131,9 @@ function resolveChapter2Timeline(state) {
     };
   }
 
-  const slots = [
-    {
-      id: 'FixedPlot1',
-      plotKind: 'fixed',
-      end: '2007.10.24: 8:00 星期三',
-      range: { gt: '2007.10.23: 17:00 星期二', lte: '2007.10.23: 17:30 星期二' }
-    },
-    {
-      id: 'FreePlot1',
-      plotKind: 'free',
-      end: '2007.10.25: 17:00 星期四',
-      range: { gt: '2007.10.23: 17:30 星期二', lte: '2007.10.25: 15:00 星期四' }
-    },
-    {
-      id: 'FixedPlot2',
-      plotKind: 'fixed',
-      end: '2007.10.25: 18:00 星期四',
-      range: { gt: '2007.10.25: 15:00 星期四', lte: '2007.10.25: 17:00 星期四' }
-    },
-    {
-      id: 'FixedPlot3',
-      plotKind: 'fixed',
-      end: '2007.10.25: 22:00 星期四',
-      range: { gt: '2007.10.25: 17:00 星期四', lte: '2007.10.25: 18:00 星期四' }
-    },
-    {
-      id: 'FreePlot2',
-      plotKind: 'free',
-      end: '2007.10.26: 17:00 星期五',
-      range: { gt: '2007.10.25: 18:00 星期四', lte: '2007.10.26: 15:00 星期五' }
-    },
-    {
-      id: 'FixedPlot4',
-      plotKind: 'fixed',
-      end: '2007.10.26: 17:30 星期五',
-      range: { gt: '2007.10.26: 15:00 星期五', lte: '2007.10.26: 17:00 星期五' }
-    },
-    {
-      id: 'FixedPlot5',
-      plotKind: 'fixed',
-      end: '2007.10.26: 19:30 星期五',
-      range: { gt: '2007.10.26: 17:00 星期五', lte: '2007.10.26: 17:30 星期五' }
-    },
-    {
-      id: 'FreePlot3',
-      plotKind: 'free',
-      end: '2007.10.28: 14:00 星期日',
-      range: { gt: '2007.10.26: 17:30 星期五', lte: '2007.10.28: 12:00 星期日' }
-    },
-    {
-      id: 'FixedPlot6',
-      plotKind: 'fixed',
-      end: '2007.10.28: 21:00 星期日',
-      range: { gt: '2007.10.28: 12:00 星期日', lte: '2007.10.28: 14:00 星期日' }
-    },
-    {
-      id: 'GameEnd1',
-      plotKind: 'fixed',
-      end: '2012.10.28: 22:00 星期日',
-      range: { gt: '2007.10.28: 14:00 星期日', lte: '2007.10.28: 21:00 星期日' }
-    },
-  ];
-  const currentTime = state.timeline && state.timeline.currentTime;
-  const rawSlot = slots.find((item) => inTimelineRange(currentTime, item.range)) || slots[0];
+  const config = await loadTimelineConfig(ctx, { ...ctx.args, config: 'chapter-2.json' });
+  const selection = selectTimelineSlot(config, state.timeline.currentTime);
+  const rawSlot = { ...selection.slot.data, id: selection.slot.id, end: selection.slot.end };
   const slot = applySlotPlotOverrides(state, rawSlot);
   if (slot.plotType === 'FixedPlot7') writeStatePath(state, 'story.chapter2SuccessReached', true);
   if (slot.plotType === 'GameEnd1') writeStatePath(state, 'story.chapter2GameEnd1Reached', true);
@@ -204,6 +143,7 @@ function resolveChapter2Timeline(state) {
     slotId: slot.slotId,
     plotType: slot.plotType,
     plotKind: slot.plotKind,
-    end: slot.end
+    end: slot.end,
+    diagnostics: selection.diagnostics
   };
 }

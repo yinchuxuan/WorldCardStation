@@ -63,7 +63,7 @@ describe('browser game card find runtime', () => {
   });
 
   test('white album browser runtime appends tail context to latest user message', async () => {
-    const { card, stateSchema: schema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+    const { card, stateSchema: schema, llmStateContract, libraryFileContents } = require('./whiteAlbumTestCard');
     const loadedCard = mergeAudioStateSchema({ ...card, state: { ...card.state, schema } });
     const fileContents = {
       'first_msg.md': '开场',
@@ -73,9 +73,9 @@ describe('browser game card find runtime', () => {
       'state/schema.json': JSON.stringify(schema),
       'state/llm_schema.md': llmStateContract,
       'state/state_update_rules.md': '规则',
-      'scripts/timeline.js': 'function run(ctx) { ctx.state.temp = { plotFile: "plot.chapter.1", PlotType: "FreePlot1", plotDirectionRoll: 50, includeFreeGuide: true }; ctx.state.audio.bgm = "normal"; return { state: ctx.state }; }',
-      'scripts/timelines/chapter-1.js': '',
-      ...worldbookFileContents
+      'scripts/plot.js': 'function run(ctx) { ctx.state.temp = { plotFile: "plot.chapter.1", PlotType: "FreePlot1", plotDirectionRoll: 50, includeFreeGuide: true }; ctx.state.audio.bgm = "normal"; return { state: ctx.state }; }',
+      'scripts/chapters/chapter-1.js': '',
+      ...libraryFileContents
     };
     const init = applyGameCard({
       card: loadedCard,

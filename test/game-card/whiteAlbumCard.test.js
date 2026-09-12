@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { card, stateSchema, llmStateContract, libraryFileContents } = require('./whiteAlbumTestCard');
 const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
@@ -30,10 +30,10 @@ const fileContents = {
   'state/llm_schema.md': llmStateContract,
   'state/state_update_rules.md': readCardFile('state/state_update_rules.md'),
   'scripts/summary-memory.js': readCardFile('scripts/summary-memory.js'),
-  'scripts/timeline.js': readCardFile('scripts/timeline.js'),
-  'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
-  'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  ...worldbookFileContents
+  'scripts/plot.js': readCardFile('scripts/plot.js'),
+  'scripts/chapters/chapter-1.js': readCardFile('scripts/chapters/chapter-1.js'),
+  'scripts/chapters/chapter-2.js': readCardFile('scripts/chapters/chapter-2.js'),
+  ...libraryFileContents
 };
 function defaultState(overrides = {}) { return ensureStateDefaults(loadedCard.state.schema, overrides).state; }
 function applyWhiteAlbumPhase(phase, messages, state = defaultState()) {
@@ -64,7 +64,7 @@ describe('white album 2 game card', () => {
       type: 'exec', sourceFile: 'scripts/summary-memory.js'
     });
     expect(compression.then[0].type).toBe('remove');
-    expect(JSON.stringify(card.rules)).toContain('"sourceFile":"scripts/timeline.js"');
+    expect(JSON.stringify(card.rules)).toContain('"sourceFile":"scripts/plot.js"');
   });
 
   test('inserts fixed hidden summary message after the system prompt', () => {

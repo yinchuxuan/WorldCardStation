@@ -11,5 +11,9 @@
   "worldbook": {
     "directory": "worldbook",
     "include": ["config.json", "entries/*.md"]
+  },
+  "timeline": {
+    "directory": "plot",
+    "include": ["chapter-1.json", "chapter-2.json"]
   }
 }

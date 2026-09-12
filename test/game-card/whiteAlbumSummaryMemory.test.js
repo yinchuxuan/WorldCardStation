@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { card, stateSchema, libraryFileContents } = require('./whiteAlbumTestCard');
 const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeRuntimeStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
@@ -9,9 +9,9 @@ const cardDir = path.join(__dirname, '../../game-card-examples/white-album-2');
 const read = relativePath => fs.readFileSync(path.join(cardDir, relativePath), 'utf8');
 const fileContents = Object.fromEntries(Object.values(card.files)
   .filter(file => typeof file === 'string').map(file => [file, read(file)]));
-Object.assign(fileContents, worldbookFileContents);
-['scripts/summary-memory.js', 'scripts/timeline.js', 'scripts/timelines/chapter-1.js',
-  'scripts/timelines/chapter-2.js'].forEach(file => { fileContents[file] = read(file); });
+Object.assign(fileContents, libraryFileContents);
+['scripts/summary-memory.js', 'scripts/plot.js', 'scripts/chapters/chapter-1.js',
+  'scripts/chapters/chapter-2.js'].forEach(file => { fileContents[file] = read(file); });
 const loadedCard = mergeRuntimeStateSchema({
   ...card, state: { ...card.state, schema: stateSchema }
 });

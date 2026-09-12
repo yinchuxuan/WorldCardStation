@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { card, stateSchema, llmStateContract, worldbookFileContents } = require('./whiteAlbumTestCard');
+const { card, stateSchema, llmStateContract, libraryFileContents } = require('./whiteAlbumTestCard');
 const { applyGameCard, applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { ensureStateDefaults } = require('../../src/shared/game-card/state/stateSchema');
 const { mergeAudioStateSchema } = require('../../src/renderer/gameCard/stateSchemaLoader');
@@ -18,10 +18,10 @@ const fileContents = {
   'state/schema.json': JSON.stringify(stateSchema),
   'state/llm_schema.md': llmStateContract,
   'state/state_update_rules.md': readCardFile('state/state_update_rules.md'),
-  'scripts/timeline.js': readCardFile('scripts/timeline.js'),
-  'scripts/timelines/chapter-1.js': readCardFile('scripts/timelines/chapter-1.js'),
-  'scripts/timelines/chapter-2.js': readCardFile('scripts/timelines/chapter-2.js'),
-  ...worldbookFileContents
+  'scripts/plot.js': readCardFile('scripts/plot.js'),
+  'scripts/chapters/chapter-1.js': readCardFile('scripts/chapters/chapter-1.js'),
+  'scripts/chapters/chapter-2.js': readCardFile('scripts/chapters/chapter-2.js'),
+  ...libraryFileContents
 };
 
 function state(overrides) {

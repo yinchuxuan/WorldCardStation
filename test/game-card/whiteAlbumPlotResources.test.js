@@ -80,9 +80,9 @@ describe('white album fixed plot presentation resources', () => {
 
   test('timeline code does not own presentation resource hints', () => {
     const timeline = [
-      readCardFile('scripts/timeline.js'),
-      readCardFile('scripts/timelines/chapter-1.js'),
-      readCardFile('scripts/timelines/chapter-2.js'),
+      readCardFile('scripts/plot.js'),
+      readCardFile('scripts/chapters/chapter-1.js'),
+      readCardFile('scripts/chapters/chapter-2.js'),
       readCardFile('rules/tail-timeline-guide.json')
     ].join('\n');
 

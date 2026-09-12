@@ -20,9 +20,16 @@ function readTextTree(relativeRoot) {
   }));
 }
 
-const worldbookFileContents = {
+const timelineFileContents = Object.fromEntries(card.files.timeline.include.map(name => {
+  const file = path.posix.join(card.files.timeline.directory, name);
+  return [file, fs.readFileSync(path.join(cardRoot, file), 'utf8')];
+}));
+
+const libraryFileContents = {
   ...readTextTree('lib/worldbook'),
-  ...readTextTree('worldbook')
+  ...readTextTree('worldbook'),
+  ...readTextTree('lib/timeline'),
+  ...timelineFileContents
 };
 
-module.exports = { card, stateSchema, llmStateContract, worldbookFileContents };
+module.exports = { card, stateSchema, llmStateContract, libraryFileContents };

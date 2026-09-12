@@ -19,6 +19,7 @@ Read only the documents relevant to the current task.
 - [Game card schema](./game_card/game_card_schema.md)
 - [Game card actions](./game_card/game_card_actions.md)
 - [Game card worldbook library](../libs/worldbook-library/README.md)
+- [Game card timeline library](../libs/timeline-library/README.md)
 - [Game card predicates](./game_card/game_card_predicates.md)
 - [Game card content](./game_card/game_card_content.md)
 - [Game card imports](./game_card/game_card_imports.md)

@@ -1,6 +1,7 @@
 import { extractUniqueFileSection } from './fileSections.js';
 import { resolveRegisteredTextPath } from './fileScopes.js';
 import { getStateValue, hasStateValue } from '../state/statePaths.js';
+import { record } from '../trace/nodes.js';
 
 function readDeclaredFile(filePath, options) {
   if (options.fileContents && Object.prototype.hasOwnProperty.call(options.fileContents, filePath)) {
@@ -37,6 +38,7 @@ function resolveFileSource(ref, options) {
   const filePath = resolveRegisteredTextPath(options.card, fileId);
   if (!filePath) throw new Error(`unknown content file id: ${fileId}`);
   const content = readDeclaredFile(filePath, options);
+  record(options, 'resource.read', { file: filePath, reference: ref, status: 'completed', characters: content.length });
   if (!sectionRef) return content;
   const heading = resolveRefValue(sectionRef, options, 'file section');
   return extractUniqueFileSection(content, heading);

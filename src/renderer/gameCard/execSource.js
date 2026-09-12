@@ -1,3 +1,6 @@
+import { includePattern, strippedSource } from './execSourceMap.js';
+import { record } from '../../shared/game-card/trace/nodes.js';
+
 function readSourceFile(filePath, options = {}) {
   if (options.fileContents && Object.prototype.hasOwnProperty.call(options.fileContents, filePath)) {
     return options.fileContents[filePath];
@@ -34,15 +37,11 @@ function resolveExecIncludePath(parentPath, includePath) {
 }
 
 function extractExecIncludes(source) {
-  const pattern = /(?:^|\n)\s*include\(\s*(['"])([^'"]+)\1\s*\)\s*;?/g;
+  const pattern = includePattern();
   const includes = [];
   let match;
   while ((match = pattern.exec(source))) includes.push(match[2]);
   return includes;
-}
-
-function stripExecIncludes(source) {
-  return source.replace(/(?:^|\n)\s*include\(\s*(['"])([^'"]+)\1\s*\)\s*;?/g, '\n');
 }
 
 function resolveSourceWithIncludes(filePath, options, stack = []) {
@@ -50,18 +49,26 @@ function resolveSourceWithIncludes(filePath, options, stack = []) {
   if (stack.includes(normalizedPath)) throw new Error(`circular exec include: ${normalizedPath}`);
   if (stack.length > 20) throw new Error('exec include depth exceeded');
   const source = readSourceFile(normalizedPath, options);
+  record(options, 'resource.read', { file: normalizedPath, status: 'completed', characters: source.length, purpose: 'exec_source' });
   const nextStack = [...stack, normalizedPath];
   const includes = extractExecIncludes(source).map((includePath) => {
     return resolveSourceWithIncludes(resolveExecIncludePath(normalizedPath, includePath), options, nextStack);
   });
-  return [...includes, stripExecIncludes(source)].join('\n');
+  const own = options.observer ? strippedSource(source, normalizedPath) : { source: source.replace(includePattern(), '\n') };
+  const result = { source: [...includes.map(item => item.source), own.source].join('\n') };
+  if (options.observer) result.lines = [...includes.flatMap(item => item.lines), ...own.lines];
+  return result;
 }
 
 function resolveExecSource(action, options = {}) {
   const hasSource = typeof action?.source === 'string';
   const hasSourceFile = typeof action?.sourceFile === 'string';
   if (hasSource && hasSourceFile) throw new Error('exec requires source or sourceFile, not both');
-  if (hasSourceFile) return resolveSourceWithIncludes(action.sourceFile, options);
+  if (hasSourceFile) {
+    const result = resolveSourceWithIncludes(action.sourceFile, options);
+    record(options, 'exec.source', { file: action.sourceFile, lines: result.lines });
+    return result.source;
+  }
   if (hasSource) return action.source;
   throw new Error('exec requires source or sourceFile');
 }

@@ -14,6 +14,7 @@ fn main() {
         "src/tauri/build.rs",
         "src/renderer/gameCard/dryRun",
         "src/renderer/gameCard/execSource.js",
+        "src/renderer/gameCard/execSourceMap.js",
         "src/shared/game-card",
     ] {
         println!("cargo:rerun-if-changed={}", root.join(path).display());

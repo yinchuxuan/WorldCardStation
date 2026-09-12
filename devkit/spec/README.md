@@ -19,6 +19,7 @@
 | 回复契约与自动重试 | [Response validation](./game_card/game_card_response_validation.md) |
 | BGM、背景、CG、立绘与阅读面板 | [Audio](./game_card/game_card_audio.md)、[Visual](./game_card/game_card_visual.md)、[面板](./game_card/game_card_visual_panel.md) |
 | CSS、自定义 React root 与受控 UI 事件 | [UI runtime](./game_card/game_card_ui_runtime.md) |
+| 实际游玩行为排查、session 日志格式与完整性 | [Runtime trace](./game_card/game_card_runtime_trace.md) |
 
 库说明不属于 DSL spec，见 [内置 lib 索引](../libs.md)。lib 与普通 exec 使用同一套权限和参数语义。
 

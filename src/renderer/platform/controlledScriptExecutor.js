@@ -83,6 +83,8 @@ function runInBrowser(source, context, options) {
     };
     const timer = setTimeout(() => finish(reject, new Error('Script execution timed out')), options.timeoutMs);
     worker.onmessage = ({ data }) => {
+      if (settled) return;
+      if (data?.type === 'trace.file') { options.onTrace?.(data.detail); return; }
       if (data?.type === 'file.read') {
         Promise.resolve()
           .then(() => context.files.readText(data.scopeId, data.relativePath))
@@ -94,13 +96,18 @@ function runInBrowser(source, context, options) {
           });
         return;
       }
-      if (data.error) finish(reject, new Error(data.error));
+      if (data.error) {
+        const error = new Error(data.error);
+        if (data.stack) error.stack = data.stack;
+        finish(reject, error);
+      }
       else finish(resolve, data.result);
     };
     worker.onerror = (event) => finish(reject, new Error(event.message || 'Script worker failed'));
     worker.postMessage({
       source,
       isSourceFile: options.isSourceFile,
+      traceEnabled: Boolean(options.onTrace),
       context: serializableContext(context),
       files: getExecFileEntries(context.files)
     });
@@ -111,7 +118,8 @@ function run(source, context, options = {}) {
   const runtimeOptions = {
     timeoutMs: options.timeoutMs || DEFAULT_EXEC_TIMEOUT_MS,
     isSourceFile: !!options.isSourceFile,
-    workerFactory: options.workerFactory
+    workerFactory: options.workerFactory,
+    onTrace: options.onTrace
   };
   const canUseNodeVm = typeof require === 'function' && typeof process !== 'undefined';
   if (!canUseNodeVm) return runInBrowser(source, context, runtimeOptions);

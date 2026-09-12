@@ -2,6 +2,7 @@ import React from 'react';
 import * as chatGeneration from './chatGeneration.js';
 import useGenerationAbort from './useGenerationAbort.js';
 import { createChatMessage } from './messageIds.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatGeneration({
   messages,
@@ -86,10 +87,12 @@ function useChatGeneration({
       ? chatGeneration.cloneChatValue(retryBaseState)
       : {};
     persistence.setRetryBase(retryMessages, retryState);
+    const operation = runtimeTrace.capture().begin('retry.restore', { messages, state: gameState });
+    operation?.end({ messages: retryMessages, state: retryState }, 'restored');
     setGameState(retryState);
     onRetryStateRestore?.(retryState);
     return run(retryMessages, retryState);
-  }, [generationControl, messages, modelConfig, onAudioSubmit, onResponseValidationWarning,
+  }, [gameState, generationControl, messages, modelConfig, onAudioSubmit, onResponseValidationWarning,
     onRetryStateRestore, persistence, run, setGameState]);
 
   return React.useMemo(() => ({

@@ -30,6 +30,9 @@ jest.mock('@tauri-apps/api/window', () => ({
 
 // Mock native commands used through the Tauri renderer adapter.
 global.platformMock = {
+  startSessionTrace: jest.fn().mockResolvedValue({ token: 'trace', path: '/data/trace.jsonl' }),
+  appendSessionTrace: jest.fn().mockResolvedValue(undefined),
+  closeSessionTrace: jest.fn().mockResolvedValue(undefined),
   getGameCardDevelopmentInstructions: jest.fn().mockResolvedValue('游戏卡开发指令'),
   getModelConfig: jest.fn(),
   saveModelConfig: jest.fn(),

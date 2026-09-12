@@ -1,5 +1,6 @@
 import React from 'react';
 import generationServices from './generationServices.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function latestAssistantIndex(messages) {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -50,7 +51,7 @@ function useReadingStatePatches({
     queueRef.current = Promise.resolve();
   }, [scopeKey]);
 
-  const consume = React.useCallback(async ({ entry, message, targetBoundary, terminal }) => {
+  const consume = React.useCallback(async ({ entry, message, targetBoundary, terminal, traceContext }) => {
     if (!card || !entry || entry.streaming === false
       && entry.messageIndex !== latestAssistantIndex(messagesRef.current)) return;
     const meta = playbackMeta(message);
@@ -69,7 +70,9 @@ function useReadingStatePatches({
         patchText: patch.text,
         messages: messagesRef.current,
         state: stateRef.current,
-        card
+        card,
+        traceContext,
+        traceDetails: { origin: 'reading', messageId: message?.id || entry.key, patchOrdinal: patch.ordinal, targetBoundary }
       });
       if (result.error) onError?.(generationServices.normalizeGameCardError(result));
       if (result.applied) {
@@ -104,6 +107,8 @@ function useReadingStatePatches({
       messages: nextMessages,
       state: stateRef.current,
       card,
+      traceContext,
+      traceDetails: { origin: 'reading', messageId: message.id, targetBoundary },
       statePatchesApplied: true
     });
     if (after.error) onError?.(generationServices.normalizeGameCardError(after));
@@ -125,8 +130,9 @@ function useReadingStatePatches({
   }, [card, onError, onPatchApplied, onPresentationEffects, setMessages, setState, typewriter]);
 
   return React.useCallback((progress) => {
+    const traceContext = runtimeTrace.capture();
     queueRef.current = queueRef.current
-      .then(() => consume(progress))
+      .then(() => consume({ ...progress, traceContext }))
       .catch(error => onError?.(generationServices.normalizeGameCardError(error)));
     return queueRef.current;
   }, [consume, onError]);

@@ -3,6 +3,7 @@ import { createChatMessage, createMessageId } from './messageIds.js';
 import { cloneJson as cloneChatValue } from '../../shared/game-card/utils/jsonValue.js';
 import { finishChatGeneration } from './finishChatGeneration.js';
 import { generateValidatedResponse } from './validatedGeneration.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function stripTurnContext(content) {
   return typeof content === 'string'
@@ -41,6 +42,12 @@ function buildRetryMessages(messages, retryBaseMessages, editedContent) {
 }
 
 async function runChatGeneration(options) {
+  const capture = options.traceContext || runtimeTrace.capture();
+  const operation = capture.begin('generation', { messages: options.messages, state: options.state || {} });
+  const traceContext = { begin: (kind, input, details) => capture.begin(kind, input,
+    { ...details, parentOperationId: operation?.id }) };
+  options = { ...options, traceContext, observer: operation?.observe };
+  let status = 'failed';
   const { messages, state = {}, modelConfig, setMessages, setGameState, setIsLoading, tw } = options;
   const requestMessages = cloneChatValue(messages);
   const requestState = cloneChatValue(state);
@@ -56,9 +63,14 @@ async function runChatGeneration(options) {
   try {
     preSend = await generationServices.preparePreSendMessages({
       messages: requestMessages,
-      state: requestState
+      state: requestState,
+      traceContext
     });
-    if (preSend.error) return handleGenerationError(preSend, options);
+    if (preSend.error) {
+      options.observer?.('generation.rejected', { reason: preSend.error, status: 'not_committed' }, requestMessages, requestState);
+      return handleGenerationError(preSend, options);
+    }
+    options.observer?.('pre_send.accepted', {}, preSend.messages, preSend.state);
     options.onGameCardError?.(null);
     if (preSend.state && setGameState) setGameState(preSend.state);
     if (preSend.applied) setMessages(preSend.messages);
@@ -75,15 +87,20 @@ async function runChatGeneration(options) {
       options,
       initialMessageId: streamMessageId
     });
-    return await finishChatGeneration(
+    const result = await finishChatGeneration(
       preSend, requestMessages, requestState, options,
       generated.streamResult, generated.streamMessageId
     );
+    status = 'completed';
+    return result;
   } catch (err) {
+    status = isAbortException(err, abortSignal) ? 'aborted' : 'failed';
+    options.observer?.('generation.error', { status, error: { code: 'GENERATION_ERROR', message: err.message } });
     return handleGenerationException(
       err, options, preSend, requestMessages, requestState, abortSignal, streamMessageId
     );
   } finally {
+    operation?.end(undefined, status);
     options.clearAbortSignal?.(abortSignal);
   }
 }
@@ -123,6 +140,7 @@ function handleGenerationAbort(options, preSend, baseMessages, streamResult = {}
       }
     });
     const base = preSend?.applied ? preSend.messages : baseMessages;
+    options.observer?.('generation.abort', { status: 'partial_committed' }, [...(base || []), assistantMessage], streamResult.state);
     options.setMessages([...(base || []), assistantMessage]);
   }
   options.tw.clearStreaming();
@@ -137,6 +155,7 @@ function handleGenerationException(err, options, preSend, baseMessages, baseStat
     );
   }
   const restoredState = cloneChatValue(baseState);
+  options.observer?.('generation.rollback', { status: 'rolled_back', reason: 'request_failed' }, baseMessages, restoredState);
   options.setMessages(baseMessages);
   options.setGameState?.(restoredState);
   options.onRequestFailureRestore?.(restoredState);

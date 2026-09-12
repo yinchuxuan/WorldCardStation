@@ -22,6 +22,8 @@ function streamOptions(preSend, modelConfig, tw, abortSignal, options) {
     modelConfig,
     tw,
     abortSignal,
+    traceContext: options.traceContext,
+    observer: options.observer,
     onStreamContentStart: options.onStreamContentStart,
     onStreamPreviewState: options.onStreamPreviewState,
     onStatePatchApplied: options.onStatePatchApplied,
@@ -68,6 +70,7 @@ async function generateValidatedResponse({
       throw error;
     }
     const validation = validateAttempt(preSend, streamResult);
+    options.observer?.('response.validation', { attempt, result: validation });
     const canRetry = validation.action === 'retry' && retryCount < maxRetries;
     if (!canRetry) {
       const exhausted = validation.action === 'retry';
@@ -83,6 +86,7 @@ async function generateValidatedResponse({
     }
 
     retryCount += 1;
+    options.observer?.('validation.rollback', { retryCount, status: 'rolled_back' }, preSend.messages, preSend.state);
     tw.reset();
     await restoreForValidationRetry(preSend, options, validation, retryCount);
     streamMessageId = createMessageId();

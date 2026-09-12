@@ -61,6 +61,11 @@ pub async fn import_game_card_from_file(
     let selected = app
         .dialog()
         .file()
+        .set_title(if tavern_only.unwrap_or(false) {
+            "更新酒馆卡：选择 V2/V3 酒馆源文件"
+        } else {
+            "导入卡片：选择卡片文件或项目的 card.json（导入整个目录）"
+        })
         .add_filter("卡片文件", &["gamecard", "png", "apng", "json", "charx"])
         .blocking_pick_file()
         .ok_or_else(GameCardError::canceled)?;

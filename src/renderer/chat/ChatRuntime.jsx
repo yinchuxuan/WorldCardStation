@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import React from 'react';
 import { PropTypes } from '../components/componentPropTypes.js';
 import ChatInputArea from '../ChatInputArea.jsx';
+import ChatHeader from '../components/ChatHeader.jsx';
 import ChatPanelMessageRenderers from '../components/ChatPanelMessageRenderers.jsx';
 import ChatPanelRenderers from '../components/ChatPanelRenderers.jsx';
 import GameCardBackgroundRuntime from '../components/GameCardBackgroundRuntime.js';
@@ -31,6 +32,7 @@ import useGameCardPresentation from './useGameCardPresentation.js';
 import useModelConfig from './useModelConfig.js';
 import useReadingStatePatches from './useReadingStatePatches.js';
 import useChatDisplay from './useChatDisplay.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 function ChatRuntime({
   BgmPlayer = GameCardBgmPlayer,
   BackgroundRuntime = GameCardBackgroundRuntime,
@@ -42,12 +44,12 @@ function ChatRuntime({
   const [showMsgHistory, setShowMsgHistory] = React.useState(false);
   const [msgHistoryMessages, setMsgHistoryMessages] = React.useState(null);
   const [showStreamThinking, setShowStreamThinking] = React.useState(true);
-  const [isHeaderHovered, setIsHeaderHovered] = React.useState(false);
   const [isInputHovered, setIsInputHovered] = React.useState(false);
   const [isInputTriggerHovered, setIsInputTriggerHovered] = React.useState(false);
   const [actionError, setActionError] = React.useState(null), [requestError, setRequestError] = React.useState(null), [responseWarning, setResponseWarning] = React.useState(null);
   const chatPanelRef = React.useRef(null);
   const runtime = useGameCardRuntime();
+  React.useEffect(() => runtimeTrace.update(messages, runtime.gameState), [messages, runtime.gameState]);
   const { display, displayRevision, depths } = useChatDisplay(runtime.activeCard?.display, runtime.gameState, messages, isLoading);
   const segmentedReading = display?.segmentedReading === true;
   const modelConfig = useModelConfig();
@@ -56,12 +58,10 @@ function ChatRuntime({
   const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading });
   const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
   const generation = useChatGeneration({
-    messages, setMessages,
-    gameState: runtime.gameState, setGameState: runtime.setGameState,
+    messages, setMessages, gameState: runtime.gameState, setGameState: runtime.setGameState,
     modelConfig, typewriter,
     persistence, isLoading,
-    setIsLoading,
-    setRuntimeError: runtime.setRuntimeError,
+    setIsLoading, setRuntimeError: runtime.setRuntimeError,
     setRequestError,
     setShowStreamThinking,
     onAudioSubmit: presentation.stopBgm,
@@ -166,9 +166,8 @@ function ChatRuntime({
       reading={segmented.ui} onReadingNavigate={segmented.navigate}
       uiScopeKey={session.revision} onError={runtime.setRuntimeError} />
     <div className="chat-main" data-gc-part="chat-main">
-      <div className="chat-header-hover-trigger" data-gc-part="chat-header-trigger" onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)} />
-      <div className={`chat-header chat-header-clickable${isHeaderHovered ? ' chat-header-visible' : ''}`} data-gc-part="chat-header" onClick={toggleHistory} onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
-        {showMsgHistory ? <><span className="material-icons">history</span><span className="header-title">msg历史记录</span></> : <GameCardTitleControl
+      <ChatHeader onToggleHistory={toggleHistory} icon={runtime.activeCard ? 'extension' : 'chat'}>
+        {showMsgHistory ? <span className="header-title">msg历史记录</span> : <GameCardTitleControl
           modelName={modelConfig?.apiUrl ? (modelConfig.modelName || '已连接') : ''} isLoading={isLoading}
           onBeforeSessionChange={session.saveCurrent}
           onSessionChanged={session.reload}
@@ -178,7 +177,7 @@ function ChatRuntime({
           onImportError={setActionError}
           audioControl={<BgmPlayer updateRequest={presentation.bgmRequest} stopToken={presentation.bgmStopToken} />}
         />}
-      </div>
+      </ChatHeader>
       {actionError ? <GameCardErrorPanel error={actionError} variant="import" onClose={() => setActionError(null)} /> : null}
       <div className="chat-history" data-gc-part="chat-history" data-view={showMsgHistory ? 'history' : 'messages'} ref={scroll.chatHistoryRef}>
         <div className="chat-reading-veil game-card-visual-panel" data-gc-part="chat-reading-veil" aria-hidden="true" />

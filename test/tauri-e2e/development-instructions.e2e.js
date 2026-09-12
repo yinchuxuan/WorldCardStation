@@ -81,10 +81,22 @@ describe('Game card development bootstrap', () => {
       expect(path.isAbsolute(locations[field])).toBe(true);
       expect(fs.statSync(locations[field]).isFile()).toBe(true);
     }
-    expect(text).toContain('--init-project');
-    expect(text).toContain('--lib worldbook');
-    expect(text).toContain('--dry-run');
-    expect(text).toContain('.wcs/development.md');
+    expect(text).toContain('请先阅读 guidePath');
+    expect(text).toContain('按文档协助我开发当前项目');
+    expect(Object.keys(locations).sort()).toEqual([
+      'executable', 'gameCardsPath', 'guidePath', 'librariesIndexPath', 'specIndexPath'
+    ]);
+    const guide = fs.readFileSync(locations.guidePath, 'utf8');
+    for (const detail of ['--init-project', '--lib <库 ID>', '--dry-run', '.wcs/development.md', 'trace.jsonl']) {
+      expect(text).not.toContain(detail);
+      expect(guide).toContain(detail);
+    }
+    expect(locations.gameCardsPath).toBe(path.resolve('test-results/tauri-e2e/data/game-cards'));
+    expect(fs.statSync(locations.gameCardsPath).isDirectory()).toBe(true);
+    expect(guide).toContain('卡片图标开启开发者模式');
+    expect(guide).toContain('gameCardsPath');
+    expect(guide).toContain('cards/<card-id>/sessions/active.json');
+    expect(guide).toContain('sessions/index.json');
     expect(await Promise.all(commands.map(command => invoke(command)))).toEqual(before);
   });
 

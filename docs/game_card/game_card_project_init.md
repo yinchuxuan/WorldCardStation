@@ -26,9 +26,11 @@ macOS 已安装应用的可执行文件为 `.app/Contents/MacOS/world-card-stati
 
 系统配置 → 游戏卡开发 → **复制给 agent 的开发指令**。点击时客户端根据自身位置生成文本并复制，成功提示“已复制，请粘贴到 agent 对话中”。不弹目录选择器、不创建项目、不调用模型、不安装卡片或改写配置。
 
-指令包含平台版本、实际可执行文件与开发包路径、开发指南 / DSL spec / lib 索引入口、当前目录初始化的两种选项、修改后的 `--dry-run` 和 `--help`。先阅读本地文档，由 agent 按需求或开发者指定选择 lib；初始化后必须阅读 `.wcs/development.md`，处理保留文件与警告，不能将初始化视为 dry-run。
+指令只要求 agent 先阅读开发指南，按需查阅 DSL spec 和 lib 索引，并用 JSON 提供必要本机路径：`executable`、`gameCardsPath`、`guidePath`、`specIndexPath`、`librariesIndexPath`。初始化、lib 接入、dry-run 和日志排查步骤统一写在开发指南中，不在复制文本中重复命令或流程。
 
-macOS/Linux 命令使用 POSIX 单引号引用；Windows 使用 PowerShell 调用运算符及单引号转义。同时提供原始路径和参数数组说明，便于 agent 的进程工具绕过 shell 调用；不分发启动脚本。Linux AppImage 使用原始 AppImage 文件作为启动入口，内置文档在临时挂载目录中，阅读期间保持 GUI 客户端打开。
+实际游玩时点击标题栏的卡片图标开启开发者模式，点击名称仅打开切卡菜单。agent 使用 gameCardsPath 和既有两级 active.json 自行定位当前 session 的 trace.jsonl，按 index.json 确认名称；不要求用户复制日志路径。数据目录取自当前客户端存储，不接受 renderer 指定，不写入可提交的项目资料。
+
+路径作为 JSON 数据提供，不生成分系统的 shell 命令。agent 按指南直接调用可执行文件；不分发启动脚本。Linux AppImage 使用原始 AppImage 文件作为启动入口，内置文档在临时挂载目录中，指南要求阅读期间保持 GUI 客户端打开。
 
 客户端移动或重新安装后重新复制，不将本机路径写入游戏卡或提交 Git。读取入口缺失时明确报错；剪贴板不可用或写入被拒绝时展示完整只读文本，支持聚焦全选和手动复制。按钮生成期间禁止重复点击，失败后可重试。
 
@@ -96,9 +98,9 @@ stdout 是单个 JSON 对象，以换行结束；Windows GUI 子系统版本也�
 
 ## 实现与测试
 
-`developer_cli.rs` 负责启动参数、资源定位和 JSON/退出状态；`project_init*` 模块负责文件计划、路径检查和仅新增写入，不引用聊天、模型、存档或安装管理模块。GUI 起步指令同时给出修改后的 `--dry-run` 调用方式。
+`developer_cli.rs` 负责启动参数、资源定位和 JSON/退出状态；`project_init*` 模块负责文件计划、路径检查和仅新增写入，不引用聊天、模型、存档或安装管理模块。GUI 起步指令提供文档入口，具体调用方式见开发指南。
 
-`development_commands.rs` 只生成本机起步指令，通过 `rendererServices.development.getInstructions()` 接入设置组件；不向 renderer 开放任意目录读取能力。测试另覆盖本机路径、缺失开发包、两种 shell 引用、复制成功/失败与重试、真实桌面按钮及无安装副作用。
+`development_commands.rs` 只生成本机起步指令，通过 `rendererServices.development.getInstructions()` 接入设置组件；不向 renderer 开放任意目录读取能力。测试另覆盖简短文档指引、本机路径的 JSON 无损序列化、缺失开发包、复制成功/失败与重试、真实桌面按钮及无安装副作用。
 
 ```sh
 cargo test --manifest-path src/tauri/Cargo.toml project_init

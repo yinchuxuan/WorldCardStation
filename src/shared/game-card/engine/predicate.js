@@ -1,17 +1,18 @@
 import { getStateValue, hasStateValue } from '../state/statePaths.js';
+import { childObserver, evaluateConditions } from '../trace/conditions.js';
 
-function compareNumber(actual, expected) {
+function compareNumber(actual, expected, observer) {
   if (typeof expected === 'number') return actual === expected;
   if (!expected || typeof expected !== 'object') return false;
 
-  return Object.entries(expected).every(([op, value]) => {
+  return evaluateConditions(Object.entries(expected), ([op, value]) => {
     if (op === 'gt') return actual > value;
     if (op === 'gte') return actual >= value;
     if (op === 'lt') return actual < value;
     if (op === 'lte') return actual <= value;
     if (op === 'eq') return actual === value;
     return false;
-  });
+  }, observer, { actual: () => actual });
 }
 
 function isObject(value) {
@@ -40,23 +41,23 @@ function matchesStateOperator(actual, exists, op, expected) {
   return false;
 }
 
-function matchesStateValue(state, path, expected) {
+function matchesStateValue(state, path, expected, observer) {
   const exists = hasStateValue(state, path);
   const actual = getStateValue(state, path);
   if (!isObject(expected)) return exists && actual === expected;
 
-  return Object.entries(expected).every(([op, value]) => {
+  return evaluateConditions(Object.entries(expected), ([op, value]) => {
     return matchesStateOperator(actual, exists, op, value);
-  });
+  }, observer, { actual: () => ({ exists, value: actual }) });
 }
 
-function matchesState(statePredicate, state) {
+function matchesState(statePredicate, state, observer) {
   if (!isObject(statePredicate) || Object.keys(statePredicate).length === 0) {
     return false;
   }
-  return Object.entries(statePredicate).every(([path, expected]) => {
-    return matchesStateValue(state, path, expected);
-  });
+  return evaluateConditions(Object.entries(statePredicate), ([path, expected]) => {
+    return matchesStateValue(state, path, expected, childObserver(observer, `/${path.replace(/~/g, '~0').replace(/\//g, '~1')}`));
+  }, observer, { actual: ([path]) => ({ exists: hasStateValue(state, path), value: getStateValue(state, path) }) });
 }
 
 function getValue(message, key) {
@@ -65,13 +66,13 @@ function getValue(message, key) {
   return message?.[key];
 }
 
-function matchesString(actual, expected) {
+function matchesString(actual, expected, observer) {
   if (typeof expected === 'string') return actual === expected;
   if (typeof actual !== 'string' || !expected || typeof expected !== 'object') {
     return false;
   }
 
-  return Object.entries(expected).every(([op, value]) => {
+  return evaluateConditions(Object.entries(expected), ([op, value]) => {
     if (op === 'contains') return actual.includes(value);
     if (op === 'regex') {
       try {
@@ -83,7 +84,7 @@ function matchesString(actual, expected) {
     if (op === 'in') return Array.isArray(value) && value.includes(actual);
     if (op === 'nin') return Array.isArray(value) && !value.includes(actual);
     return false;
-  });
+  }, observer, { actual: () => actual });
 }
 
 function matchesIndex(index, length, expected) {
@@ -101,24 +102,26 @@ function matchesOccurrence(messages, index, role, expected) {
   return false;
 }
 
-function matchesPredicate(predicate, message, index, messages) {
+function matchesPredicate(predicate, message, index, messages, observer) {
   if (!predicate || typeof predicate !== 'object') return false;
   const entries = Object.entries(predicate);
   if (entries.length === 0) return false;
 
-  return entries.every(([key, expected]) => {
+  return evaluateConditions(entries, ([key, expected]) => {
     if (key === 'all') return expected === true;
     if (key === 'or') {
-      return expected.some((item) => matchesPredicate(item, message, index, messages));
+      return evaluateConditions(expected.map((item, i) => [i, item]), ([i, item]) =>
+        matchesPredicate(item, message, index, messages, childObserver(observer, `/or/${i}`)),
+      childObserver(observer, '/or'), { some: true });
     }
-    if (key === 'not') return !matchesPredicate(expected, message, index, messages);
+    if (key === 'not') return !matchesPredicate(expected, message, index, messages, childObserver(observer, '/not'));
     if (key === 'index') return matchesIndex(index, messages.length, expected);
     if (key === 'occurrence') return matchesOccurrence(messages, index, predicate.role, expected);
     if (key === 'role' || key === 'content' || key === 'thinking' || key === '_meta.source' || key === '_meta.visibility') {
-      return matchesString(getValue(message, key), expected);
+      return matchesString(getValue(message, key), expected, childObserver(observer, `/${key}`));
     }
     return false;
-  });
+  }, observer, { actual: ([key]) => ({ index, value: key === 'index' ? index : getValue(message, key) }) });
 }
 
 function withoutNum(predicate) {
@@ -127,41 +130,36 @@ function withoutNum(predicate) {
   return rest;
 }
 
-function matchesLast(last, messages) {
+function matchesLast(last, messages, observer) {
   if (!last || typeof last !== 'object') return false;
   if (last.num === undefined) {
     const index = messages.length - 1;
-    return index >= 0 && matchesPredicate(last, messages[index], index, messages);
+    return index >= 0 && matchesPredicate(last, messages[index], index, messages, observer);
   }
 
   if (!Number.isInteger(last.num) || last.num < 1) return false;
   const predicate = withoutNum(last);
   if (Object.keys(predicate).length === 0) return false;
   const start = Math.max(messages.length - last.num, 0);
-  return messages.slice(start).some((msg, offset) => {
+  return evaluateConditions(messages.slice(start).map((msg, offset) => [offset, msg]), ([offset, msg]) => {
     const index = start + offset;
-    return matchesPredicate(predicate, msg, index, messages);
-  });
+    return matchesPredicate(predicate, msg, index, messages, childObserver(observer, `/messages/${index}`));
+  }, childObserver(observer, '/messages'), { some: true });
 }
 
-function matchesWhen(when, phase, messages, state = {}) {
-  if (!when || when.phase !== phase) return false;
-  if (when.length !== undefined) {
-    if (!compareNumber(messages.length, when.length)) return false;
-  }
-  if (when.last !== undefined) {
-    if (!matchesLast(when.last, messages)) return false;
-  }
-  if (when.any !== undefined) {
-    if (!messages.some((msg, index) => matchesPredicate(when.any, msg, index, messages))) return false;
-  }
-  if (when.all !== undefined) {
-    if (!messages.every((msg, index) => matchesPredicate(when.all, msg, index, messages))) return false;
-  }
-  if (when.state !== undefined) {
-    if (!matchesState(when.state, state)) return false;
-  }
-  return true;
+function matchesWhen(when, phase, messages, state = {}, observer) {
+  if (!when) return false;
+  const keys = ['phase', 'length', 'last', 'any', 'all', 'state'].filter(key => key === 'phase' || when[key] !== undefined);
+  return evaluateConditions(keys.map(key => [key, when[key]]), ([key, expected]) => {
+    const child = childObserver(observer, `/${key}`);
+    if (key === 'phase') return expected === phase;
+    if (key === 'length') return compareNumber(messages.length, expected, child);
+    if (key === 'last') return matchesLast(expected, messages, child);
+    if (key === 'state') return matchesState(expected, state, child);
+    return evaluateConditions(messages.map((msg, index) => [index, msg]), ([index, msg]) =>
+      matchesPredicate(expected, msg, index, messages, childObserver(child, `/messages/${index}`)),
+    childObserver(child, '/messages'), { some: key === 'any' });
+  }, observer, { actual: ([key]) => key === 'phase' ? phase : key === 'length' ? messages.length : undefined });
 }
 
 export { compareNumber, matchesPredicate, matchesWhen, matchesLast, matchesState };

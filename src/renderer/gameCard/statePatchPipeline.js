@@ -12,7 +12,8 @@ async function prepareStatePatchAtCursor({
   messages = [],
   state = {},
   card,
-  platform
+  platform,
+  observer
 } = {}) {
   if (!card || !patchText) {
     return { state, applied: false, trace: null, card: card || null };
@@ -27,6 +28,7 @@ async function prepareStatePatchAtCursor({
 
   const patched = applyStatePatch(patchText, state, {
     messages,
+    observer,
     schema: runtimeCard?.state?.schema
   });
   if (!patched.trace.applied) {

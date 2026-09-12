@@ -37,8 +37,9 @@ function deepFreeze(value) {
   Object.values(value).forEach(deepFreeze);
   return Object.freeze(value);
 }
-function createFiles(entries, state) {
+function createFiles(entries, state, traceEnabled) {
   return Object.freeze({ read(ref) {
+    try {
     const marker = String(ref).indexOf('#');
     const rawFile = marker < 0 ? String(ref) : String(ref).slice(0, marker);
     const rawSection = marker < 0 ? '' : String(ref).slice(marker + 1);
@@ -47,7 +48,13 @@ function createFiles(entries, state) {
       : value.trim();
     const fileId = resolve(rawFile);
     if (!Object.prototype.hasOwnProperty.call(entries, fileId)) throw new Error('unknown content file id: ' + fileId);
-    return rawSection ? section(entries[fileId], resolve(rawSection)) : entries[fileId];
+    const content = rawSection ? section(entries[fileId], resolve(rawSection)) : entries[fileId];
+    if (traceEnabled) self.postMessage({ type: 'trace.file', detail: { reference: ref, fileId, status: 'completed', characters: content.length } });
+    return content;
+    } catch (error) {
+      if (traceEnabled) self.postMessage({ type: 'trace.file', detail: { reference: ref, status: 'failed', error: error.message } });
+      throw error;
+    }
   }, readText: readScopedText });
 }
 function createUtils() {
@@ -75,7 +82,7 @@ self.onmessage = async event => {
       config: deepFreeze(data.context.config || {}),
       event: deepFreeze(data.context.event || {}),
       args: deepFreeze(data.context.args || {}),
-      files: createFiles(data.files, data.context.state),
+      files: createFiles(data.files, data.context.state, data.traceEnabled),
       utils: createUtils()
     };
     const execute = compileExecSource(data.source, data.isSourceFile);
@@ -84,7 +91,7 @@ self.onmessage = async event => {
       undefined, undefined, undefined, undefined);
     self.postMessage({ result });
   } catch (error) {
-    self.postMessage({ error: error.message || String(error) });
+    self.postMessage({ error: error.message || String(error), stack: error.stack });
   }
 };`;
 

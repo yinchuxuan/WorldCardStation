@@ -2,20 +2,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 44px;
   min-width: 0;
   flex: 0 1 auto;
-}
-
-.game-card-switch-arrow {
-  flex: 0 0 auto;
-  font-size: 20px;
-  color: var(--md-on-surface-variant);
-  transition: transform var(--md-motion-duration-short3) var(--md-motion-easing-standard);
-}
-
-.game-card-title-main[aria-expanded="true"] .game-card-switch-arrow {
-  transform: rotate(180deg);
 }
 
 .game-card-switch-panel {

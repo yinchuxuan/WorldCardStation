@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
-fn copy_tree(source: &Path, target: &Path) -> CardResult<()> {
+fn copy_tree(source: &Path, target: &Path, card_root: bool) -> CardResult<()> {
     let metadata = fs::symlink_metadata(source)?;
     if metadata.file_type().is_symlink() {
         return Err(GameCardError::new(
@@ -25,7 +25,14 @@ fn copy_tree(source: &Path, target: &Path) -> CardResult<()> {
     fs::create_dir_all(target)?;
     for entry in fs::read_dir(source)? {
         let entry = entry?;
-        copy_tree(&entry.path(), &target.join(entry.file_name()))?;
+        if card_root
+            && ["sessions", ".wcs", ".git"]
+                .iter()
+                .any(|name| entry.file_name() == *name)
+        {
+            continue;
+        }
+        copy_tree(&entry.path(), &target.join(entry.file_name()), false)?;
     }
     Ok(())
 }
@@ -33,7 +40,7 @@ fn copy_tree(source: &Path, target: &Path) -> CardResult<()> {
 pub fn prepare(source: &Path, parent: &Path) -> CardResult<PathBuf> {
     fs::create_dir_all(parent)?;
     let temp = staging_path(parent, "directory");
-    if let Err(error) = copy_tree(source, &temp) {
+    if let Err(error) = copy_tree(source, &temp, true) {
         let _ = fs::remove_dir_all(&temp);
         return Err(error);
     }
@@ -49,7 +56,7 @@ pub fn preserve_sessions(target: &Path, temp: &Path) -> CardResult<()> {
     if sessions.exists() {
         let temp_sessions = temp.join("sessions");
         let _ = fs::remove_dir_all(&temp_sessions);
-        if let Err(error) = copy_tree(&sessions, &temp_sessions) {
+        if let Err(error) = copy_tree(&sessions, &temp_sessions, false) {
             let _ = fs::remove_dir_all(&temp);
             return Err(error);
         }

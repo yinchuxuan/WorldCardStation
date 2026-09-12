@@ -47,6 +47,11 @@ function subscribeToWindowClose(client, listener) {
 function createTauriRendererServices(client = tauriBridge) {
   const call = (command, args, field) => invokeTauriCommand(client.invoke, command, args, field);
   return Object.freeze({
+    trace: Object.freeze({
+      start: (scope, snapshot) => call('start_session_trace', { scope, snapshot }),
+      append: (token, records) => call('append_session_trace', { token, records }),
+      close: token => call('close_session_trace', { token })
+    }),
     development: Object.freeze({
       getInstructions: () => call('get_game_card_development_instructions')
     }),

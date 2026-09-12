@@ -20,16 +20,15 @@ pub fn get_game_card_development_instructions(app: tauri::AppHandle) -> Result<S
     instructions(
         &executable,
         &resources,
-        cfg!(windows),
-        &app.package_info().version.to_string(),
+        &app.state::<crate::app_storage::AppStorage>()
+            .game_cards_dir(),
     )
 }
 
 pub(crate) fn instructions(
     executable: &Path,
     resources: &Path,
-    windows: bool,
-    version: &str,
+    game_cards: &Path,
 ) -> Result<String, String> {
     let devkit = resources.join("devkit");
     for file in ["development.md", "spec/README.md", "libs.md"] {
@@ -43,64 +42,20 @@ pub(crate) fn instructions(
     let executable = executable.to_str().ok_or("客户端路径不是有效的 UTF-8")?;
     let devkit = devkit.to_str().ok_or("开发包路径不是有效的 UTF-8")?;
     let paths = serde_json::to_string_pretty(&json!({
-        "platformVersion": version,
         "executable": executable,
-        "devkitPath": devkit,
+        "gameCardsPath": game_cards,
         "guidePath": Path::new(devkit).join("development.md"),
         "specIndexPath": Path::new(devkit).join("spec/README.md"),
         "librariesIndexPath": Path::new(devkit).join("libs.md")
     }))
     .map_err(|error| error.to_string())?;
-    let command = launch_command(executable, windows);
-    let shell = if windows { "powershell" } else { "sh" };
     Ok(format!(
-        r#"请协助我在当前指定的游戏卡项目目录中开发 World Card Station 游戏卡。
+        r#"请先阅读 guidePath 对应的游戏卡开发指南，按文档协助我开发当前项目；按需查阅 specIndexPath（DSL spec）和 librariesIndexPath（lib 索引）。
 
-以下是正在运行的客户端提供的本机信息，不需要平台源码、Node、npm 包或网络下载：
+本机路径：
 ```json
 {paths}
 ```
-
-1. 先阅读 guidePath、specIndexPath 和 librariesIndexPath 对应的本地文档。DSL spec 是供你理解和查阅语法的文档。
-2. 以我在 agent 工具中打开的游戏卡仓库作为工作目录；目标不明确时先向我确认，不要在客户端安装目录或开发包目录中开发。
-3. 根据需求和 lib 索引选择库；若我指定了库，以我的选择为准。不需要世界书时不要复制世界书库。
-4. 在项目工作目录中执行下面两条初始化命令之一，不要两条都执行。已有项目的文件必须保留；遇到冲突先说明，不删除文件重试。
-
-不需要内置 lib：
-```{shell}
-{command} --init-project '.'
-```
-
-需要世界书 lib：
-```{shell}
-{command} --init-project '.' --lib worldbook
-```
-
-直接启动可执行文件并等待退出，读取 stdout 的 JSON 结果和退出码；不要使用打开应用的命令转交给已运行的窗口。
-若使用不经过 shell 的进程工具，使用 executable 原始路径和参数数组 ["--init-project", "."]，按需追加 ["--lib", "worldbook"]。
-检查返回的 created、preserved、warnings；成功后先阅读项目中的 .wcs/development.md，再按需查阅 .wcs/spec/ 和已复制 lib 的文档。
-
-需要查看客户端用法时：
-```{shell}
-{command} --help
-```
-
-编写或修改卡片后，在项目目录检查语法：
-```{shell}
-{command} --dry-run '.'
-```
-读取单个 JSON 报告的 diagnostics、warnings、checked 和 notChecked。退出码 0 表示通过，1 表示校验错误，2 表示参数错误，3 表示检查未完成。修复错误后再次检查。
-初始化只准备项目，不代表语法检查通过。dry-run 只检查语法和静态引用，不执行游戏卡规则、不调用模型、不生成 session 或 trace；通过不代表实际行为符合预期。
-本机可执行文件和开发包绝对路径只用于本次连接，不要写入 card.json、.wcs 文档或提交到 Git。项目中使用相对路径。
-客户端移动或重新安装后，请重新从设置页复制指令。AppImage 的内置文档位于临时挂载目录，阅读期间请保持此客户端打开。
 "#
     ))
-}
-
-pub(crate) fn launch_command(executable: &str, windows: bool) -> String {
-    if windows {
-        format!("& '{}'", executable.replace('\'', "''"))
-    } else {
-        format!("'{}'", executable.replace('\'', "'\"'\"'"))
-    }
 }

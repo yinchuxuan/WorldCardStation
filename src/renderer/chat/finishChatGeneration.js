@@ -35,7 +35,7 @@ async function applyAfterStream(messages, state, card, options) {
   if (!hasAfterStreamRule(card)) {
     return { messages, state, applied: false, card };
   }
-  const result = await generationServices.prepareAfterStreamMessages({ messages, state, card });
+  const result = await generationServices.prepareAfterStreamMessages({ messages, state, card, traceContext: options.traceContext });
   if (result.error) options.onGameCardError?.(generationServices.normalizeGameCardError(result));
   await options.onPresentationEffects?.(result.presentationEffects, {
     card: result.card || card,
@@ -76,6 +76,7 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
   });
   const base = preSend.applied ? preSend.messages : baseMessages;
   const streamedState = streamResult.state || preSend.state || baseState;
+  options.observer?.('assistant.accepted', {}, [...base, assistantMessage], streamedState);
   const streamed = await applyAfterStream(
     [...base, assistantMessage], streamedState, preSend.card, options
   );
@@ -84,6 +85,7 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
   );
   const acceptedAssistant = withValidationWarning(assistantMessage, warning);
   if (segmented) {
+    options.observer?.('generation.commit', { status: 'awaiting_reading' }, streamedMessages, streamed.state);
     if (streamed.applied) {
       setGameState?.(streamed.state);
       setMessages(streamedMessages);
@@ -99,6 +101,7 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
     messages: streamedMessages,
     state: streamed.state,
     card: streamed.card || preSend.card || null,
+    traceContext: options.traceContext,
     statePatchesApplied: true
   });
   if (after.state && setGameState) setGameState(after.state);
@@ -108,6 +111,7 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
     state: after.state
   });
   const afterMessages = attachValidationWarning(after.messages, streamMessageId, warning);
+  options.observer?.('generation.commit', { status: 'committed' }, after.applied ? afterMessages : streamedMessages, after.state || streamed.state);
   if (after.applied) setMessages(afterMessages);
   else if (options.appendAssistantWithUpdater) {
     setMessages(previous => [...previous, acceptedAssistant]);

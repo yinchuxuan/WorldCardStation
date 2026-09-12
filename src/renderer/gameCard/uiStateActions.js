@@ -28,7 +28,7 @@ function normalizeUiStateActions(event) {
   return { ok: true, actions: cloneJson(rawActions) };
 }
 
-async function applyUiStateActionEvent({ event, state = {}, messages = [], card = null, platform = null } = {}) {
+async function applyUiStateActionEvent({ event, state = {}, messages = [], card = null, platform = null, observer } = {}) {
   const normalized = normalizeUiStateActions(event);
   if (!normalized.ok) return fail(normalized.reason, state);
 
@@ -40,8 +40,10 @@ async function applyUiStateActionEvent({ event, state = {}, messages = [], card 
   }
 
   const schema = runtimeCard?.state?.schema;
-  const result = normalized.actions.reduce((current, action) => {
-    const applied = applyStateAction(current.state, action, { messages, schema });
+  const result = normalized.actions.reduce((current, action, index) => {
+    observer?.('ui.action.start', { index, action }, messages, current.state);
+    const applied = applyStateAction(current.state, action, { messages, schema, observer });
+    observer?.('ui.action.end', { index, result: applied.trace }, messages, applied.state);
     return {
       state: applied.state,
       actions: [...current.actions, applied.trace]

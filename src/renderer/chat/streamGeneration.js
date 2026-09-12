@@ -23,7 +23,9 @@ async function applyPatch(patchText, state, preSend, options, publish = true) {
     patchText,
     messages: preSend.messages,
     state,
-    card: preSend.card
+    card: preSend.card,
+    traceContext: options.traceContext,
+    traceDetails: options.traceDetails
   });
   if (result.error) {
     options.onGameCardError?.(generationServices.normalizeGameCardError(result));
@@ -44,7 +46,9 @@ async function sendStreamedGeneration({
   onStreamContentStart,
   onStreamPreviewState,
   onStatePatchApplied,
-  onGameCardError
+  onGameCardError,
+  traceContext,
+  observer
 }) {
   const parser = createStatePatchStreamParser();
   const segmented = preSend.card?.display?.segmentedReading === true;
@@ -56,7 +60,7 @@ async function sendStreamedGeneration({
   let patchCount = 0;
   let rawContent = '';
   let tokenQueue = Promise.resolve();
-  const options = { onGameCardError, onStatePatchApplied, onStreamPreviewState };
+  const options = { onGameCardError, onStatePatchApplied, onStreamPreviewState, traceContext };
   const notifyContentStart = () => {
     if (contentStarted) return;
     contentStarted = true;
@@ -69,7 +73,8 @@ async function sendStreamedGeneration({
         tw.pushProtocolContent?.(event.block);
         patchCount += 1;
         if (!segmented || !contentStarted) {
-          const applied = await applyPatch(event.text, latestState, preSend, options);
+          const applied = await applyPatch(event.text, latestState, preSend,
+            { ...options, traceDetails: { origin: 'stream', patchOrdinal: patchCount - 1 } });
           latestState = applied.state;
           validationState = latestState;
           validationUpdates = [
@@ -79,7 +84,7 @@ async function sendStreamedGeneration({
           tw.markPatchApplied?.(patchCount);
         } else if (validationEnabled) {
           const candidate = await applyPatch(
-            event.text, validationState, preSend, {}, false
+            event.text, validationState, preSend, { traceContext: { begin: () => null } }, false
           );
           validationState = candidate.state;
           validationUpdates = [
@@ -99,9 +104,11 @@ async function sendStreamedGeneration({
   };
 
   let requestError = null;
+  const request = requestOptions(modelConfig, preSend.messages, abortSignal);
+  observer?.('model.request', { messages: request.messages, protocol: request.protocol, representation: 'normalized_messages' });
   try {
     await generationServices.sendChatRequest(
-      requestOptions(modelConfig, preSend.messages, abortSignal),
+      request,
       {
         onToken: enqueueToken,
         onThinkingToken: text => tw.pushContent(text, 'reasoning')
@@ -116,6 +123,7 @@ async function sendStreamedGeneration({
     if (!requestError) throw error;
   }
   if (requestError) {
+    observer?.('model.response', { status: 'partial', content: rawContent, thinking: tw.getThinkingContent?.() }, undefined, latestState);
     requestError.streamResult = {
       appliedPatchCount: tw.getAppliedPatchCount?.() || 0,
       rawContent,
@@ -124,6 +132,8 @@ async function sendStreamedGeneration({
     throw requestError;
   }
   await processEvents(parser.finish());
+  observer?.('model.response', { status: 'received', content: rawContent, thinking: tw.getThinkingContent?.(),
+    validationCandidate: validationEnabled && segmented ? { state: validationState, updates: validationUpdates } : undefined }, undefined, latestState);
   return {
     appliedPatchCount: tw.getAppliedPatchCount?.() || 0,
     rawContent: tw.getRawContent?.() || rawContent,

@@ -41,7 +41,7 @@ function normalizeUiScriptRunEvent(event, card = null) {
   };
 }
 
-async function applyUiScriptRunEvent({ event, state = {}, messages = [], card = null, platform = null } = {}) {
+async function applyUiScriptRunEvent({ event, state = {}, messages = [], card = null, platform = null, observer } = {}) {
   if (event?.type !== 'game.script.run') return fail('unsupported_event', state);
 
   let runtimeCard;
@@ -57,6 +57,7 @@ async function applyUiScriptRunEvent({ event, state = {}, messages = [], card = 
     const loaded = await loadCachedUiScriptResources(card, platform?.resources, normalized.sourceFile);
     const result = await runExecAction(messages, state, { type: 'exec', sourceFile: normalized.sourceFile }, {
       card: loaded.card,
+      observer,
       event: { type: 'game.script.run', name: normalized.name, sourceFile: normalized.sourceFile, payload: normalized.payload },
       fileContents: loaded.fileContents,
       readText: filePath => readCachedCardText(loaded.card, platform?.resources, filePath),

@@ -3,6 +3,7 @@ import { applyTransform, renderValue } from './contentTransforms.js';
 import { resolveContentObject } from './contentObjects.js';
 import { resolveFileSource } from './contentFiles.js';
 import { getStateValue, hasStateValue } from '../state/statePaths.js';
+import { record } from '../trace/nodes.js';
 
 
 function resolveSource(body, originalMessage, options) {
@@ -33,11 +34,13 @@ function skipSpaces(expression, index) {
 function parseChain(expression, index, originalMessage, options) {
   const source = parseSource(expression, skipSpaces(expression, index));
   let value = resolveSource(source.body, originalMessage, options);
+  record(options, 'content.source', { expression: source.body, value });
   let cursor = source.next;
   let transform = parseTransform(expression, cursor);
 
   while (transform) {
     value = applyTransform(value, transform);
+    record(options, 'content.transform', { transform, value });
     cursor = transform.next;
     transform = parseTransform(expression, cursor);
   }

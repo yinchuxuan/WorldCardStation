@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import SettingsGameCardDevelopment from '../../src/renderer/components/SettingsGameCardDevelopment.jsx';
 
-const instructions = '请先阅读 /Applications/世界站.app/Contents/Resources/devkit/development.md\n初始化项目';
+const instructions = '请先阅读 /Applications/世界站.app/Contents/Resources/devkit/development.md，按文档协助我开发当前项目。';
 const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
 
 function setClipboard(value) {
@@ -31,6 +31,8 @@ describe('Settings game card development', () => {
     render(<SettingsGameCardDevelopment />);
     expect(screen.getByRole('heading', { name: '游戏卡开发' })).toBeInTheDocument();
     expect(screen.queryByText(/将开发指令粘贴给 agent/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '开发者模式' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /开发者模式/ })).not.toBeInTheDocument();
     expect(global.platformMock.getGameCardDevelopmentInstructions).not.toHaveBeenCalled();
     expect(writeText).not.toHaveBeenCalled();
     copy();

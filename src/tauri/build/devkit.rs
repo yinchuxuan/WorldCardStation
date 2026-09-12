@@ -22,6 +22,7 @@ const SPEC_TOPICS: &[&str] = &[
     "visual_panel",
     "ui_runtime",
     "response_validation",
+    "runtime_trace",
     "tavern_regex",
 ];
 

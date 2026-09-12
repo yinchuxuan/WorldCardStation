@@ -35,6 +35,7 @@ mod project_init_plan;
 mod project_init_write;
 mod resource_assets;
 mod resource_response;
+mod runtime_trace;
 mod session_commands;
 mod session_management;
 mod sessions;
@@ -45,6 +46,8 @@ mod tavern_output;
 mod tavern_png;
 mod tavern_resources;
 mod tavern_tasks;
+mod trace_commands;
+mod trace_files;
 
 use app_storage::AppStorage;
 use model_commands::ModelNetworkState;
@@ -82,10 +85,14 @@ pub fn run() {
             app.manage(AppStorage::new(data_dir));
             app.manage(ModelNetworkState::new()?);
             app.manage(tavern_tasks::TavernTasks::default());
+            app.manage(runtime_trace::RuntimeTrace::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             development_commands::get_game_card_development_instructions,
+            trace_commands::start_session_trace,
+            trace_commands::append_session_trace,
+            trace_commands::close_session_trace,
             config_commands::get_model_config,
             config_commands::save_model_config,
             config_commands::get_background_config,
@@ -143,6 +150,8 @@ mod dry_run_tests;
 #[cfg(test)]
 mod game_card_directory_tests;
 #[cfg(test)]
+mod game_card_file_import_tests;
+#[cfg(test)]
 mod game_card_package_tests;
 #[cfg(test)]
 mod game_card_tests;
@@ -157,6 +166,8 @@ mod project_init_tests;
 #[cfg(test)]
 mod resource_tests;
 #[cfg(test)]
+mod runtime_trace_tests;
+#[cfg(test)]
 mod tavern_container_tests;
 #[cfg(test)]
 mod tavern_install_tests;
@@ -166,3 +177,5 @@ mod tavern_resource_tests;
 mod tavern_test_support;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod trace_safety_tests;

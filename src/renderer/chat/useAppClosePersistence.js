@@ -1,5 +1,6 @@
 import React from 'react';
 import { rendererServices } from '../platform/index.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function waitForStateCommit() {
   return new Promise(resolve => setTimeout(resolve, 0));
@@ -20,6 +21,7 @@ function useAppClosePersistence({
       await stopGeneration?.();
       await waitForStateCommit();
       await flush();
+      await runtimeTrace.stop();
     } catch (error) {
       console.error('Failed to save chat before closing:', error);
     }

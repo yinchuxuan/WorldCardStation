@@ -2,87 +2,50 @@
 
 开发包版本：{{DEVKIT_VERSION}}；平台版本：{{PLATFORM_VERSION}}；DSL 协议版本：{{SCHEMA_VERSION}}。
 
-这是普通 Markdown 开发资料。每次开始开发或开启新的 agent 会话，先阅读本文件，再按需查阅 [DSL spec](./spec/README.md) 和 [内置 lib 索引](./libs.md)。无需安装 skill、npm 包或访问平台源码。
+## 1. 准备项目
 
-## 当前交付范围
+在开发者指定的游戏卡目录中工作。从客户端“系统配置 → 游戏卡开发 → 复制给 agent 的开发指令”取得本机 `executable` 和 `gameCardsPath`；以下 `client` 代表该可执行文件的实际路径，不是全局命令。
 
-本版提供随客户端安装的离线文档、最小模板、可选库、原生项目初始化与 dry-run 命令，以及系统配置中的“复制给 agent 的开发指令”按钮。开发者模式 session trace 尚未提供；不要猜测或调用 trace 接口，也不要把初始化或普通导入称为 dry-run。
+直接启动可执行文件并传递独立参数，不要通过打开应用的命令转交给已运行窗口。客户端移动或重新安装后重新复制指令；AppImage 阅读内置文档期间保持客户端打开。
 
-dry-run 只检查语法和静态引用，不执行规则，不创建 session，也不生成 trace。trace 将由平台开启开发者模式后的实际游玩产生，用于观察规则对 messages/state 的影响；语法通过不代表行为符合预期。
-
-## 离线开发包与项目副本
-
-安装资源中的 `devkit/` 是只读原件，包含本文件、`libs.md`、`spec/`、`templates/minimal/` 和 `libs/`。从系统配置 → 游戏卡开发复制起步指令可取得本机客户端位置和阅读入口；调用 `client --help` 也可取得实际开发包和指南路径，不要猜测安装路径。所有依赖都在包内，外部规范链接仅作背景来源，断网不影响阅读与初始化。
-
-按钮只复制文本，不初始化项目。客户端移动或重新安装后重新复制；AppImage 内置文档位于临时挂载目录，阅读期间保持客户端打开。本机路径仅用于本次调用，不写入项目中的文档、卡内容或 Git。
-
-以下 `client` 代表本机实际客户端可执行文件路径，不是需要另行安装的命令；通过 agent 的进程工具直接传入参数，路径含空格时正确引用：
+先查看 [内置 lib 索引](./libs.md)，按游戏卡需求或开发者指定选择库。尚未初始化项目时执行：
 
 ```text
-client --help
 client --init-project .
-client --init-project . --lib worldbook
 ```
 
-读取 `--help` 提供的指南与 lib 索引，按需求选择库，再运行其中一种初始化命令。不选库时只生成最小卡和 `.wcs/` 资料；新卡自动生成 UUID，随后由作者修改名称、描述、作者和内容。选用世界书时额外复制脚本和库文档，生成空 entries 配置、正文目录、目录 scope 和普通 exec 接入。
+选用内置库时追加 `--lib <库 ID>`，多个库重复提供 `--lib`；支持的 ID 以当前客户端 `--help` 和库索引为准。等待命令退出，读取 JSON 结果，确认 `ok` 并处理 `warnings`；成功后阅读项目中的 `.wcs/development.md`。保留已有文件，不通过删除内容解决初始化冲突。
 
-命令输出单个 JSON 对象并退出：`ok` 表示操作成功，`created` / `preserved` 列出新建和保留的文件或目录组，`warnings` 列出需人工处理的事项，`guidePath` 是下一步阅读入口。成功退出码为 0，参数错误或未知库为 2，其它失败为 1；失败原因在 `error.code/message` 中。失败回滚时无法安全清理的内容通过 `error.retainedPaths` 报告。
+## 2. 编写游戏卡
 
-已有卡保留原始 `card.json`，即使尚未编写完整也不展开 `$import` 或执行规则；选库后根据警告手动接入，不自动修改规则顺序。已有开发资料或库作为整组固定版本保留，不补入新版模块；只有普通笔记的 `.wcs/` 仍会补充资料，存在部分资料但缺少 development.md 时报告冲突。更新不属于初始化，不默认覆盖文件。
+按需查阅 [DSL spec](./spec/README.md)，编写根目录的 `card.json`、规则、状态和内容资源。优先使用普通 DSL，复杂逻辑再用 `exec` 或 lib。
 
-初始化不打开窗口、安装卡片或创建 session，不影响已经打开的客户端。写入前检查路径和冲突，拒绝链接与目录外写入；失败仅清理本次创建且未被改动的内容。不要在安装资源中改稿，不创建指向客户端的软链接，不隐式初始化 Git、提交、联网下载或升级已有库。
+接入 lib 时，按以下流程操作：
 
-初始化期间使用临时 `.wcs-init.lock` 防止同一项目并发初始化，正常完成或回滚后移除；`project_busy` 表示已有锁。强制终止后如锁残留，先确认没有初始化进程再清理，不自动抢占或覆盖。
+- 从库索引或开发者提供的库中选型，先阅读该版本的 README，确认用途、入口、参数和依赖。
+- 内置库按索引通过初始化命令获取；其它库按其文档将所需脚本及配套文档复制到卡内（通常为 `lib/<库名>/`），保持相对目录结构，不直接引用客户端或平台源码中的库。
+- 按库文档准备游戏卡自己的配置、内容和资源授权，在指定规则阶段通过普通 `exec` 的 `sourceFile`、`args` 调用入口；共享脚本依赖按需使用 `include(...)`。具体字段以库文档为准，语法见 [exec](./spec/game_card/game_card_actions.md#exec)。复制文件不等于完成接入。
 
-建议结构：
+脚本、库和资源放在游戏卡目录内，使用相对路径；文本读取遵守 `files` 注册或目录 scope 授权。保留开发者已有内容和指定的库版本。
 
-```text
-card.json
-rules/                         # 按需用 $import 拆分
-state/                         # 按需定义 state schema
-lib/worldbook/                 # 仅选用世界书时复制，含库文档
-worldbook/config.json           # 卡自己的世界书配置
-worldbook/entries/              # 卡自己的 Markdown 正文
-.wcs/development.md
-.wcs/libs.md
-.wcs/spec/
-```
+## 3. 检查语法
 
-模板只包含最小的初始化规则，不默认添加状态、库、人物设定或模型配置。需要拆分时按 [JSON import](./spec/game_card/game_card_imports.md) 操作，不能凭目录名推断文件会自动加载。
-
-## 编写与修改
-
-- 优先使用 [普通 action](./spec/game_card/game_card_actions.md)、[条件](./spec/game_card/game_card_predicates.md) 和 [Content](./spec/game_card/game_card_content.md)；复杂计算再使用普通 `exec`。
-- 规则和 action 按顺序运行，前面的消息和状态变化会影响后面的判断。阶段、TTL、响应提交时机见 [运行流程](./spec/game_card_design.md)。
-- `sourceFile` 指向卡内 JS，入口是 `run(ctx)`；`args` 是脚本自定义的只读 JSON 对象。lib 没有额外加载机制或权限。
-- 文本读取必须经过 `files` 精确注册或目录 scope 授权；目录授权不是枚举注册。世界书 entry 不逐条写入 `card.json`。
-- [state schema](./spec/game_card/game_card_state.md) 负责变量默认值和约束；不要将玩家 session 或机器配置混入卡文件。
-- [display](./spec/game_card/game_card_display.md) 只改变呈现；真正需要影响模型和历史时使用普通规则修改 messages。
-
-保留开发者现有规则、内容与指定的库版本。agent 根据需求选择库，开发者的显式选择优先；有实质性功能取舍才询问。
-
-## 检查与实际验证
-
-每次编写或修改卡片后，在项目工作目录调用本机实际客户端：
+每次修改后，在项目目录直接启动客户端并等待退出：
 
 ```text
 client --dry-run .
 ```
 
-直接启动可执行文件并等待退出，读取 stdout 的单个 JSON 报告。退出码 `0` 表示通过，`1` 表示校验不通过，`2` 表示参数错误，`3` 表示检查未完成。检查 `diagnostics` 的 `code/message/file/pointer`（JSON 解析错误还提供行列），按原文件位置修复后再次调用；同时阅读 `warnings`、`checked` 和 `notChecked`。不要将检查未完成声称为语法通过。
+读取 stdout 的 JSON 报告，根据 `diagnostics` 中的文件位置和原因修复，再次检查；同时阅读 `warnings`、`checked` 和 `notChecked`。退出码：0 通过，1 校验错误，2 参数错误，3 检查未完成。
 
-检查覆盖 JSON/import/Schema、声明资源、state schema、静态 file/章节引用、模板、正则和 exec/include/注册 UI 脚本的编译语法。动态引用、变量值、脚本入口和返回值、lib 配置业务约束及剧情结果不执行验证；世界书目录不枚举，动态引用按报告留待实际游玩确认。
+dry-run 只检查语法和静态引用，不执行规则、不调用模型、不生成 session 或 trace；通过不代表行为符合预期。
 
-命令使用客户端自带的桌面 WebView 引擎完成只编译、不执行的检查，不显示窗口，不需要点击或外部解释器；无桌面服务器或容器不在第一版支持范围。超时或引擎不可用明确失败。不修改项目、存档、配置、active card 或已有会话。
+## 4. 实际验证与排查
 
-语法通过后，由开发者使用平台导入流程加载卡片；导入会安装或激活卡片，需要开发者实际操作或明确授权，不属于 dry-run。
+由开发者点击游戏卡标题 → 导入卡片，选择项目根目录的 `card.json`，客户端会导入整个项目目录。点击标题栏左侧的卡片图标开启开发者模式，正常游玩复现问题；agent 随后排查当前会话。
 
-行为不符合预期时，先明确触发阶段、输入消息、相关 state、规则顺序和期望变化，再通过平台实际游玩验证。修改开发目录不会自动热更新已安装卡，应重新加载更新后的卡片；不要将一次导入成功当成剧情验证成功。
+在 `gameCardsPath` 下读取 `active.json` 获取卡 ID，再读 `cards/<card-id>/sessions/active.json` 获取 session ID，最后读取该 session 目录的 `trace.jsonl`。若已切换会话，按原名称在对应卡的 `sessions/index.json` 中查找；同名时确认目标。
 
-## 版本与发布
+按 [运行日志说明](./spec/game_card/game_card_runtime_trace.md) 对照预期检查 messages/state 的实际变化。核对日志归属、复现时间和完整性；日志缺失时先确认记录已开启并重新复现。只读平台数据，修复在开发仓库中进行。
 
-本文件版本对应这份固定资料，`card.json.version` 仍是卡作者维护的内容版本。客户端升级不自动替换项目副本，修改文档也不会改变 DSL 运行时。库版本见索引和随库 README。
-
-卡内容、所选库及配套文档属于玩家包；`.wcs/` 仅供开发，可随项目 Git 保存，但不应随玩家包分发。当前导入/导出尚未统一排除 `.wcs/`，发布前请在独立发布目录中只整理卡内容，不要直接打包整个开发目录，也不要依赖 `.gitignore` 作为导出过滤器。
-
-不分发模型密钥、本机路径、玩家 session 或完整行为日志。不需要生成 `devkit.json`、`inputs/`、`local.json`、`runs/` 或任何启动脚本。
+修复后重新 dry-run，再由开发者重新导入并验证；修改源码不会自动更新已安装卡。不要将日志、密钥或本机绝对路径放入卡内容或提交 Git。

@@ -29,6 +29,10 @@ describe('GameCardSwitcher', () => {
     render(<GameCardSwitcher repository={repository} onActivate={jest.fn()}
       onImport={onImport} onUninstall={jest.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: '切换游戏卡' }));
+    const importButton = await screen.findByRole('button', { name: '导入游戏卡文件' });
+    expect(importButton).toHaveAttribute('title', expect.stringContaining('card.json'));
+    expect(screen.queryByRole('group', { name: '导入来源' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '导入游戏卡文件夹' })).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: '导入游戏卡文件' }));
 
     expect(screen.getByText('正在导入游戏卡…')).toBeInTheDocument();
@@ -53,6 +57,19 @@ describe('GameCardSwitcher', () => {
     await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({
       title: '导入游戏卡失败', message: 'invalid card'
     })));
+  });
+
+  test('canceling the file picker restores the single import button without an error', async () => {
+    const onError = jest.fn();
+    render(<GameCardSwitcher repository={{ list: jest.fn(async () => []) }} onActivate={jest.fn()}
+      onImport={jest.fn(async () => { throw Object.assign(new Error('canceled'), { canceled: true }); })}
+      onUninstall={jest.fn()} onError={onError} />);
+    fireEvent.click(screen.getByRole('button', { name: '切换游戏卡' }));
+    const button = await screen.findByRole('button', { name: '导入游戏卡文件' });
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(onError.mock.calls.every(([error]) => error === null)).toBe(true);
   });
 
   test('confirms and uninstalls a game card with all of its saves', async () => {

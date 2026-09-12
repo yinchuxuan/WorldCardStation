@@ -15,6 +15,7 @@
 
 /** @typedef {{load: () => Promise<JsonObject>, save: (value: JsonObject) => Promise<JsonObject>}} ConfigService */
 /** @typedef {{getInstructions: () => Promise<string>}} DevelopmentService */
+/** @typedef {{start: (scope: JsonObject, snapshot: JsonObject) => Promise<JsonObject>, append: (token: string, records: JsonObject[]) => Promise<void>, close: (token: string) => Promise<void>}} TraceService */
 /**
  * @typedef {Object} BackgroundService
  * @property {() => Promise<JsonObject>} load
@@ -43,6 +44,7 @@
  */
 /**
  * @typedef {Object} RendererServices
+ * @property {TraceService} trace
  * @property {DevelopmentService} development
  * @property {ConfigService} config
  * @property {BackgroundService} background

@@ -25,6 +25,8 @@ Tauri is the only desktop target.
 
 酒馆导入专用桌面测试：先运行 `npm run tauri:e2e:build`，再运行 `npx wdio run wdio.tavern.conf.mjs`。它使用独立文件选择 fixture，验证自动导入、兼容差异取消、单独覆盖确认、实际 Worker 编译、世界书及重启恢复；不纳入使用原生卡 fixture 的默认桌面 suite。编译器用 `npx jest --runInBand --coverage=false test/tavern-import` 测试，压缩构建回归位于 integration suite。
 
+项目 `card.json` 导入：`cargo test --manifest-path src/tauri/Cargo.toml project_file_import --lib` 覆盖格式识别、目录资源、存档保留和失败安全。E2E 构建后运行 `npx wdio run wdio.tauri.conf.mjs --spec test/tauri-e2e/project-file-import.e2e.js` 验证单按钮导入整个项目、实际规则执行与更新；默认文件选择 fixture 指向项目的 `card.json`。
+
 ## Renderer
 
 - `src/renderer/main.jsx` is the single renderer entry.
@@ -56,10 +58,12 @@ Coverage thresholds remain 70% branches, 80% functions, 85% lines and 82% statem
 - model request validation, streaming and cancellation.
 - offline devkit generation, version consistency, portable documentation links and template validation (`cargo test --manifest-path src/tauri/Cargo.toml devkit --lib`).
 - [project initialization](./game_card/game_card_project_init.md), no-overwrite/rollback safety and native command results (`cargo test --manifest-path src/tauri/Cargo.toml project_init`).
-- GUI agent bootstrap instructions, local resource discovery and POSIX/PowerShell quoting (`cargo test --manifest-path src/tauri/Cargo.toml development --lib`).
+- GUI agent bootstrap document pointers, local resource discovery and lossless JSON path serialization (`cargo test --manifest-path src/tauri/Cargo.toml development --lib`).
 - [client dry-run](./game_card/game_card_dry_run.md), original-source diagnostics and real offline read-only syntax checks (`cargo test --manifest-path src/tauri/Cargo.toml dry_run`). The native integration checks require a desktop WebView; use `xvfb-run -a` on headless Linux, as in CI.
 
 Cargo also bundles the dry-run checker through the existing Node/Vite build dependencies and embeds it in the executable. Installed clients do not need Node, a dev server or a second checker package.
+
+Developer-mode [runtime trace](./game_card/game_card_runtime_trace.md): `cargo test --manifest-path src/tauri/Cargo.toml trace --lib` covers JSONL writes, session isolation, source mapping, privacy exclusions and path/failure safety. Jest `runtimeTrace*.test.js` and `RuntimeTraceControl.test.js` cover exact changes, conditions, find, exec, rollback and the title-bar switch. After the E2E build, run `npx wdio run wdio.tauri.conf.mjs --spec test/tauri-e2e/runtime-trace.e2e.js` for real Worker/session logging and read-only active/index log discovery.
 
 ## Tauri E2E
 

@@ -1,0 +1,66 @@
+.runtime-trace-control { flex: 0 0 auto; }
+
+.runtime-trace-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  width: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--md-shape-corner-small);
+  background: transparent;
+  color: var(--md-primary);
+  cursor: pointer;
+}
+
+.runtime-trace-toggle:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
+.runtime-trace-toggle[aria-pressed="true"] {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+.runtime-trace-toggle:disabled { cursor: wait; opacity: 0.6; }
+.runtime-trace-toggle:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.chat-header .runtime-trace-toggle .material-icons { font-size: 28px; color: inherit; }
+.runtime-trace-toggle[data-state="recording"]::after,
+.runtime-trace-toggle[data-state="error"]::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--md-success);
+}
+.runtime-trace-toggle[data-state="error"]::after { background: var(--md-error); }
+.runtime-trace-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.chat-header:has(.runtime-trace-error) { opacity: 1; visibility: visible; }
+.runtime-trace-error {
+  position: absolute;
+  top: 100%;
+  right: 16px;
+  max-width: min(560px, calc(100% - 32px));
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--md-error);
+  border-radius: 8px;
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+  box-shadow: var(--md-elevation-level-2);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  cursor: text;
+  user-select: text;
+}

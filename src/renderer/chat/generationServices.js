@@ -11,18 +11,15 @@ import {
   prepareStatePatchAtCursor
 } from '../gameCard/statePatchPipeline.js';
 import { gameCardPlatform } from '../platform/index.js';
-
-function withPlatform(prepare) {
-  return (options = {}) => prepare({ ...options, platform: gameCardPlatform });
-}
+import { tracePipeline } from '../trace/tracePipeline.js';
 
 const generationServices = {
   normalizeGameCardError,
-  prepareAfterResponseMessages: withPlatform(prepareAfterResponseMessages),
-  prepareAfterStreamMessages: withPlatform(prepareAfterStreamMessages),
-  prepareInitMessages: withPlatform(prepareInitMessages),
-  preparePreSendMessages: withPlatform(preparePreSendMessages),
-  prepareStatePatchAtCursor: withPlatform(prepareStatePatchAtCursor),
+  prepareAfterResponseMessages: tracePipeline(prepareAfterResponseMessages, 'after_response', gameCardPlatform),
+  prepareAfterStreamMessages: tracePipeline(prepareAfterStreamMessages, 'after_stream', gameCardPlatform),
+  prepareInitMessages: tracePipeline(prepareInitMessages, 'init', gameCardPlatform),
+  preparePreSendMessages: tracePipeline(preparePreSendMessages, 'pre_send', gameCardPlatform),
+  prepareStatePatchAtCursor: tracePipeline(prepareStatePatchAtCursor, 'state_patch', gameCardPlatform),
   sendChatRequest,
   toGameCardApiMessages
 };

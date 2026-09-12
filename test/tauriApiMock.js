@@ -8,6 +8,9 @@ function requirePlatformMock() {
 }
 
 const commandMethods = {
+  start_session_trace: ['startSessionTrace', 'scope', 'snapshot'],
+  append_session_trace: ['appendSessionTrace', 'token', 'records'],
+  close_session_trace: ['closeSessionTrace', 'token'],
   get_game_card_development_instructions: ['getGameCardDevelopmentInstructions'],
   get_model_config: ['getModelConfig'],
   save_model_config: ['saveModelConfig', 'config'],

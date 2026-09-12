@@ -11,14 +11,13 @@ pub const MAX_ARCHIVE_SIZE: u64 = 1024 * 1024 * 1024;
 pub const MAX_EXPANDED_SIZE: u64 = 2 * MAX_ARCHIVE_SIZE;
 pub const MAX_FILE_SIZE: u64 = 512 * 1024 * 1024;
 pub const MAX_FILES: usize = 4096;
-
 fn card_error(error: impl ToString) -> GameCardError {
     GameCardError::new(error.to_string())
 }
 
 fn excluded(relative: &str) -> bool {
     let parts: Vec<_> = relative.split('/').collect();
-    parts.first() == Some(&"sessions")
+    matches!(parts.first(), Some(&"sessions" | &".wcs"))
         || parts.iter().any(|part| {
             *part == ".DS_Store" || *part == "__MACOSX" || *part == ".git" || part.starts_with("._")
         })
@@ -152,6 +151,9 @@ pub fn extract_archive(input: &Path, target: &Path) -> CardResult<()> {
         }
         validate_mode(entry.unix_mode(), is_dir)?;
         let name = normalized_name(entry.name_raw(), is_dir)?;
+        if name == ".wcs" || name.starts_with(".wcs/") {
+            continue;
+        }
         let folded = name.to_lowercase();
         if !paths.insert(folded) {
             return Err(GameCardError::new(

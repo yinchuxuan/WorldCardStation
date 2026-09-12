@@ -44,7 +44,7 @@
   border-bottom: 1px solid var(--md-outline-variant);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
   box-shadow: var(--md-elevation-level-2);
   position: absolute;
   top: 0;

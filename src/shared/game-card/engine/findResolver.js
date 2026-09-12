@@ -1,5 +1,6 @@
 import { matchesPredicate } from './predicate.js';
 import { deleteStateValue, getStateValue, hasStateValue, setStateValue } from '../state/statePaths.js';
+import { conditionObserver, record } from '../trace/nodes.js';
 
 function normalizeFind(find) {
   if (Array.isArray(find)) return find;
@@ -20,18 +21,18 @@ function applyMatch(value, match) {
   return found[group] !== undefined ? found[group] : '';
 }
 
-function resolveFindSpec(spec, messages) {
+function resolveFindSpec(spec, messages, observer) {
   const matched = messages
-    .filter((message, index) => matchesPredicate(spec.from, message, index, messages))
+    .filter((message, index) => matchesPredicate(spec.from, message, index, messages, observer))
     .map((message) => applyMatch(selectValue(message, spec.select), spec.match));
   const values = matched.filter((value) => value !== '');
   if (spec.many) return values.length > 0 ? values : spec.default ?? [];
   return values.length > 0 ? values[0] : spec.default ?? null;
 }
 
-function resolveFind(find, messages = []) {
-  return normalizeFind(find).reduce((result, spec) => {
-    if (spec?.name) result[spec.name] = resolveFindSpec(spec, messages);
+function resolveFind(find, messages = [], options = {}) {
+  return normalizeFind(find).reduce((result, spec, index) => {
+    if (spec?.name) result[spec.name] = resolveFindSpec(spec, messages, conditionObserver(options, `find/${index}/from`));
     return result;
   }, {});
 }
@@ -41,18 +42,24 @@ function restoreTempFind(state, previous) {
   return deleteStateValue(state, 'temp.find');
 }
 
-function withFindState(state = {}, find, messages = []) {
+function withFindState(state = {}, find, messages = [], options = {}) {
   const previous = {
     exists: hasStateValue(state, 'temp.find'),
     value: getStateValue(state, 'temp.find')
   };
-  const values = resolveFind(find, messages);
+  const values = resolveFind(find, messages, options);
   const base = previous.exists && previous.value && typeof previous.value === 'object' && !Array.isArray(previous.value)
     ? previous.value
     : {};
+  const foundState = setStateValue(state, 'temp.find', { ...base, ...values });
+  record(options, 'find.enter', { values, previous, persistence: 'local' }, messages, foundState);
   return {
-    state: setStateValue(state, 'temp.find', { ...base, ...values }),
-    restore: (nextState) => restoreTempFind(nextState, previous),
+    state: foundState,
+    restore: (nextState) => {
+      const restored = restoreTempFind(nextState, previous);
+      record(options, 'find.restore', { persistence: 'local' }, undefined, restored);
+      return restored;
+    },
     values
   };
 }

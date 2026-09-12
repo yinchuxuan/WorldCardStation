@@ -15,6 +15,7 @@ Read only the documents relevant to the current task.
 - [Offline game card devkit](./game_card/game_card_devkit.md)
 - [Game card project initialization](./game_card/game_card_project_init.md)
 - [Client game card dry-run](./game_card/game_card_dry_run.md)
+- [Developer-mode runtime trace](./game_card/game_card_runtime_trace.md)
 - [Game card schema](./game_card/game_card_schema.md)
 - [Game card actions](./game_card/game_card_actions.md)
 - [Game card worldbook library](../libs/worldbook-library/README.md)

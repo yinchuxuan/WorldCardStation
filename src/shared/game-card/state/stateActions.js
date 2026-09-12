@@ -1,10 +1,4 @@
-import {
-  cloneState,
-  deleteStateValue,
-  getStateValue,
-  hasStateValue,
-  setStateValue
-} from './statePaths.js';
+import { cloneState, deleteStateValue, getStateValue, hasStateValue, setStateValue } from './statePaths.js';
 import { normalizeStateSchema, validateStatePathValue } from './stateSchema.js';
 
 function isObject(value) {
@@ -97,9 +91,11 @@ function randomInt(min, max) {
 }
 
 function validateNextState(type, before, after, path, options) {
+  options.observer?.('state.write', { pointer: options.pointer, path, attempted: getStateValue(after, path) });
   if (!options.schema || !hasStateValue(after, path)) return finish(type, before, after, path, options);
 
   const validation = validateStatePathValue(options.schema, path, getStateValue(after, path));
+  options.observer?.('state.validation', { pointer: options.pointer, path, result: validation });
   if (!validation.hit) return finish(type, before, after, path, options);
   if (validation.error) return fail(type, before, `schema.${path}: ${validation.error}`, options);
   if (!validation.changed) return finish(type, before, after, path, options);

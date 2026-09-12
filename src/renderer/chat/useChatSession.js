@@ -3,6 +3,7 @@ import generationServices from './generationServices.js';
 import { ensureMessageIds } from './messageIds.js';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
 import { rendererServices } from '../platform/index.js';
+import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
   setMessages,
@@ -22,6 +23,7 @@ function useChatSession({
       persistence.hydrate(result);
       const loadedMessages = result.messages || [];
       const loadedState = result.gameState || {};
+      await runtimeTrace.bind(result.traceScope || null, loadedMessages, loadedState);
       const init = await generationServices.prepareInitMessages({ messages: loadedMessages, state: loadedState });
       const initializedMessages = init.changed ? init.messages : loadedMessages;
       const nextMessages = ensureMessageIds(initializedMessages);
@@ -30,6 +32,7 @@ function useChatSession({
       setRuntimeError(init.error ? normalizeGameCardError(init) : null);
       setMessages(nextMessages);
       setGameState(nextState);
+      runtimeTrace.update(nextMessages, nextState);
       onSessionLoaded?.({ card: init.card || null, state: nextState });
       if (init.changed || idsAdded) await persistence.save(nextMessages, nextState);
       return result;

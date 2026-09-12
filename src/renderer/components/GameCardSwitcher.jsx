@@ -133,13 +133,9 @@ function GameCardSwitcher({
   return <div className="game-card-switcher" data-gc-part="game-card-switcher">
     <button type="button" className="game-card-title-main" data-gc-part="game-card-title-main"
       onClick={toggle} disabled={isLoading || busy} aria-label="切换游戏卡"
-      title={isLoading ? '生成完成后可切换游戏卡' : title}
+      title={isLoading ? '生成完成后可切换游戏卡' : `切换游戏卡：${title}`}
       aria-expanded={open} aria-controls="game-card-switch-panel">
-      <span className="material-icons game-card-title-icon" data-gc-part="game-card-title-icon">
-        {activeCard ? 'extension' : 'chat'}
-      </span>
       <span className="game-card-title-name" data-gc-part="game-card-title-name">{title}</span>
-      <span className="material-icons game-card-switch-arrow" aria-hidden="true">arrow_drop_down</span>
     </button>
     {mounted ? <div id="game-card-switch-panel" className="game-card-switch-panel"
       data-state={open ? 'open' : 'closing'} aria-hidden={!open}
@@ -150,7 +146,7 @@ function GameCardSwitcher({
         {cards.map(renderCard)}
       </div>
       <button type="button" className="game-card-switch-import" onClick={importCard}
-        disabled={busy || isLoading} aria-label="导入游戏卡文件">
+        disabled={busy || isLoading} aria-label="导入游戏卡文件" title="选择卡片文件，或项目目录中的 card.json（导入整个目录）">
         <span className={`material-icons${busy ? ' importing' : ''}`}>
           {busy ? 'progress_activity' : 'upload_file'}
         </span><span>{busy ? '正在导入…' : '导入卡片'}</span>

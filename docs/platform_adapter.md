@@ -36,16 +36,19 @@ rendererServices.background
 rendererServices.sessions
 rendererServices.cards
 rendererServices.development
+rendererServices.trace
 rendererServices.window
 ```
 
 `tauriRendererServices.js` 将 contract 映射为业务级 command 和受控窗口 API，并用 `listen` 订阅背景配置变更。adapter 负责将 Rust 错误、取消和校验详情归一化为 JavaScript `Error`。
 
-`development.getInstructions()` 调用只读 `get_game_card_development_instructions`，由 native 根据当前客户端/资源目录生成 agent 起步文本，不接受 renderer 提供的本机路径。设置组件负责剪贴板写入及失败时的手动复制；该能力不初始化项目或改变游戏卡、Session、模型配置。
+`development.getInstructions()` 调用只读 `get_game_card_development_instructions`，由 native 根据当前客户端/资源目录和 AppStorage 的实际 gameCardsPath 生成文档阅读指引和必要本机路径，不重复开发流程，不接受 renderer 提供的本机路径。agent 按指南和既有 active/index 文件定位当前 session 日志，无专用日志查询接口。设置组件负责起步指令的剪贴板写入及失败时的手动复制；该能力不初始化项目或改变游戏卡、Session、模型配置。
+
+`trace.start(scope, snapshot)`、`trace.append(token, records)`、`trace.close(token)` 映射到 `start_session_trace`、`append_session_trace`、`close_session_trace`。仅实际游玩的开发者模式使用；native 固定安全的原始 card/session 目录，不接受任意输出路径。记录器默认关闭、串行写入，失败明确提示不完整；dry-run 不加载该服务。见 [运行日志](./game_card/game_card_runtime_trace.md)。
 
 `cards.uninstall(id)` 删除已导入游戏卡；如果目标是当前 active card，后端同时清空 active card。游戏卡选择器负责在调用前二次确认，并在卸载当前卡后切回普通聊天 Session。
 
-`cards.importFile()` 使用统一文件选择器；原生卡返回已安装卡，酒馆卡返回 `{ kind: 'tavern', token, id, source, resources, fingerprint, container }`，此时不安装。内置 Worker 编译后调用 `stageTavernImport(token, { files, copies, worldbook }, targetId?)`，后端校验并返回 revision；无警告自动 `commitTavernImport(token, revision)`，有兼容差异或显式更新目标则分别确认后提交。取消用 `cancelTavernImport(token)`。资源只有任务内 ID，无任意磁盘路径；修改计划须重新 stage，旧 revision 和重复提交被拒绝。主动更新酒馆卡时传 `importFile({ tavernOnly: true })`，误选原生包在安装前拒绝，不按原生 ID 意外安装其它卡。
+`cards.importFile()` 使用统一文件选择器；原生容器或平台项目 `card.json` 返回已安装卡，后者复用目录导入管线安装完整项目。酒馆 JSON（包括同名 `card.json`）、PNG/APNG、CHARX 返回 `{ kind: 'tavern', token, id, source, resources, fingerprint, container }`，此时不安装。内置 Worker 编译后调用 `stageTavernImport(token, { files, copies, worldbook }, targetId?)`，后端校验并返回 revision；无警告自动 `commitTavernImport(token, revision)`，有兼容差异或显式更新目标则分别确认后提交。取消用 `cancelTavernImport(token)`。资源只有任务内 ID，无任意磁盘路径；修改计划须重新 stage，旧 revision 和重复提交被拒绝。主动更新酒馆卡时传 `importFile({ tavernOnly: true })`，误选原生容器或项目入口均在安装前拒绝，不按原生 ID 意外安装其它卡。
 
 ## 模型网络
 

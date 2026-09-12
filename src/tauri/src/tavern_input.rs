@@ -9,9 +9,14 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
+pub enum NativeInput {
+    Package(PathBuf),
+    Project(PathBuf),
+}
+
 pub struct Input {
     pub root: PathBuf,
-    pub native: Option<PathBuf>,
+    pub native: Option<NativeInput>,
     pub source: Value,
     pub resources: Vec<Resource>,
     pub fingerprint: String,
@@ -52,7 +57,7 @@ pub fn prepare(path: &Path, parent: &Path) -> CardResult<Input> {
             prepared.source = source;
             prepared.container = "png/apng".into();
         } else {
-            prepared.native = Some(snapshot);
+            prepared.native = Some(NativeInput::Package(snapshot));
             return Ok(prepared);
         }
     } else if magic[..4] == *b"PK\x03\x04" {
@@ -63,7 +68,7 @@ pub fn prepare(path: &Path, parent: &Path) -> CardResult<Input> {
         }
         prepared.source = parse_json(&fs::read(card_path)?)?;
         if prepared.source.get("spec").is_none() {
-            prepared.native = Some(snapshot);
+            prepared.native = Some(NativeInput::Package(snapshot));
             return Ok(prepared);
         }
         prepared.container = "charx".into();
@@ -72,6 +77,17 @@ pub fn prepare(path: &Path, parent: &Path) -> CardResult<Input> {
             return Err(GameCardError::new("角色 JSON 超限或未知容器"));
         }
         prepared.source = parse_json(&fs::read(&snapshot)?)?;
+        // A Tavern card may also be named card.json; explicit specs keep their format semantics.
+        if path.file_name().is_some_and(|name| name == "card.json")
+            && prepared.source.get("spec").is_none()
+        {
+            let project = path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new("."));
+            prepared.native = Some(NativeInput::Project(project.to_path_buf()));
+            return Ok(prepared);
+        }
         prepared.container = "json".into();
     }
     if !matches!(

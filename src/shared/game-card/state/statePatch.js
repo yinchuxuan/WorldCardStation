@@ -61,8 +61,10 @@ function applyParsedPatch(state, patchText, options) {
   const selectedActions = options.actionFilter
     ? actions.filter(options.actionFilter)
     : actions;
-  const result = selectedActions.reduce((current, action) => {
+  const result = selectedActions.reduce((current, action, index) => {
+    options.observer?.('patch.action.start', { index, action }, options.messages, current.state);
     const applied = applyStateAction(current.state, action, options);
+    options.observer?.('patch.action.end', { index, result: applied.trace }, options.messages, applied.state);
     const update = buildUpdate(action, current.state, applied);
     return {
       state: applied.state,

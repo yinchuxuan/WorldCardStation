@@ -1,6 +1,6 @@
 # 离线游戏卡开发包
 
-开发资料和可选库已随 Tauri 客户端构建、安装，[项目初始化命令和 GUI 起步指令](./game_card_project_init.md)、[只读 dry-run](./game_card_dry_run.md) 也已接通。开发者模式日志仍按 [整体设计](./game_card_agent_development.md) 后续实现。
+开发资料和可选库已随 Tauri 客户端构建、安装，[项目初始化命令和 GUI 起步指令](./game_card_project_init.md)、[只读 dry-run](./game_card_dry_run.md) 和 [开发者模式日志](./game_card_runtime_trace.md) 也已接通。
 
 ## 内容与来源
 
@@ -28,7 +28,7 @@ devkit/
 
 Tauri `bundle.resources` 将 `dist/devkit/` 映射到安装资源目录的 `devkit/`，三个桌面平台共用。开发构建同时复制到对应 Cargo profile 的资源位置。安装包中的开发资料不依赖原仓库路径，开发者阅读和复制时不需要 Node/npm、平台源码或网络。
 
-macOS 应用包内为 `Contents/Resources/devkit/`；其它平台使用 Tauri 对应的资源目录。系统配置 → 游戏卡开发 →“复制给 agent 的开发指令”提供实际客户端、开发包和阅读入口路径；实际客户端的 `--help` 也返回开发包路径，不让 agent 猜路径。AppImage 阅读内置文档期间需保持客户端打开。
+macOS 应用包内为 `Contents/Resources/devkit/`；其它平台使用 Tauri 对应的资源目录。系统配置 → 游戏卡开发 →“复制给 agent 的开发指令”提供实际客户端和文档阅读入口路径；实际客户端的 `--help` 返回开发包根路径，不让 agent 猜路径。AppImage 阅读内置文档期间需保持客户端打开。
 
 构建只同步构建专用产物目录：输入变化后重新生成，移除已经不再分发的旧文件，未变化文件不改写。不能把该内部生成函数当成面向用户项目的初始化 API。
 
@@ -38,9 +38,9 @@ agent 先阅读分发包中的 `development.md`，再调用 `client --init-proje
 
 指南、lib 索引和完整 spec 复制到项目 `.wcs/` 后仍可通过相对链接查阅。所选库的脚本及文档复制到卡内 `lib/worldbook/`；新卡自动生成世界书空配置和接入，已有卡需按警告确认接入。不默认安装全部库，不覆盖已有卡内容。
 
-项目初始化、dry-run 均提供独立完成边界和 JSON 结果，但不等于实际游玩验证。指南给出 dry-run 调用方式和静态检查边界，并明确开发者模式 trace 尚未交付；原生导入会安装/激活卡片，不是只读检查。
+项目初始化、dry-run 均提供独立完成边界和 JSON 结果，但不等于实际游玩验证。指南给出 dry-run 的静态检查边界，以及从标题栏开启开发者模式后，agent 使用起步指令的 gameCardsPath 和既有 active/index 文件定位当前 session 日志的方法；不要求用户提供 session ID 或复制日志路径。日志说明从同源文档复制到 spec。原生导入会安装/激活卡片，不是只读检查。
 
-当前原生导入/导出尚未统一排除 `.wcs/`，本步骤不改变安装或打包语义。发布前应整理只含卡内容、所选库和库文档的独立发布目录，排除开发资料、机器信息和玩家 session。
+目录导入和导出排除根 `.wcs/`、session 和 Git 元数据；原生包拒绝 session，忽略 `.wcs/`。库及配套文档照常分发；发布前仍需检查卡内容中是否混入机器信息或密钥。
 
 ## 验证
 

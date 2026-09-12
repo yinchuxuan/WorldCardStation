@@ -31,7 +31,7 @@ ui/
 
 `card.json.id` 是安装标识，相同 id 表示更新已安装卡；`card.json.version` 是卡作者维护的内容版本，与平台 schema 版本无关。
 
-容器不包含 `sessions/`、`.DS_Store`、`__MACOSX/`、资源分叉文件或已生成的导出物。开发目录始终是可编辑源，容器只是构建产物。
+容器不包含 `sessions/`（含 trace）、`.wcs/`、`.git/`、`.DS_Store`、`__MACOSX/`、资源分叉文件或已生成的导出物。lib 脚本与配套文档保留。开发目录始终是可编辑源，容器只是构建产物。
 
 PNG 导出需要封面。平台后续可在 schema 中增加可选 `cover` 图片路径；未声明时由导出命令要求显式选择，不从背景资源中猜测。
 
@@ -76,7 +76,7 @@ source -> staging directory -> read_card/$import -> schema/resource validation
        -> preserve sessions -> atomic replace -> activate
 ```
 
-- 目录导入将源树复制到 staging。
+- 目录导入将源树复制到 staging，跳过根 `sessions/`、`.wcs/`、`.git/`，不复制开发日志；更新时仍保留目标已有 session。
 - `.gamecard` 验证 ZIP 文件头后流式解压到 staging。
 - PNG 重组和校验 ZIP，然后进入相同的安全解压流程。
 
@@ -88,7 +88,7 @@ source -> staging directory -> read_card/$import -> schema/resource validation
 
 - 路径必须是有效 UTF-8 相对路径，禁止绝对路径、反斜杠、空段和 `..`。
 - 拒绝软链接、特殊文件、加密 ZIP、重复路径和仅大小写不同的冲突路径。
-- 拒绝包内 `sessions/`，并要求根目录只有一个 `card.json`。
+- 拒绝包内 `sessions/`，忽略根 `.wcs/`，并要求根目录只有一个 `card.json`。
 - 默认上限：4096 个文件、单文件 512 MiB、archive 1 GiB、解压后总量 2 GiB。
 - 写入前检查累计长度，不信任 ZIP header 或 `gcAr` 声明的大小。
 - 完整执行现有 `$import` 安全、schema 和 `x-file` 资源存在性校验。
@@ -108,11 +108,13 @@ npm run game-card:export -- game-card-examples/white-album-2 --format png --cove
 
 ## 平台接口与 UI
 
-平台 adapter 最终提供 `cards.importDirectory()`、`cards.importFile()` 和 `cards.exportFile()`。生产 UI 以文件导入为主，目录导入保留给开发流程。
+游戏卡选择面板保留单一“导入卡片”按钮，直接打开文件选择器。选择平台项目根目录的 `card.json` 时，通过已有目录导入管线安装整个项目（含 `$import`、脚本和资源），无需先打包或选择导入类型。导入会复制安装，不挂载开发目录或自动热更新，也无需开启开发者模式。应用内导出 UI 仍待实现。
+
+文件内容识别优先：PNG/ZIP 仍按容器处理；JSON 中有 `spec` 时按酒馆格式识别，未知 `spec` 明确失败，即使文件名为 `card.json` 也不回退为目录导入。只有无 `spec` 的 `card.json` 才进入平台目录校验；其他 JSON 不隐式读取其所在目录。目录导入完整执行现有加载、Schema 和路径安全检查，失败不安装。
 
 导入器根据文件 magic 判断 ZIP 或 PNG，不只信任扩展名。普通 PNG 需明确报错“图片不包含游戏卡”。导入、导出和校验大文件时显示进度，允许取消，取消后清理临时文件。
 
-文件导入期间，游戏卡选择面板显示不可重复点击的“正在导入”状态和不定进度条；成功后显示导入的卡名并短暂停留，失败时保留面板并引导用户查看错误详情，取消文件选择则直接恢复空闲状态。
+文件和项目导入共用不可重复点击的“正在导入”状态和不定进度条；成功后显示导入的卡名并短暂停留，失败时保留面板并引导用户查看错误详情，取消选择则直接恢复空闲状态。生成期间禁止导入。
 
 已安装卡可以从游戏卡选择器卸载。平台必须先提示游戏卡资源和该卡全部 Session 都会被永久删除；卸载当前卡后自动切换到普通聊天，普通聊天和其它游戏卡的 Session 不受影响。生成期间禁止卸载。
 

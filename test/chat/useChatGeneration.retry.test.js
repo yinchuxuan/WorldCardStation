@@ -35,7 +35,9 @@ describe('useChatGeneration retry pipeline', () => {
       retryBaseMessages: [{ role: 'user', content: 'Question' }]
     });
     await act(async () => { await result.current.retry(); });
-    expect(generationServices.preparePreSendMessages).toHaveBeenCalledWith({ messages: [{ role: 'user', content: 'Question' }], state: {} });
+    expect(generationServices.preparePreSendMessages).toHaveBeenCalledWith({
+      messages: [{ role: 'user', content: 'Question' }], state: {}, traceContext: { begin: expect.any(Function) }
+    });
     expect(generationServices.sendChatRequest.mock.calls[0][0].messages).toEqual([
       { role: 'system', content: 'new rules' }, { role: 'user', content: 'Question' }
     ]);

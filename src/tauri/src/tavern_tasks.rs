@@ -1,7 +1,7 @@
 use crate::app_storage::AppStorage;
 use crate::game_card_error::{CardResult, GameCardError};
 use crate::game_card_repository;
-use crate::tavern_input::{self, Input};
+use crate::tavern_input::{self, Input, NativeInput};
 use crate::tavern_output::{self, Plan};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -47,7 +47,12 @@ impl TavernTasks {
                     "更新酒馆卡请选择 V2/V3 酒馆源文件；原生游戏卡请使用导入卡片",
                 ));
             }
-            return game_card_repository::import_file(storage, native).await;
+            return match native {
+                NativeInput::Package(path) => {
+                    game_card_repository::import_file(storage, path).await
+                }
+                NativeInput::Project(path) => game_card_repository::import(storage, path).await,
+            };
         }
         let mut tasks = self.tasks.lock().await;
         tasks.retain(|_, task| task.created.elapsed() < Duration::from_secs(1800));

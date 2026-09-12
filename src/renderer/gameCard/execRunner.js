@@ -4,6 +4,7 @@ import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
 import { controlledScriptExecutor, DEFAULT_EXEC_TIMEOUT_MS } from '../platform/controlledScriptExecutor.js';
 import { createExecFiles } from './execFiles.js';
 import { resolveExecSource } from './execSource.js';
+import { observeNode, record } from '../../shared/game-card/trace/nodes.js';
 
 function summarizeState(before, after) {
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
@@ -33,7 +34,7 @@ function finishExecAction(result, beforeMessages, beforeState, action, timeoutMs
   };
 }
 
-function runExecAction(messages, state, action, options = {}) {
+function execute(messages, state, action, options) {
   const beforeMessages = cloneJson(messages);
   const beforeState = cloneJson(state);
   const timeoutMs = options.timeoutMs || DEFAULT_EXEC_TIMEOUT_MS;
@@ -48,14 +49,21 @@ function runExecAction(messages, state, action, options = {}) {
     randomUuid: options.randomUuid
   });
   const source = resolveExecSource(action, options);
+  record(options, 'exec.input', { args: context.args, config: context.config, event: context.event });
   const scriptExecutor = options.scriptExecutor || controlledScriptExecutor;
   const startedAt = Date.now();
   const result = scriptExecutor.run(source, context, {
     timeoutMs,
-    isSourceFile: typeof action.sourceFile === 'string'
+    isSourceFile: typeof action.sourceFile === 'string',
+    onTrace: options.observer ? detail => record(options, 'resource.read', detail) : undefined
   });
   const finish = value => finishExecAction(value, beforeMessages, beforeState, action, timeoutMs, startedAt);
   return result && typeof result.then === 'function' ? result.then(finish) : finish(result);
+}
+
+function runExecAction(messages, state, action, options = {}) {
+  return observeNode('exec', messages, state, options, { actionType: 'exec', sourceFile: action.sourceFile },
+    () => execute(messages, state, action, options));
 }
 
 export { runExecAction, validateExecResult };

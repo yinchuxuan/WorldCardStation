@@ -17,7 +17,16 @@ pub(crate) async fn load_history(storage: &AppStorage) -> AppResult<Value> {
     let _guard = storage.lock(&context.dir).await;
     let messages = read_json::<Value>(&context.messages)?;
     let retry = read_json::<Value>(&context.retry_base)?;
-    Ok(history::decode_history(messages.as_ref(), retry.as_ref()))
+    let mut result = history::decode_history(messages.as_ref(), retry.as_ref());
+    let card = root
+        .parent()
+        .filter(|parent| parent.parent() == Some(storage.game_cards_dir().join("cards").as_path()));
+    result["traceScope"] = card
+        .and_then(|path| path.file_name())
+        .and_then(|name| name.to_str())
+        .map(|id| json!({ "cardId": id, "sessionId": context.id }))
+        .unwrap_or(Value::Null);
+    Ok(result)
 }
 
 #[tauri::command]

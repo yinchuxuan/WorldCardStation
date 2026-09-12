@@ -104,6 +104,8 @@ Renderer 只使用 `rendererServices.sessions`：
 - `rename(id, title)`
 - `delete(id)`
 
+开发者模式开启后，同目录追加 `trace.jsonl`；关闭模式保留文件。历史加载额外返回 `traceScope: {cardId, sessionId}`（普通聊天为 null），用于绑定记录归属。旧会话的迟到日志不写到新会话，详见 [运行日志](./game_card/game_card_runtime_trace.md)。
+
 Tauri adapter 分别映射到 Rust commands：
 
 - `get_chat_history`

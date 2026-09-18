@@ -52,8 +52,8 @@ Display rules 位于游戏卡顶层:
 |---|---|---|
 | `id` | string | 规则标识，用于 debug 和错误提示 |
 | `enabled` | boolean | 可选，`false` 时跳过；默认 `true` |
-| `stage` | string | 执行阶段，第一版只支持 `before_markdown` |
-| `type` | string | 规则类型，第一版只支持 `regex_replace` |
+| `stage` | string | 执行阶段，只支持 `before_markdown` |
+| `type` | string | 规则类型，只支持 `regex_replace` |
 | `pattern` | string / 片段数组 | JavaScript 正则源码，不包含 `/.../` 包裹；数组支持只读 state |
 | `flags` | string | 正则 flags，建议只允许 `gimsu` |
 | `replace` | string / 片段数组 | 字符串保持 JavaScript replace 语义；数组显式引用捕获组/state |
@@ -64,7 +64,7 @@ Display rules 位于游戏卡顶层:
 
 ## Stage
 
-第一版只开放:
+只开放:
 
 | stage | 输入 | 输出 | 用途 |
 |---|---|---|---|
@@ -195,6 +195,6 @@ Display rules 不要求 assistant 输出大量标签。推荐用正则识别轻�
 
 游戏卡可用 `display.segmentSeparator` 指定分隔符。例如 `"segmentSeparator": "\n"` 会按每个换行分页。该值是普通字符串而非正则表达式；平台会先把回复和分隔符中的 CRLF 统一为 LF，再精确切分并忽略空段。未声明时仍按一个或多个空行划分 Markdown 自然段。分隔发生在 display rules 之后，因此游戏卡生成的交互块应避免在最终 HTML 内包含该分隔符。
 
-分段发生在 display rules 之后，平台也会隐藏完整的 `<state_patch>`，因此协议块不会产生空白页面。patch 位于两段之间时，在阅读游标进入后一段前应用；开头 patch 属于第一段边界，结尾 patch 属于读完末段的边界。回看只移动阅读游标，不回滚已经应用的 state。
+分段发生在 display rules 之后，平台也会隐藏完整的 `<state_patch>`，因此协议块不会产生空白页面。patch 位于两段之间时，在阅读游标进入后一段前应用；正文开始前的 patch 在流式接收时先提交，不等待阅读推进，结尾 patch 属于读完末段的边界。回看只移动阅读游标，不回滚已经应用的 state。
 平台按 session 维护跨 assistant 回复的阅读游标；同一回复内逐段移动，到达首尾后进入相邻回复。已完成消息的 `messageId` 和 `segmentIndex` 会在 state patch 提交后与 messages、game state 原子保存，加载 session 时恢复。历史回复中的输入 action 页会被跳过；回看会保存当前显示位置，但不会回滚 messages、game state、retry snapshot 或当前视听演出。
 游戏卡 UI 可读取 `ui.reading` 的 `canPrevious`、`canNext`、`atLatest`、`messageIndex` 和 `segmentIndex`，并发送 `reading.previous`、`reading.next`、`reading.latest`。流式生成期间回看不会停止生成，新段落也不会强制把游标拉回最新位置。

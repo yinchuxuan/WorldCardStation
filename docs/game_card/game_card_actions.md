@@ -131,7 +131,7 @@ state 中的 `visual` / `audio` 只描述目标值。以下 action 会把当前�
 }
 ```
 
-LLM 响应中的 `state_patch` 是另一条统一发布路径：普通模式在流游标越过 patch 时发布其中变化的展示字段，分段模式在阅读游标进入 patch 后的段落时发布。它不依赖首 token 自动更新开关。
+LLM 响应中的 `state_patch` 是另一条统一发布路径：普通模式在流游标越过 patch 时发布其中变化的展示字段，分段模式先应用正文开始前的 patch，其余在阅读游标进入 patch 后的段落时发布。它不依赖首 token 自动更新开关。
 
 ## exec
 

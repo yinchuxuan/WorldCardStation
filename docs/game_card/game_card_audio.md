@@ -1,10 +1,10 @@
-# 游戏卡 Audio 设计文档
+# 游戏卡 Audio 参考
 
 ## 目标
 
 Audio 定义游戏卡可使用的本地音频资源，并通过 `gameState` 控制当前播放内容。
 
-第一版只设计 BGM：游戏卡声明 BGM key 到资源路径的映射，state schema 声明当前 BGM key，state action 修改目标 key，presentation controller 显式发布到播放器。
+音频配置支持 BGM：游戏卡声明 BGM key 到资源路径的映射，state schema 声明当前 BGM key，state action 修改目标 key，presentation controller 显式发布到播放器。
 
 Audio 不进入 LLM prompt，不写入消息正文，也不由 display rules 处理。
 
@@ -159,37 +159,3 @@ Tauri 受控资源协议校验当前 active game card、相对路径边界、rea
 Audio 不通过 display rules 实现。
 
 display rules 是 UI-only 文本变换，只作用于消息内容渲染；BGM 是本地运行时状态，来源应是 `gameState.audio.bgm`。这样不会污染历史消息，也不会把音频控制标签发给 LLM。
-
-## 后续扩展
-
-可以在相同结构下扩展其它音频类型：
-
-```json
-{
-  "audio": {
-    "bgm": {
-      "intro": "audio/intro.mp3"
-    },
-    "sfx": {
-      "door": "audio/sfx/door.mp3"
-    },
-    "ambient": {
-      "rain": "audio/ambient/rain.ogg"
-    }
-  }
-}
-```
-
-对应 state path 可以是 `audio.bgm` 和 `audio.ambient`。
-
-短音效 `sfx` 是否进入 state 需要另行设计；它更像一次性事件，不一定适合保存为持久化状态。
-
-## 测试范围
-
-- game card schema 接受 `audio.bgm` 资源表并拒绝非法路径
-- state schema enum 默认值能初始化 `gameState.audio.bgm`
-- state action 能更新 `audio.bgm`
-- 资源协议拒绝路径穿越和非音频扩展名
-- 组件只在收到显式 update 请求时切换音频资源
-- 切换游戏卡或 session 时停止或恢复正确 BGM
-- 用户提交时停止播放；普通模式在正文开始时按最新 state 播放，分段模式只响应显式 `state.set audio.bgm`

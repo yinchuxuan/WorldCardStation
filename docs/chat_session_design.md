@@ -4,9 +4,9 @@
 
 聊天 session 用来保存和加载同一游戏卡下的多条独立对话线。每个 session 必须包含完整的聊天上下文、游戏状态和重试基准，切换 session 时应恢复到该 session 自己的状态。
 
-## 当前基础
+## 存储布局
 
-现有聊天历史已经按 active game card 和 active session 读取：
+聊天历史按 active game card 和 active session 读取：
 
 ```
 game-cards/
@@ -29,7 +29,7 @@ game-cards/
 
 ## 数据结构
 
-每个 session root 增加 `index.json`：
+每个 session root 包含 `index.json`：
 
 ```
 sessions/
@@ -153,24 +153,3 @@ session 控件不应该依赖 msg 历史调试面板；msg 历史仍只用于查
 4. 加载目标作用域的 active session，并恢复其消息、gameState 和阅读位置。
 
 生成期间禁用游戏卡切换和卸载。普通切换不会删除任何游戏卡或 session，也不会把游戏卡消息复制到 `no-card`；卸载是单独的确认操作，会删除目标卡及其全部 session，卸载当前卡后切换到 `no-card`。
-
-## 测试范围
-
-Rust 测试：
-
-- 创建 session 会写入目录、`messages.json`、`retry-base.json` 和 `index.json`。
-- 切换 active session 后 `get_chat_history` 读取不同内容。
-- `save_chat_history` 会保存 `gameState` 并更新 session metadata。
-- no-card session 和不同 game card session 互相隔离。
-- 删除当前 session 后 active session 有合理 fallback。
-
-组件测试：
-
-- session 列表可以加载并显示。
-- 新建 session 会清空当前聊天并重新执行 init。
-- 切换 session 会恢复对应 messages 和 gameState。
-
-Tauri E2E 测试：
-
-- 同一游戏卡下创建两个 session，分别发送消息，切换后历史保持独立。
-- 切换游戏卡后 session 列表跟随游戏卡变化。

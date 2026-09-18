@@ -41,11 +41,3 @@ agent 先阅读分发包中的 `development.md`，再调用 `client --init-proje
 项目初始化、dry-run 均提供独立完成边界和 JSON 结果，但不等于实际游玩验证。指南给出 dry-run 的静态检查边界，以及从标题栏开启开发者模式后，agent 使用起步指令的 gameCardsPath 和既有 active/index 文件定位当前 session 日志的方法；不要求用户提供 session ID 或复制日志路径。日志说明从同源文档复制到 spec。原生导入会安装/激活卡片，不是只读检查。
 
 目录导入和导出排除根 `.wcs/`、session 和 Git 元数据；原生包拒绝 session，忽略 `.wcs/`。库及配套文档照常分发；发布前仍需检查卡内容中是否混入机器信息或密钥。
-
-## 验证
-
-```sh
-cargo test --manifest-path src/tauri/Cargo.toml devkit --lib
-```
-
-测试覆盖：版本一致性、确定性内容、无运行依赖的资源清单、库脚本同源及文档随库分发、文档链接、复制后目录移动、模板经真实平台加载与 Schema 校验、重复生成与陈旧文件清理、Tauri 三平台资源映射。

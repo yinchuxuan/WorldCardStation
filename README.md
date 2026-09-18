@@ -51,6 +51,12 @@ World Card Station（世界站）是一个用于游玩和创作 AI 角色扮演�
 
 从第一次游玩到第一张游戏卡，使用说明与开发教程都在这里。
 
+### C. [先去一个已有的世界 → 白色相簿 2](https://github.com/yinchuxuan/white_album_2/releases/latest)
+
+从峰城大附属中学开始，走进一张结合世界书、剧情时间线与视听演出的原生游戏卡。
+
+在发布页的 Assets 中下载 PNG 游戏卡，在世界站中点击“导入卡片”，选择下载的原始 PNG 即可，无需解压或克隆仓库。图片内含完整游戏资源，请勿截图或压缩后导入。想了解它如何运转，也可以[查看游戏卡源码](https://github.com/yinchuxuan/white_album_2)。
+
 ## 安装 FAQ
 
 ### 安装包在哪里下载？

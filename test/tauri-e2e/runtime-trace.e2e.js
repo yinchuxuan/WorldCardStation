@@ -148,6 +148,11 @@ describe('Developer mode runtime trace', () => {
     it(`uses title-bar themed controls and accessible hit targets in ${theme} mode`, async () => {
       await browser.execute(value => document.documentElement.setAttribute('data-theme', value), theme);
       await mode(true);
+      await browser.execute(async () => {
+        const button = document.querySelector('.runtime-trace-toggle');
+        getComputedStyle(button).color;
+        await Promise.all(button.getAnimations({ subtree: true }).map(animation => animation.finished));
+      });
       const style = await browser.execute(() => {
         const button = document.querySelector('.runtime-trace-toggle');
         const css = getComputedStyle(button), icon = getComputedStyle(button.querySelector('.material-icons'));

@@ -3,7 +3,7 @@
 const { card } = require('./support/cards');
 const { StreamServer } = require('./support/streamServer');
 const {
-  activateCard, deactivateCard, getHistory, invoke, sendMessage, waitForHistory
+  activateCard, deactivateCard, invoke, sendMessage, waitForHistory
 } = require('./support/tauri');
 
 describe('Tauri multi-turn game card pipeline', () => {
@@ -98,7 +98,12 @@ describe('Tauri multi-turn game card pipeline', () => {
       server.queueOpenAi('ok');
       await sendMessage(`t${turn}`);
       await browser.waitUntil(() => server.requests.length === turn);
-      const temp = (await getHistory()).messages.find(item => item.content === 'temp');
+      const saved = await waitForHistory(value => {
+        const temp = value.messages.find(item => item.content === 'temp');
+        return value.messages.filter(item => item.role === 'assistant').length === turn
+          && (turn < 4 ? temp?.ttl === 4 - turn : !temp);
+      });
+      const temp = saved.messages.find(item => item.content === 'temp');
       if (turn < 4) expect(temp.ttl).toBe(4 - turn);
       else expect(temp).toBeUndefined();
     }

@@ -32,7 +32,9 @@ describe('Tauri desktop release configuration', () => {
     expect(ci).toContain('workflow_call:');
     expect(ci).toContain('workflow_dispatch:');
     expect(ci).toContain('run: npx wdio run wdio.tavern.conf.mjs');
-    expect(ci).toContain('run: xvfb-run -a npx wdio run wdio.tavern.conf.mjs');
+    expect(ci).toContain('run: dbus-run-session -- xvfb-run -a npx wdio run wdio.tavern.conf.mjs');
+    expect(ci).toContain('webkit2gtk-driver');
+    expect(ci).toContain("WEBKIT_DISABLE_COMPOSITING_MODE: '1'");
     expect(release).toContain('uses: ./.github/workflows/tauri-ci.yml');
     expect(release).toContain('needs: validate');
     expect(release).toContain('node scripts/check-release-version.cjs');
@@ -49,6 +51,7 @@ describe('Tauri desktop release configuration', () => {
     expect(base.app.security.capabilities).toEqual(['default']);
     expect(e2e.app.security.capabilities[0].identifier).toBe('e2e');
     expect(e2e.app.security.capabilities[0].permissions).toContain('wdio:default');
+    expect(e2e.app.security.capabilities[0].permissions).toContain('core:window:allow-set-focus');
     expect(capability.permissions).toEqual([
       'core:default',
       'core:window:allow-destroy',

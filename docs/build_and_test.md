@@ -75,6 +75,8 @@ Real provider calls are excluded from the default suite. Set `E2E_OPENAI_URL`, `
 
 Production builds do not contain WebDriver commands or E2E permissions.
 
+E2E refreshes explicitly focus the test window so background WebViews do not suspend entrance animations. This permission is test-only. Linux CI installs `webkit2gtk-driver`, runs E2E under a private D-Bus session and Xvfb, and disables WebKit compositing only in that GPU-less test environment. Failed desktop jobs upload backend logs and test fixtures/screenshots for diagnosis.
+
 ## CI And Release
 
 `.github/workflows/tauri-ci.yml` runs JavaScript checks plus a macOS, Windows and Linux Rust/build matrix. Tauri E2E runs on all three systems, with `xvfb` on Linux.

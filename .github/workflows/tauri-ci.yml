@@ -34,7 +34,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev webkit2gtk-driver libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 xvfb dbus-x11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -57,13 +57,17 @@ jobs:
         run: npm run test:tauri
       - name: Tauri E2E on Linux
         if: runner.os == 'Linux'
-        run: xvfb-run -a npm run test:tauri
+        env:
+          WEBKIT_DISABLE_COMPOSITING_MODE: '1'
+        run: dbus-run-session -- xvfb-run -a npm run test:tauri
       - name: Tavern import E2E
         if: runner.os != 'Linux'
         run: npx wdio run wdio.tavern.conf.mjs
       - name: Tavern import E2E on Linux
         if: runner.os == 'Linux'
-        run: xvfb-run -a npx wdio run wdio.tavern.conf.mjs
+        env:
+          WEBKIT_DISABLE_COMPOSITING_MODE: '1'
+        run: dbus-run-session -- xvfb-run -a npx wdio run wdio.tavern.conf.mjs
       - name: Build desktop installer
         run: npm run tauri:build
       - name: Upload desktop test diagnostics

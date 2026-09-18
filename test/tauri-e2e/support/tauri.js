@@ -47,6 +47,8 @@ async function refreshApp() {
   // Use native element lookup: execute/sync can lose its window-stored result during navigation.
   // Exclude the old document even while its app shell is still mounted.
   await $('html:not([data-e2e-refresh-pending]) .app-container').waitForExist();
+  // Background WebViews can suspend CSS animations, leaving the app transparent.
+  await invoke('plugin:window|set_focus', { label: 'main' });
 }
 
 async function revealHeader() {

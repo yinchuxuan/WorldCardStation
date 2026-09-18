@@ -16,7 +16,16 @@ describe('E2E refresh synchronization', () => {
     const calls = [];
     global.browser = {
       tauri: { switchWindow: jest.fn(async () => { calls.push('window'); }) },
-      execute: jest.fn(async callback => { calls.push('mark'); return callback(); }),
+      execute: jest.fn(async (callback, command, args) => {
+        if (command) {
+          calls.push('focus');
+          expect(command).toBe('plugin:window|set_focus');
+          expect(args).toEqual({ label: 'main' });
+          return;
+        }
+        calls.push('mark');
+        return callback();
+      }),
       refresh: jest.fn(async () => {
         calls.push('refresh');
         expect(document.documentElement.hasAttribute('data-e2e-refresh-pending')).toBe(true);
@@ -34,9 +43,9 @@ describe('E2E refresh synchronization', () => {
 
     await refreshApp();
 
-    expect(calls).toEqual(['window', 'mark', 'refresh', 'lookup']);
+    expect(calls).toEqual(['window', 'mark', 'refresh', 'lookup', 'focus']);
     expect(global.browser.tauri.switchWindow).toHaveBeenCalledWith('main');
-    expect(global.browser.execute).toHaveBeenCalledTimes(1);
+    expect(global.browser.execute).toHaveBeenCalledTimes(2);
     expect(global.$).toHaveBeenCalledWith('html:not([data-e2e-refresh-pending]) .app-container');
   });
 

@@ -9,8 +9,8 @@ function checkReleaseVersion(root, ref = '') {
   const versions = [lock.version, lock.packages[''].version, cargoVersion,
     JSON.parse(read('src/tauri/tauri.conf.json')).version];
   if (versions.some(value => value !== version)) throw new Error('Release versions do not match');
-  if (ref.startsWith('refs/tags/') && ![`refs/tags/v${version}`, `refs/tags/app-v${version}`].includes(ref)) {
-    throw new Error(`Release tag must be v${version} or app-v${version}`);
+  if (ref.startsWith('refs/tags/') && ref !== `refs/tags/app-v${version}`) {
+    throw new Error(`Release tag must be app-v${version}`);
   }
   return version;
 }

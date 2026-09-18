@@ -10,7 +10,7 @@ describe('Tauri desktop release configuration', () => {
   test('keeps release versions synchronized and rejects unrelated tags', () => {
     const version = readJson('package.json').version;
     expect(checkReleaseVersion(root, `refs/tags/app-v${version}`)).toBe(version);
-    expect(checkReleaseVersion(root, `refs/tags/v${version}`)).toBe(version);
+    expect(() => checkReleaseVersion(root, `refs/tags/v${version}`)).toThrow('Release tag');
     expect(checkReleaseVersion(root, 'refs/heads/master')).toBe(version);
     expect(() => checkReleaseVersion(root, 'refs/tags/app-v0.0.0')).toThrow('Release tag');
     const original = fs.readFileSync;
@@ -38,7 +38,7 @@ describe('Tauri desktop release configuration', () => {
     expect(release).toContain('node scripts/check-release-version.cjs');
     expect(release).toContain('releaseDraft: true');
     expect(release).toContain('prerelease: false');
-    expect(release).toContain('tagName: v__VERSION__');
+    expect(release).toContain('tagName: app-v__VERSION__');
   });
 
   test('keeps WebdriverIO permissions out of production builds', () => {

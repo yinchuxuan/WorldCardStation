@@ -38,7 +38,8 @@
 
 ## 六、分段阅读
 - 游戏卡通过 `display.segmentedReading: true` 开启分段阅读，不提供用户级开关。
-- 开启时仅对最新 assistant 回复按 Markdown 自然段分页并隐藏 thinking block，历史回复保持完整。
+- 开启时按 Markdown 自然段（或卡内 `display.segmentSeparator`）分页并隐藏 thinking block；阅读游标可跨 assistant 回复前后移动，并随 session 保存、恢复。
+- 回看历史只改变阅读位置，不回滚 messages、state 或演出；流式生成期间回看不会停止生成，也不会被新内容强制拉回最新位置。
 - 点击非交互文本区域进入下一段；链接、游戏卡按钮和文字选择不得触发翻页。
 - 关闭时恢复全文展示和原有 thinking 点击行为。
 

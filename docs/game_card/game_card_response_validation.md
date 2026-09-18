@@ -1,8 +1,8 @@
-# 游戏卡 Response Validation 设计文档
+# 游戏卡 Response Validation 参考
 
 ## 目标
 
-`responseValidation` 允许游戏卡声明 LLM 完整回复必须满足的契约。第一版支持正文正则检查和 state 更新检查，失败策略仅支持 `retry` 与 `warn`。
+`responseValidation` 允许游戏卡声明 LLM 完整回复必须满足的契约。支持正文正则检查和 state 更新检查，失败策略仅支持 `retry` 与 `warn`。
 
 校验只在一次成功的 stream 完整结束后执行。普通模式和分段阅读模式使用相同的完整回复进行校验，不校验单个 token 或单个段落；请求失败和用户中止生成不执行校验。
 
@@ -116,7 +116,7 @@ pre_send
 
 | 字段 | 必填 | 说明 |
 |---|---:|---|
-| `path` | 是 | 精确的 state 点路径；第一版不支持通配符 |
+| `path` | 是 | 精确的 state 点路径；不支持通配符 |
 | `updates` | 否 | 本轮显式更新次数，使用次数比较器 |
 | `operations` | 否 | 允许的 state action 类型；每次更新都必须命中 |
 | `value` | 否 | 全部更新完成后的候选最终值 matcher |

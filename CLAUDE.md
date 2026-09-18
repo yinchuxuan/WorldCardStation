@@ -4,7 +4,7 @@
 
 ## 技术栈
 
-Node.js + Electron + React
+Node.js + Tauri + React
 
 ## Docs
 

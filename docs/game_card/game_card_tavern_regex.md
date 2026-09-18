@@ -37,11 +37,4 @@
 
 沿用 display 的规则数、表达式和输入长度限制；这些限制不等于正则执行超时保护。消息正则通过受控 exec 执行，遵守现有超时与目录沙盒，不授予新权限。
 
-## 验收
-
-- V2/V3、四种模式、源顺序、禁用/无效规则、部分支持的位置及逐项报告。
-- 捕获组、trimStrings、宏转义、未知宏、恶意字符串不变成代码、压缩构建后的脚本可运行。
-- 深度范围、重复发送、编辑/重试、历史与 API 内容一致，世界书基于修改后的历史触发。
-- 显示状态与深度更新、流式和分段阅读、安全 HTML/样式、原有原生 display 字符串语义不变。
-
 参考：[酒馆正则说明](https://docs.sillytavern.app/extensions/regex/)、[正则引擎](https://github.com/SillyTavern/SillyTavern/blob/release/public/scripts/extensions/regex/engine.js)。上述有损转换语义以本文为准，不承诺与酒馆完全一致。

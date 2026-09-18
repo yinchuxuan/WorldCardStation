@@ -9,7 +9,7 @@
 
 两种容器携带完全相同的 ZIP payload，导入后都安装为普通游戏卡目录。不设计第二套 card schema，不将 Session 作为游戏卡内容分发。
 
-本文定义平台原生容器。酒馆 V2/V3 复用“导入卡片”入口，自动转换成普通游戏卡目录，进入共用校验和安装管线；仅兼容差异或显式覆盖需要确认，当前范围见 [酒馆卡导入与转换设计](./game_card_tavern_import.md)。下述原生 PNG/ZIP 规则不直接用于解释酒馆 payload。
+本文定义平台原生容器。酒馆 V2/V3 复用“导入卡片”入口，自动转换成普通游戏卡目录，进入共用校验和安装管线；仅兼容差异或显式覆盖需要确认，当前范围见 [酒馆卡导入与转换](./game_card_tavern_import.md)。下述原生 PNG/ZIP 规则不直接用于解释酒馆 payload。
 
 ## 规范目录
 
@@ -33,7 +33,7 @@ ui/
 
 容器不包含 `sessions/`（含 trace）、`.wcs/`、`.git/`、`.DS_Store`、`__MACOSX/`、资源分叉文件或已生成的导出物。lib 脚本与配套文档保留。开发目录始终是可编辑源，容器只是构建产物。
 
-PNG 导出需要封面。平台后续可在 schema 中增加可选 `cover` 图片路径；未声明时由导出命令要求显式选择，不从背景资源中猜测。
+PNG 导出通过 `--cover` 显式指定封面，不从背景资源中猜测。
 
 ## `.gamecard` 容器
 
@@ -95,43 +95,27 @@ source -> staging directory -> read_card/$import -> schema/resource validation
 
 ## 导出器
 
-仓库首先提供命令行导出器，目录仍是唯一可编辑输入：
+仓库提供命令行导出器，目录仍是唯一可编辑输入：
 
 ```sh
-npm run game-card:export -- game-card-examples/white-album-2 --format gamecard
-npm run game-card:export -- game-card-examples/white-album-2 --format png --cover images/cover.png
+npm run game-card:export -- /path/to/card-project --format gamecard
+npm run game-card:export -- /path/to/card-project --format png --cover images/cover.png
 ```
 
 输出到 `dist/game-cards/<id>-<version>.gamecard|png`。导出前校验源目录，生成共用 ZIP payload，输出 SHA-256，再通过导入解码器读回自检。任何失败都不留下不完整的目标文件。
 
-容器编解码、安全解压和确定性打包放在 Rust/Tauri 共享模块。仓库 CLI 和后续的应用内导出 command 复用该模块，不维护 JS/Rust 两套容器实现。
+容器编解码、安全解压和确定性打包放在 Rust/Tauri 共享模块。仓库导出命令复用该模块。
 
 ## 平台接口与 UI
 
-游戏卡选择面板保留单一“导入卡片”按钮，直接打开文件选择器。选择平台项目根目录的 `card.json` 时，通过已有目录导入管线安装整个项目（含 `$import`、脚本和资源），无需先打包或选择导入类型。导入会复制安装，不挂载开发目录或自动热更新，也无需开启开发者模式。应用内导出 UI 仍待实现。
+游戏卡选择面板保留单一“导入卡片”按钮，直接打开文件选择器。选择平台项目根目录的 `card.json` 时，通过已有目录导入管线安装整个项目（含 `$import`、脚本和资源），无需先打包或选择导入类型。导入会复制安装，不挂载开发目录或自动热更新，也无需开启开发者模式。应用内不提供导出 UI。
 
 文件内容识别优先：PNG/ZIP 仍按容器处理；JSON 中有 `spec` 时按酒馆格式识别，未知 `spec` 明确失败，即使文件名为 `card.json` 也不回退为目录导入。只有无 `spec` 的 `card.json` 才进入平台目录校验；其他 JSON 不隐式读取其所在目录。目录导入完整执行现有加载、Schema 和路径安全检查，失败不安装。
 
-导入器根据文件 magic 判断 ZIP 或 PNG，不只信任扩展名。普通 PNG 需明确报错“图片不包含游戏卡”。导入、导出和校验大文件时显示进度，允许取消，取消后清理临时文件。
+导入器根据文件 magic 判断 ZIP 或 PNG，不只信任扩展名。普通 PNG 需明确报错“图片不包含游戏卡”。原生容器读取不提供可中断的字节级进度。
 
 文件和项目导入共用不可重复点击的“正在导入”状态和不定进度条；成功后显示导入的卡名并短暂停留，失败时保留面板并引导用户查看错误详情，取消选择则直接恢复空闲状态。生成期间禁止导入。
 
 已安装卡可以从游戏卡选择器卸载。平台必须先提示游戏卡资源和该卡全部 Session 都会被永久删除；卸载当前卡后自动切换到普通聊天，普通聊天和其它游戏卡的 Session 不受影响。生成期间禁止卸载。
 
-PNG 导出界面必须提示：图片可以普通渲染，但经编辑、压缩或平台重编码后可能无法再导入，应保留原始文件。
-
-## 验证计划
-
-- Rust 单元测试覆盖确定性 ZIP、PNG 分段往返、CRC/SHA 失败和大文件流式处理。
-- 恶意 fixture 覆盖 Zip Slip、软链接、重复/大小写冲突、缺少根 `card.json`、解压上限和破损 chunk。
-- repository 测试覆盖首次安装、同 id 更新、Session 保留、回滚和 active card 切换。
-- adapter/UI 测试覆盖格式识别、生成期间禁用、进度、取消和错误文案。
-- 真实 Tauri E2E 分别导入小型 `.gamecard` 和 PNG 卡，并验证资源协议在重启后仍可用。
-
-## 实施顺序
-
-1. 抽取 staging 校验、Session 保留和原子安装共用管线。
-2. 实现 ZIP codec、`.gamecard` 导入和导出 CLI。
-3. 实现 PNG `gcAr` codec，复用同一 ZIP payload。
-4. 接入文件导入 UI、进度、取消和错误状态。
-5. 在有用户编辑或二次分发需求时，再增加应用内导出 UI。
+分发 PNG 时须注意：图片可以普通渲染，但经编辑、压缩或平台重编码后可能无法再导入，应保留原始文件。

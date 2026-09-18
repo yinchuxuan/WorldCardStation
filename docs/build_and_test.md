@@ -79,10 +79,10 @@ Production builds do not contain WebDriver commands or E2E permissions.
 
 `.github/workflows/tauri-ci.yml` runs JavaScript checks plus a macOS, Windows and Linux Rust/build matrix. Tauri E2E runs on all three systems, with `xvfb` on Linux.
 
-`.github/workflows/tauri-release.yml` creates signed draft installers for:
+`.github/workflows/tauri-release.yml` creates draft installers for:
 
 - macOS app/DMG on Apple Silicon and Intel;
 - Windows NSIS;
 - Linux deb/AppImage.
 
-Release tags use `app-v*`. macOS release requires Apple signing/notarization secrets; Windows release requires a PFX certificate and password.
+Release tags use `app-v*`. Signing certificates are optional: without them, macOS uses an ad-hoc signature and Windows produces an unsigned installer. Apple certificate-based signing/notarization requires the corresponding certificate, password and Apple account secrets; Windows certificate-based signing requires a PFX certificate and password.

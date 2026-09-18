@@ -88,13 +88,3 @@ Unit tests
 新增平台能力时先扩展业务级 contract，再实现 Rust command 和 adapter。不要在组件或 shared core 中直接 import Tauri API，也不要复制游戏卡 schema 或规则引擎。
 
 生产导入只提供 `cards.importFile()`，项目 `card.json` 仍复用 native 底层目录安装管线，不再暴露独立目录选择接口。`e2e_seed_game_card` 仅在 `e2e` feature 注册，供测试创建 fixture；正式构建没有跳过导入校验直接写卡的 command。
-
-## Contract Tests
-
-adapter 至少覆盖：
-
-- 文本、图片、音频和 active card 的成功与失败路径。
-- 配置、背景、Session 和导入 command 的 payload 与错误归一化。
-- init、pre-send、after-response 的完整内存管线。
-- Worker context、返回值校验、超时和中止。
-- 本地资源不能越过当前游戏卡目录。

@@ -1,4 +1,4 @@
-# 游戏卡 Visual 设计文档
+# 游戏卡 Visual 参考
 
 ## 目标
 
@@ -171,17 +171,3 @@ State 只描述当前可见人物和表情，不包含位置或尺寸。每次�
 ```
 
 平台按资源表中的人物声明顺序稳定排列角色：一人居中、二人左右、三人左中右、四人四列，并随人数增加自动缩小、始终底部对齐。游戏卡 CSS 可覆盖构图；LLM 无需理解位置语义。人物槽位以人物 key 保持稳定：新人物登场时在背景动画后淡入，同一人物仅切换表情时重建图片并播放一次无延迟的短淡入。旧 `visual.portrait=人物_表情` 会在加载 State 时迁移为新对象。
-
-## 测试范围
-
-- game card schema 接受 `visual.background` 与 `visual.cg` 资源表，拒绝非法路径和重复 key
-- game card schema 接受嵌套人物/表情资源表，拒绝非法路径和保留 key `none`
-- state schema enum 默认值能初始化 `gameState.visual.scene`
-- state schema 默认 `gameState.visual.portraits` 为 `{}`，校验人物、表情和最多四人
-- state action 能更新 `visual.scene`
-- CG 屏蔽立绘渲染但保留 `visual.portraits`，切回 background 后恢复立绘
-- 资源协议拒绝路径穿越和非图片扩展名
-- 前端在 key 变化时解析背景资源，并在正文开始流式输出时展示本轮背景
-- 前端并行解析当前人物资源，并按卡片人物顺序自动排列最多四张透明立绘
-- 切换游戏卡或 session 时清理或恢复正确背景
-- 游戏卡背景缺失时回落到用户设置背景

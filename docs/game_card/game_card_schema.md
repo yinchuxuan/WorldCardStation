@@ -7,7 +7,7 @@
 协议在两个边界校验：
 
 - Tauri 导入：先展开 `$import`，再使用嵌入的 shared schema 校验完整游戏卡。
-- shared runtime：执行 `init`、`pre_send` 或 `after_response` 前校验。
+- shared runtime：执行 `init`、`pre_send`、`after_stream` 或 `after_response` 前校验。
 
 两处返回同一组格式化错误。结构不合法时不会继续读取资源或执行规则。
 
@@ -25,7 +25,7 @@ JSON Schema 不负责读取文件。schema 中带 `x-file: true` 的定义会由
 
 ## 版本
 
-协议版本位于 schema 顶层 `x-schema-version`，当前为 `1.10.0`（新增 display 只读模板和深度）。它与游戏卡顶层 `version` 无关：后者由卡作者标记内容版本，不参与平台协议选择。
+协议版本位于 schema 顶层 `x-schema-version`，当前为 `1.10.0`。它与游戏卡顶层 `version` 无关：后者由卡作者标记内容版本，不参与平台协议选择。
 
 协议版本遵循 SemVer：
 

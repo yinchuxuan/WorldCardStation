@@ -1,10 +1,10 @@
-# 游戏卡 UI Runtime 设计草案
+# 游戏卡 UI Runtime 参考
 
 ## 目标
 游戏卡需要两类前端扩展能力：
 
 - 风格化已有平台 UI：输入框、消息区、气泡、标题栏、BGM 控件、阅读遮罩等。
-- 新增自定义交互 UI：可点击选项、物品栏、人物状态、战斗界面、演出层等。
+- 自定义交互 UI：可点击选项、物品栏、人物状态、战斗界面、演出层等。
 
 核心原则：
 
@@ -189,5 +189,3 @@ emit -> 平台受控事件 -> 输入框/发送管线 -> 保存 session -> 重新
 - 演出和临时 UI 反馈通过 `effects`。
 
 Tauri WebView 的 CSP 为该 runtime 精确开放 `unsafe-eval`、`worker-src blob:` 和运行时内联样式。它们分别对应动态 React 组件编译、受控脚本 Worker 和卡片样式注入；这些 CSP 能力不会绕过 `emit`、state action、脚本上下文或 native command 的参数校验。
-
-如果未来需要酒馆式全局魔改，可以单独设计 `trusted_shell` 模式，并在导入时明确提示风险。

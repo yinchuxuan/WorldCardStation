@@ -1,6 +1,6 @@
 # 客户端 dry-run
 
-客户端原生只读语法检查入口已实现，与 [项目初始化](./game_card_project_init.md)、卡片导入安装和实际游玩分开。调用不需要平台源码、Node/npm、网络或项目内启动脚本。
+客户端提供原生只读语法检查入口，与 [项目初始化](./game_card_project_init.md)、卡片导入安装和实际游玩分开。调用不需要平台源码、Node/npm、网络或项目内启动脚本。
 
 ## 调用
 
@@ -72,10 +72,3 @@ JavaScript 检查复用客户端自带的桌面 WebView 引擎，在不可见、
 检查不修改项目、玩家存档、active card、模型配置或已有会话，不生成 session/trace，也不关闭用户已运行的客户端。WebView 所需缓存使用本次独占的系统临时目录，结束后清理，不使用平台业务数据目录。检查器启动/检查超过 30 秒返回检查失败。
 
 这一实现不需要可见窗口或人工操作，但需要本机桌面 WebView 环境，不承诺无桌面的服务器或容器可用。Linux CI 可通过 Xvfb 提供显示环境；无 DISPLAY/WAYLAND_DISPLAY 时明确返回检查失败。
-
-## 实现与测试
-
-- `developer_cli.rs` 负责参数、JSON 结果和退出状态；`dry_run*` 模块提供只读预检、来源映射和隔离检查页面。
-- `src/renderer/gameCard/dryRun/` 复用共享语法/编译模块，不调用游戏运行器；Cargo 构建时通过已有 Vite 工具链打包并嵌入可执行文件。Node 仅是平台构建依赖，不是安装后使用依赖。
-- `cargo test --manifest-path src/tauri/Cargo.toml dry_run` 覆盖来源映射、安全读取和真实客户端入口；Linux 无显示环境时在命令前加 `xvfb-run -a`。
-- `npx jest --runInBand --coverage=false test/game-card/dryRun.test.js test/game-card/dryRunScripts.test.js` 覆盖共享解析/编译、静态引用、动态警告、原始数据不误判及不执行卡代码。

@@ -57,7 +57,7 @@ pub fn preserve_sessions(target: &Path, temp: &Path) -> CardResult<()> {
         let temp_sessions = temp.join("sessions");
         let _ = fs::remove_dir_all(&temp_sessions);
         if let Err(error) = copy_tree(&sessions, &temp_sessions, false) {
-            let _ = fs::remove_dir_all(&temp);
+            let _ = fs::remove_dir_all(temp);
             return Err(error);
         }
     }

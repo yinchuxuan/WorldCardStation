@@ -47,6 +47,11 @@ describe('Tauri chat panel UI', () => {
 
   it('should keep session, game card and BGM controls in the title control', async () => {
     await revealHeader();
+    // Measure final geometry, not the parent panel's scale-in animation.
+    await browser.execute(async () => {
+      await Promise.all(document.querySelector('.chat-panel').getAnimations()
+        .map(animation => animation.finished));
+    });
     const result = await browser.execute(() => {
       const title = document.querySelector('.game-card-title-control');
       const actions = title?.querySelector('.game-card-title-actions');
@@ -73,7 +78,8 @@ describe('Tauri chat panel UI', () => {
     expect(result.gap).toBeLessThanOrEqual(12);
     expect(result.paddingRight).toBe('54px');
     expect(result.rightGap).toBeGreaterThanOrEqual(70);
-    expect(new Set(result.vertical.map(item => item.height)).size).toBe(1);
+    // The split card-name button has a 44px hit area; the two icon controls are 40px.
+    expect(result.vertical.map(item => item.height)).toEqual([40, 40, 44]);
     expect(Math.max(...result.vertical.map(item => item.center))
       - Math.min(...result.vertical.map(item => item.center))).toBeLessThanOrEqual(0.5);
   });

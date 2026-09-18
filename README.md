@@ -51,6 +51,33 @@ World Card Station（世界站）是一个用于游玩和创作 AI 角色扮演�
 
 从第一次游玩到第一张游戏卡，使用说明与开发教程都在这里。
 
+## 安装 FAQ
+
+### 安装包在哪里下载？
+
+在 [Releases](https://github.com/yinchuxuan/WorldCardStation/releases) 中选择 World Card Station `1.0.0`，展开 Assets 下载。不要下载 Source code 作为安装包。
+
+### 我的电脑应该选哪个安装包？
+
+| 系统 | 安装包 |
+| --- | --- |
+| Windows x64 | `x64-setup.exe`，运行安装程序 |
+| Mac Apple Silicon（M 系列） | `aarch64.dmg`，打开后将应用拖入 Applications |
+| Mac Intel | `x64.dmg`，打开后将应用拖入 Applications |
+| Linux x64 | Debian/Ubuntu 使用 `amd64.deb`；其它发行版可尝试 `.AppImage`，赋予执行权限后运行 |
+
+macOS 构建最低版本为 11.0；Windows 需要 WebView2，安装器可能需要联网下载该运行时，见 [Tauri 安装说明](https://v2.tauri.app/distribute/windows-installer/)。Linux 的运行库兼容性依发行版而异，构建环境为 Ubuntu 22.04。不需要安装 Node.js 或 Rust。
+
+### 系统提示无法验证开发者或阻止启动怎么办？
+
+安装包可能未签名或未公证。请先确认来自本项目 Release，核对系统、架构与文件是否下载完整。macOS 的“无法验证开发者”提示可在确认来源可信后，按 [Apple 官方说明](https://support.apple.com/zh-cn/102445) 在“隐私与安全性”中允许打开；不要全局关闭系统安全保护。如果提示恶意软件、文件损坏或被组织策略拦截，不要强行绕过，请重新下载或提交具体报错。Windows 遇到拦截时也请先核对来源，不要关闭杀毒软件。
+
+### 安装后如何开始？
+
+在设置中选择 OpenAI 或 Anthropic 兼容协议，填写服务商提供的 API 地址、API Key 和模型名，然后测试连接。地址格式以服务商及所选协议要求为准；不要填写网页聊天地址。模型服务需自行准备，调用及连接测试可能产生服务商费用。
+
+点击“导入卡片”，选择原生 `.gamecard` / PNG 卡包，或酒馆 V2/V3 的 JSON、PNG/APNG、CHARX 文件。若拿到的是开发项目目录，选择其中的 `card.json`，平台会导入其所在完整目录，请勿单独移走该文件。酒馆卡出现兼容提示时先阅读差异，再决定是否继续。
+
 ---
 
 那支笔还放在窗口。

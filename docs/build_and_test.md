@@ -79,10 +79,14 @@ Production builds do not contain WebDriver commands or E2E permissions.
 
 `.github/workflows/tauri-ci.yml` runs JavaScript checks plus a macOS, Windows and Linux Rust/build matrix. Tauri E2E runs on all three systems, with `xvfb` on Linux.
 
+CI listens to pushes on `master`/`main`, pull requests and manual dispatch. It is also a reusable workflow: releases must pass the same checks on the release commit before packaging. Both the default desktop suite and the separate Tavern import suite run on all three platforms.
+
 `.github/workflows/tauri-release.yml` creates draft installers for:
 
 - macOS app/DMG on Apple Silicon and Intel;
 - Windows NSIS;
 - Linux deb/AppImage.
 
-Release tags use `app-v*`. Signing certificates are optional: without them, macOS uses an ad-hoc signature and Windows produces an unsigned installer. Apple certificate-based signing/notarization requires the corresponding certificate, password and Apple account secrets; Windows certificate-based signing requires a PFX certificate and password.
+New release tags use `v*` (starting with `v1.0.0`); legacy `app-v*` tags are retained. Signing certificates are optional: without them, macOS uses an ad-hoc signature and Windows produces an unsigned installer. Apple certificate-based signing/notarization requires the corresponding certificate, password and Apple account secrets; Windows certificate-based signing requires a PFX certificate and password.
+
+The current version is `1.0.0`. Builds create a draft stable release; publish it only after all platforms finish successfully. `scripts/check-release-version.cjs` checks npm/Tauri/Cargo versions and rejects mismatched release tags. Run it locally before tagging. Publishing the draft still requires checking all four architecture/platform artifact sets, installation on clean systems, an upgrade with backed-up data, model connectivity and installed devkit/dry-run behavior. CI does not replace this manual acceptance or real-provider testing. Release notes live in `docs/releases/1.0.0.md`; the installation FAQ lives only in README.

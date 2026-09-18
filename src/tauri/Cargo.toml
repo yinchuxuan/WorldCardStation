@@ -1,6 +1,6 @@
 [package]
 name = "world-card-station-tauri"
-version = "1.0.8"
+version = "1.0.0"
 description = "World Card Station (世界站), an AI roleplay game card platform"
 authors = ["World Card Station contributors"]
 edition = "2021"

@@ -40,15 +40,22 @@ async function sendMessage(content) {
 }
 
 async function refreshApp() {
+  // Pin the test window before navigation so the service does not run focus-detection JS mid-reload.
+  await browser.tauri.switchWindow('main');
+  await browser.execute(() => document.documentElement.setAttribute('data-e2e-refresh-pending', ''));
   await browser.refresh();
-  await $('.app-container').waitForExist();
+  // Use native element lookup: execute/sync can lose its window-stored result during navigation.
+  // Exclude the old document even while its app shell is still mounted.
+  await $('html:not([data-e2e-refresh-pending]) .app-container').waitForExist();
 }
 
 async function revealHeader() {
+  // The app shell mounts before the asynchronous chat/session initialization finishes.
+  await $('.chat-header-hover-trigger').waitForExist();
   await browser.execute(() => {
     const trigger = document.querySelector('.chat-header-hover-trigger');
-    trigger?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    trigger?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    trigger.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
   });
   await $('.chat-header-visible').waitForDisplayed();
 }

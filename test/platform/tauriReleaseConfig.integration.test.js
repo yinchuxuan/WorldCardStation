@@ -1,11 +1,46 @@
 const fs = require('fs');
 const path = require('path');
+const { checkReleaseVersion } = require('../../scripts/check-release-version.cjs');
 
 const root = path.join(__dirname, '../..');
 const readJson = relative => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'));
 const readText = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 describe('Tauri desktop release configuration', () => {
+  test('keeps release versions synchronized and rejects unrelated tags', () => {
+    const version = readJson('package.json').version;
+    expect(checkReleaseVersion(root, `refs/tags/app-v${version}`)).toBe(version);
+    expect(checkReleaseVersion(root, `refs/tags/v${version}`)).toBe(version);
+    expect(checkReleaseVersion(root, 'refs/heads/master')).toBe(version);
+    expect(() => checkReleaseVersion(root, 'refs/tags/app-v0.0.0')).toThrow('Release tag');
+    const original = fs.readFileSync;
+    jest.spyOn(fs, 'readFileSync').mockImplementation((file, ...args) => {
+      if (file === path.join(root, 'src/tauri/tauri.conf.json')) return '{"version":"0.0.0"}';
+      return original(file, ...args);
+    });
+    try {
+      expect(() => checkReleaseVersion(root)).toThrow('versions do not match');
+    } finally {
+      fs.readFileSync.mockRestore();
+    }
+  });
+
+  test('gates draft stable releases on the reusable full CI workflow', () => {
+    const ci = readText('.github/workflows/tauri-ci.yml');
+    const release = readText('.github/workflows/tauri-release.yml');
+    expect(ci).toContain('branches: [master, main]');
+    expect(ci).toContain('workflow_call:');
+    expect(ci).toContain('workflow_dispatch:');
+    expect(ci).toContain('run: npx wdio run wdio.tavern.conf.mjs');
+    expect(ci).toContain('run: xvfb-run -a npx wdio run wdio.tavern.conf.mjs');
+    expect(release).toContain('uses: ./.github/workflows/tauri-ci.yml');
+    expect(release).toContain('needs: validate');
+    expect(release).toContain('node scripts/check-release-version.cjs');
+    expect(release).toContain('releaseDraft: true');
+    expect(release).toContain('prerelease: false');
+    expect(release).toContain('tagName: v__VERSION__');
+  });
+
   test('keeps WebdriverIO permissions out of production builds', () => {
     const base = readJson('src/tauri/tauri.conf.json');
     const e2e = readJson('src/tauri/tauri.e2e.conf.json');

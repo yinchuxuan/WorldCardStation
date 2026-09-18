@@ -35,18 +35,22 @@ describe('Tauri multi-turn game card pipeline', () => {
     server.queueOpenAi('turn 2 response');
     await sendMessage('turn 1');
     await browser.waitUntil(() => server.requests.length === 1);
+    await waitForHistory(value => value.messages.some(item => item.content === 'round hint'));
     await sendMessage('turn 2');
     await browser.waitUntil(() => server.requests.length === 2);
     expect(server.requests[0].messages.some(item => item.content === 'Game rules apply')).toBe(true);
     expect(server.requests[0].messages.some(item => item.content === '[Player] turn 1')).toBe(true);
     expect(server.requests[1].messages.some(item => item.content === 'round hint')).toBe(true);
-    const saved = await getHistory();
+    const saved = await waitForHistory(value => (
+      value.messages.filter(item => item.content === 'round hint').length === 2
+    ));
     expect(saved.messages.find(item => item.content === 'round hint').ttl).toBe(1);
   });
 
   it('should extract Anthropic system messages during multi-turn setup', async () => {
     await invoke('save_model_config', { config: {
-      apiUrl: server.url, apiKey: 'turn-key', modelName: 'turn-model', protocol: 'anthropic'
+      apiUrl: server.url, apiKey: 'turn-key', modelName: 'turn-model', protocol: 'anthropic',
+      maxTokens: 4096
     } });
     await activateCard(card('multi-anthropic', 'Anthropic Multi', [{
       when: { phase: 'pre_send' }, then: [{

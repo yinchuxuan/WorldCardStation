@@ -51,7 +51,11 @@ describe('Tavern import through the single card button', () => {
   it('cancels compatibility differences without installing or activating', async () => {
     await browser.execute(() => document.querySelector('.game-card-title-main').click());
     await browser.execute(() => document.querySelector('.game-card-switch-import').click());
-    await $('.tavern-import-dialog').waitForExist();
+    await browser.waitUntil(async () => {
+      const error = await browser.execute(() => document.querySelector('.game-card-title-control')?.title);
+      if (error?.startsWith('导入游戏卡失败')) throw new Error(error);
+      return $('.tavern-import-dialog').isExisting();
+    });
     await expect($('#tavern-import-title')).toHaveText('酒馆卡兼容差异');
     expect(await invoke('get_active_game_card')).toBeNull();
     await browser.execute(() => [...document.querySelectorAll('.tavern-import-dialog button')].find(button => button.textContent === '取消').click());

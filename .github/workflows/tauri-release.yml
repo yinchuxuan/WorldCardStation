@@ -2,11 +2,15 @@ name: World Card Station desktop release
 
 on:
   push:
-    tags: ['app-v*']
+    tags: ['app-v*', 'v*']
   workflow_dispatch:
 
 jobs:
+  validate:
+    uses: ./.github/workflows/tauri-ci.yml
+
   publish:
+    needs: validate
     permissions:
       contents: write
     strategy:
@@ -44,6 +48,9 @@ jobs:
         with:
           workspaces: src/tauri -> target
       - run: npm ci
+      - name: Verify release version and tag
+        shell: bash
+        run: node scripts/check-release-version.cjs
       - name: Import Apple signing certificate
         if: runner.os == 'macOS'
         env:
@@ -94,9 +101,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY || '-' }}
         with:
-          tagName: app-v__VERSION__
+          tagName: v__VERSION__
           releaseName: World Card Station v__VERSION__
-          releaseBody: World Card Station (世界站) installers for macOS, Windows and Linux.
+          releaseBody: |
+            World Card Station (世界站) installers for macOS, Windows and Linux.
+
+            1.0.0：原生游戏卡、V2/V3 酒馆卡导入及 Agent 辅助开发。
+            不保证酒馆行为完全一致；升级前请备份本地数据。
+
+            [版本说明](https://github.com/yinchuxuan/WorldCardStation/blob/v1.0.0/docs/releases/1.0.0.md)
+            · [安装 FAQ](https://github.com/yinchuxuan/WorldCardStation/blob/v1.0.0/README.md#安装-faq)
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

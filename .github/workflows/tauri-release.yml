@@ -2,7 +2,7 @@ name: World Card Station desktop release
 
 on:
   push:
-    tags: ['app-v*']
+    tags: ['wcs-v*']
   workflow_dispatch:
 
 jobs:
@@ -101,7 +101,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY || '-' }}
         with:
-          tagName: app-v__VERSION__
+          tagName: wcs-v__VERSION__
           releaseName: World Card Station v__VERSION__
           releaseBody: |
             World Card Station (世界站) installers for macOS, Windows and Linux.
@@ -109,8 +109,8 @@ jobs:
             1.0.0：原生游戏卡、V2/V3 酒馆卡导入及 Agent 辅助开发。
             不保证酒馆行为完全一致；升级前请备份本地数据。
 
-            [版本说明](https://github.com/yinchuxuan/WorldCardStation/blob/app-v1.0.0/docs/releases/1.0.0.md)
-            · [安装 FAQ](https://github.com/yinchuxuan/WorldCardStation/blob/app-v1.0.0/README.md#安装-faq)
+            [版本说明](https://github.com/yinchuxuan/WorldCardStation/blob/wcs-v1.0.0/docs/releases/1.0.0.md)
+            · [安装 FAQ](https://github.com/yinchuxuan/WorldCardStation/blob/wcs-v1.0.0/README.md#安装-faq)
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

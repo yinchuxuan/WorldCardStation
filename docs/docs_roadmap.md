@@ -10,6 +10,7 @@ Read only the documents relevant to the current task.
 - [Build and test](./build_and_test.md)
 - [Chat sessions](./chat_session_design.md)
 - [Platform adapter](./platform_adapter.md)
+- [Web version design (proposal)](./web_version_design.md)
 - [Game card design](./game_card_design.md)
 - [Agent-assisted game card development](./game_card/game_card_agent_development.md)
 - [Offline game card devkit](./game_card/game_card_devkit.md)

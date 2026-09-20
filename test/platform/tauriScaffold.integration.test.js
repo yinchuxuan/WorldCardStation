@@ -14,7 +14,7 @@ describe('Tauri desktop scaffold', () => {
       .map(entry => entry.name)
       .sort();
 
-    expect(sourceRoots).toEqual(['renderer', 'shared', 'tauri']);
+    expect(sourceRoots).toEqual(['renderer', 'shared', 'tauri', 'web']);
   });
 
   test('uses the shared Vite renderer and existing window dimensions', () => {

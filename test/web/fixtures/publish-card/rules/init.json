@@ -1,0 +1,5 @@
+[
+  { "when": { "phase": "init" }, "then": [
+    { "type": "exec", "sourceFile": "scripts/main.js" }
+  ] }
+]

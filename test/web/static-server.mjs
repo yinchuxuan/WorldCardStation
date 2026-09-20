@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
-  '.json': 'application/json', '.woff2': 'font/woff2', '.woff': 'font/woff' };
+  '.json': 'application/json', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff' };
 const observer = `<script>window.__startupErrors=[];
 addEventListener('error',e=>window.__startupErrors.push(e.message||'resource: '+e.target.src),true);
 addEventListener('unhandledrejection',e=>window.__startupErrors.push(String(e.reason)));</script>`;
@@ -12,7 +12,9 @@ export async function startStaticServer(port = 1430) {
   const requests = [];
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
-    const mount = url.pathname.startsWith('/play/') ? ['/play/', 'web-subpath']
+    const cardsPrefix = url.pathname.startsWith('/play/cards/') ? '/play/cards/' : '/cards/';
+    const mount = url.pathname.startsWith(cardsPrefix) ? [cardsPrefix, 'web-fixture/cards']
+      : url.pathname.startsWith('/play/') ? ['/play/', 'web-subpath']
       : url.pathname.startsWith('/integration/') ? ['/integration/', 'web-harness'] : ['/', 'web'];
     const root = path.resolve('dist', mount[1]);
     try {

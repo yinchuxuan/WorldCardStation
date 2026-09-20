@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webBuildBoundary } from './scripts/web-build-boundary.mjs';
+import { webCardServer } from './scripts/web-card-server.mjs';
 
 const host = process.env.TAURI_DEV_HOST;
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -10,18 +11,19 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   const web = mode === 'web';
   return {
-    root: 'src/renderer',
+    root: web ? 'src/web' : 'src/renderer',
     base: web ? (process.env.WEB_BASE || './') : './',
     resolve: { alias: {
-      '@platform': path.join(root, `src/renderer/platform/${web ? 'web' : 'desktop'}.js`),
-      '@application': path.join(root, `src/renderer/${web ? 'web/WebApp.jsx' : 'App.jsx'}`)
+      '@platform': path.join(root, web ? 'src/web/platform.js' : 'src/renderer/platform/desktop.js'),
+      '@application': path.join(root, web ? 'src/web/WebApp.jsx' : 'src/renderer/App.jsx')
     } },
     cacheDir: '../../node_modules/.vite',
     clearScreen: false,
     define: {
       __WORLD_CARD_STATION_TAURI_E2E__: JSON.stringify(mode === 'tauri-e2e')
     },
-    plugins: [react(), ...(web ? [webBuildBoundary(root)] : [])],
+    plugins: [react(), ...(web ? [webBuildBoundary(root),
+      webCardServer(path.resolve(root, process.env.WEB_CARDS_DIR || 'dist/web-cards'))] : [])],
     envPrefix: ['VITE_', 'TAURI_ENV_*'],
     server: {
       host: host || false,

@@ -5,10 +5,11 @@ World Card Station（世界站）是面向 AI Roleplay 游戏卡的桌面平台�
 ## 组成部分
 
 - **Tauri 桌面壳 (`src/tauri/`)**：创建桌面窗口，管理应用生命周期，通过 Rust commands 提供配置、Session、游戏卡仓库和模型网络能力。
-- **渲染进程 (`src/renderer/`)**：Vite 构建的 React 单页应用。`main.jsx` 是唯一入口，`App.jsx` 为根组件。
+- **共享前端与桌面页面 (`src/renderer/`)**：React 界面、前端运行逻辑及公共样式。`main.jsx` 为共用启动逻辑，`App.jsx` 为桌面根组件。
+- **Web 端 (`src/web/`)**：与 `tauri/` 平级，包含独立 HTML/JS 入口、Web 专属页面、目录服务和浏览器平台适配；复用 renderer 的启动逻辑和共享界面，不复制规则引擎。
 - **聊天运行时 (`src/renderer/chat/`)**：管理 session、持久化、生成、重试、中止和滚动。
 - **游戏卡核心 (`src/shared/game-card/`)**：平台无关的规则、content、state、schema 与协议逻辑，只处理普通数据和显式依赖。
-- **平台适配层 (`src/renderer/platform/`)**：将 renderer contract 映射为 Tauri `invoke`、event、Channel 和受控资源 URL；memory adapter 只用于测试。
+- **平台适配层 (`src/renderer/platform/`)**：提供共享 contract、稳定导出入口和桌面 adapter；构建别名选择桌面实现或 `src/web/platform.js`。memory adapter 只用于测试。
 - **模型传输 (`src/renderer/platform/tauriModelFetch.js`)**：将 Rust HTTP Channel 适配为 `ReadableStream`，聊天层继续复用同一套 SSE parser。
 
 Tauri 是唯一桌面生产 target。renderer 和 shared core 不做桌面平台判断，也不直接使用文件系统、dialog 或任意 native API。

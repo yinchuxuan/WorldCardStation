@@ -19,6 +19,7 @@ Tauri is the only desktop target.
 | `npm run test:web:e2e` | Build and test production startup at root and `/play/` |
 | `npm run test:web` | Run Web unit, build-isolation, browser integration and startup tests |
 | `npm run game-card:export -- <card-dir> --format gamecard` | Validate and export a game card package to `dist/game-cards/` |
+| `npm run game-card:publish -- <card-dir> [--cover <relative-path>]` | Publish immutable static releases and catalog to `dist/web-cards/`; see [protocol](./web_static_release.md) |
 | `npm run game-card:export -- <card-dir> --format png --cover <path>` | Export a renderable PNG containing the complete game card |
 | `npm run test` | Run Jest, integration, Rust and Tauri desktop E2E tests |
 | `npm run test:js` | Run Jest unit and JavaScript integration tests |
@@ -35,7 +36,7 @@ Tauri is the only desktop target.
 
 ## Renderer
 
-- `src/renderer/main.jsx` is the shared bootstrap; Vite aliases `@application` and `@platform` select the desktop application or Web startup skeleton and its services.
+- `src/renderer/main.jsx` is the shared bootstrap. Web builds use `src/web/index.html` and `src/web/main.jsx`; desktop builds retain `src/renderer/index.html`. Vite aliases `@application` and `@platform` select the corresponding application and services; Web-specific implementations live under `src/web/`, alongside `src/tauri/`.
 - `src/renderer/styles/renderer.css` is the single platform CSS entry.
 - Tauri development starts Vite through `beforeDevCommand`.
 - Tauri production and E2E build Vite through `beforeBuildCommand`.
@@ -45,11 +46,15 @@ Tauri is the only desktop target.
 
 ## Web build and browser tests
 
-The Web target currently provides startup only, not gameplay, model connections or storage. Unimplemented services throw `PLATFORM_UNAVAILABLE`; there is no in-memory fake save. Its policy is manual saving, but saving itself is not implemented yet. Desktop functionality remains unchanged.
+The Web target provides startup and trusted hosted catalog browsing, not gameplay, downloads, model connections or storage. Unimplemented services throw `PLATFORM_UNAVAILABLE`; there is no in-memory fake save. Its policy is manual saving, but saving itself is not implemented yet. Desktop functionality remains unchanged.
 
 `web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
 
+`web:dev` serves the publisher's `dist/web-cards/` at `<base>/cards/`; `WEB_CARDS_DIR` overrides the local directory. Missing files return 404 instead of the SPA HTML fallback. Publish a card, then refresh the catalog; no dev-server restart is needed. This development mount is not included in production builds. `test:web:build` also starts real Vite servers at root and subpath to verify serving, updates, missing files and path isolation.
+
 `test:web:build` builds desktop → Web → desktop, compares output hashes, builds a `/play/` variant and a separate browser integration page. The Web build rejects Tauri adapters/API and WebDriver imports and emits `module-graph.json` for dependency inspection. The integration page is under `dist/web-harness/`, never the production output.
+
+It also runs the real Rust publisher against the minimal card fixture, verifies manifest bytes/hashes and deterministic repeat, and places the test-only catalog in `dist/web-fixture/cards/`. Browser E2E checks metadata, decoded cover and index/cover-only requests at both bases. Web tests therefore require the Rust/Tauri build dependencies as well as Node; CI installs both. Production hosting must supply its own `cards/` directory; no test card is bundled into the website.
 
 WebdriverIO uses ordinary browser drivers, without the Tauri service. `WEB_BROWSER` selects `chrome` (default), `firefox`, or `safari`; Safari requires macOS and enabled Safari remote automation. Drivers/browsers may need network downloads on first use. CI covers Chrome and Firefox on Linux, and real Safari/WebKit on macOS; no Safari result is inferred from Chrome.
 

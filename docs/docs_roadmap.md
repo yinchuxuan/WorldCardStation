@@ -12,6 +12,7 @@ Read only the documents relevant to the current task.
 - [Platform adapter](./platform_adapter.md)
 - [Web version design (proposal)](./web_version_design.md)
 - [Web development and verification plan](./web_development_plan.md)
+- [Web static card release protocol and publisher](./web_static_release.md)
 - [Game card design](./game_card_design.md)
 - [Agent-assisted game card development](./game_card/game_card_agent_development.md)
 - [Offline game card devkit](./game_card/game_card_devkit.md)

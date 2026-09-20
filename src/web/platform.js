@@ -2,7 +2,7 @@ import { webPolicy } from './platformPolicy.js';
 
 function unavailable(operation) {
   return () => {
-    const error = new Error(`Web 端暂不支持 ${operation}，当前版本仅提供启动骨架。`);
+    const error = new Error(`Web 端暂不支持 ${operation}，当前版本仅支持目录浏览。`);
     error.code = 'PLATFORM_UNAVAILABLE';
     error.operation = operation;
     throw error;

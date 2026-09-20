@@ -34,6 +34,7 @@
     "test:e2e": "npm run test:tauri",
     "test:e2e-real-api": "wdio run wdio.tauri.real-api.conf.mjs",
     "game-card:export": "cargo run --quiet --manifest-path src/tauri/Cargo.toml --bin game-card-export --",
+    "game-card:publish": "cargo run --quiet --manifest-path src/tauri/Cargo.toml --bin game-card-publish --",
     "prepare": "husky"
   },
   "lint-staged": {

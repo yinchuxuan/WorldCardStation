@@ -1,6 +1,6 @@
 # World Card Station Web 版本设计
 
-状态：目标设计；步骤 1 双端构建与测试骨架已落地，其余能力尚未实现。日期：2026-09-20。
+状态：目标设计；已具备双端构建、静态发布器和目录浏览，其余游玩能力尚未实现。日期：2026-09-20。
 
 ## 1. 目标与范围
 
@@ -16,7 +16,7 @@ Web 定位为轻量游玩端：从主站选择游戏、连接自己的模型、�
 
 ## 2. 现状与迁移原则
 
-当前 `src/renderer/` 是 React/Vite 应用；`src/shared/game-card/` 为平台无关核心。`src/renderer/platform/` 隔离资源、仓库、脚本执行、Session 和配置。`index.js` 与 `modelFetch.js` 通过构建别名选择平台；Web 仅有启动骨架，桌面 Rust 承担磁盘存储、卡片安装与模型 HTTP。
+当前 `src/renderer/` 承载共享 React 前端与桌面页面；`src/web/` 与 `src/tauri/` 平级，放置 Web 入口、专属页面和平台适配；`src/shared/game-card/` 为平台无关核心。`src/renderer/platform/` 的稳定入口通过构建别名选择平台实现。Web 已有启动页和静态目录，桌面 Rust 承担磁盘存储、卡片安装与模型 HTTP。
 
 沿用现有业务接口，在平台边界新增 Web 实现。memory adapter 仍仅用于测试，不充当持久化生产实现。现有架构文档描述当前实现，本文描述拟新增能力。
 
@@ -79,7 +79,7 @@ Web 设置隐藏本机路径和开发选项，保留模型、背景与游玩设�
 
 首期使用主站可信的固定发布目录和一个静态索引，提供简单目录供玩家选择，不建设发布后台或完整商店。游戏卡目录继续作为创作源，既有 `.gamecard`/PNG 保持桌面分发形式。
 
-最小发布工具复用现有 Rust 导入解析、schema 和资源引用校验，输出展开后的卡配置及独立资源。Rust 只在构建阶段运行，Web 运行时不依赖 Rust。禁止发布 Session、trace、模型设置或本地绝对路径。
+发布工具复用 Rust 导入解析、schema 和资源校验，输出展开配置及独立资源；协议、内容指纹、收集范围与隐私边界见[静态发布说明](./web_static_release.md)。Rust/Node 只用于发布阶段，Web 运行时不依赖它们；不发布 Session、trace 或模型设置，不写入源目录绝对路径。
 
 ```text
 cards/<card-id>/<release-id>/

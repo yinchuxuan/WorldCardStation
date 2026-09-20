@@ -48,6 +48,20 @@ mod tavern_resources;
 mod tavern_tasks;
 mod trace_commands;
 mod trace_files;
+mod web_release;
+mod web_release_files;
+mod web_release_protocol;
+#[cfg(test)]
+mod web_release_tests;
+
+pub fn publish_game_card(
+    source: &std::path::Path,
+    output: &std::path::Path,
+    cover: Option<&str>,
+) -> Result<serde_json::Value, String> {
+    let release = web_release::publish(source, output, cover).map_err(|e| e.error)?;
+    serde_json::to_value(release).map_err(|e| e.to_string())
+}
 
 use app_storage::AppStorage;
 use model_commands::ModelNetworkState;

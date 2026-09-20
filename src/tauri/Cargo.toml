@@ -40,3 +40,7 @@ zip = { version = "2.4", default-features = false, features = ["deflate"] }
 [[bin]]
 name = "game-card-export"
 path = "src/bin/game_card_export.rs"
+
+[[bin]]
+name = "game-card-publish"
+path = "src/bin/game_card_publish.rs"

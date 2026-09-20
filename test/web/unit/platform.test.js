@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { desktopPolicy, webPolicy } from '../../../src/renderer/platform/platformPolicy.js';
-import * as web from '../../../src/renderer/platform/web.js';
+import { desktopPolicy } from '../../../src/renderer/platform/platformPolicy.js';
+import { webPolicy } from '../../../src/web/platformPolicy.js';
+import * as web from '../../../src/web/platform.js';
 import * as desktop from '../../../src/renderer/platform/desktop.js';
 import { rendererServices as selected } from '../../../src/renderer/platform/index.js';
 import { modelFetch as selectedFetch } from '../../../src/renderer/platform/modelFetch.js';
@@ -39,7 +40,8 @@ describe('platform contracts', () => {
 test('Web startup never subscribes to native close, starts trace, or saves', () => {
   jest.resetModules();
   jest.doMock('@platform', () => web);
-  const WebApp = require('../../../src/renderer/web/WebApp.jsx').default;
+  jest.doMock('../../../src/web/WebCatalog.jsx', () => () => null);
+  const WebApp = require('../../../src/web/WebApp.jsx').default;
   // Every Web service throws; rendering must not call any unavailable service.
   render(<WebApp />);
   expect(screen.getByRole('status')).toHaveTextContent('浏览器端已启动');
@@ -48,4 +50,5 @@ test('Web startup never subscribes to native close, starts trace, or saves', () 
   expect(global.platformMock.startSessionTrace).not.toHaveBeenCalled();
   expect(global.platformMock.saveChatHistory).not.toHaveBeenCalled();
   jest.dontMock('@platform');
+  jest.dontMock('../../../src/web/WebCatalog.jsx');
 });

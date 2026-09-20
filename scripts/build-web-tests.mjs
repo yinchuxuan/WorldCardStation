@@ -30,8 +30,14 @@ await build({ configFile, mode: 'web', root: path.join(root, 'test/web/harness')
 
 for (const directory of ['web', 'web-subpath', 'web-harness']) {
   const graph = JSON.parse(await readFile(`dist/${directory}/module-graph.json`, 'utf8'));
-  assert(graph.includes('src/renderer/platform/web.js'));
+  assert(graph.includes('src/web/platform.js'));
+  if (directory !== 'web-harness') {
+    assert(graph.includes('src/web/main.jsx'));
+    assert(graph.includes('src/web/WebApp.jsx'));
+  }
   assert(!graph.some(id => /@tauri-apps|@wdio|platform\/tauri|platform\/desktop|test\/setup/.test(id)));
   if (directory !== 'web-harness') assert(!graph.some(id => id.startsWith('test/')));
 }
 console.log('Dual-build isolation and Web dependency graphs passed.');
+await import('./build-web-publish-fixture.mjs');
+await import('./test-web-dev-server.mjs');

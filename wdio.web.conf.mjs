@@ -8,7 +8,7 @@ const output = `test-results/web/${browserName}`;
 const port = Number(process.env.WEB_TEST_PORT || 1430);
 export const config = {
   runner: 'local',
-  specs: ['./test/web/browser/startup.browser.js'],
+  specs: ['./test/web/browser/startup.browser.js', './test/web/browser/catalog.browser.js'],
   maxInstances: 1,
   baseUrl: `http://127.0.0.1:${port}`,
   capabilities: [{ browserName,

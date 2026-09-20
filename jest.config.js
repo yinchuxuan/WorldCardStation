@@ -17,6 +17,8 @@ module.exports = {
     'src/renderer/**/*.jsx',
     'src/renderer/**/*.js',
     'src/shared/**/*.js',
+    'src/web/**/*.js',
+    'src/web/**/*.jsx',
     '!**/node_modules/**'
   ],
   coverageThreshold: {

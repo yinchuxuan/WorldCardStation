@@ -2,7 +2,7 @@ import React from 'react';
 import generationServices from './generationServices.js';
 import { ensureMessageIds } from './messageIds.js';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
@@ -39,7 +39,7 @@ function useChatSession({
       runtimeTrace.update(nextMessages, nextState);
       onSessionLoaded?.({ card: init.card || null, state: nextState });
       persistence.markLoaded();
-      if (init.changed || idsAdded) await persistence.save(nextMessages, nextState);
+      if (savePolicy !== 'manual' && (init.changed || idsAdded)) await persistence.save(nextMessages, nextState);
       return result;
     } catch (error) {
       setRuntimeError(normalizeGameCardError(error));

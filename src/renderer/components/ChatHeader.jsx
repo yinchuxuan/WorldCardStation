@@ -1,6 +1,7 @@
 import React from 'react';
 import { PropTypes } from './componentPropTypes.js';
 import RuntimeTraceControl from './RuntimeTraceControl.jsx';
+import { capabilities } from '../platform/index.js';
 
 function ChatHeader({ children, onToggleHistory, icon = 'extension' }) {
   const [hovered, setHovered] = React.useState(false);
@@ -10,7 +11,7 @@ function ChatHeader({ children, onToggleHistory, icon = 'extension' }) {
     <div className={`chat-header chat-header-clickable${hovered ? ' chat-header-visible' : ''}`}
       data-gc-part="chat-header" onClick={onToggleHistory}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      <RuntimeTraceControl icon={icon} />
+      {capabilities?.diskTrace !== false && <RuntimeTraceControl icon={icon} />}
       {children}
     </div>
   </>;

@@ -13,6 +13,9 @@ export async function startStaticServer(port = 1430) {
   let fault = { mode: 'none', suffix: '' };
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
+    if (url.pathname === '/__pipeline') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(await readFile('dist/web-fixture/pipeline.json')); return;
+    }
     if (url.pathname === '/__versions') {
       response.writeHead(200, { 'Content-Type': 'application/json' }).end(await readFile('dist/web-fixture/versions.json')); return;
     }

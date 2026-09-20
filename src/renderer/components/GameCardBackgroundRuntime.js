@@ -8,17 +8,12 @@ import {
 import { gameCardPlatform } from '../platform/index.js';
 import { PropTypes } from './componentPropTypes.js';
 
-async function resolveImageUrl(cardId, relativePath, label) {
+async function resolveImageUrl(cardId, relativePath) {
   if (!relativePath) return '';
-  try {
-    return await gameCardPlatform.resources.getImageUrl(cardId, relativePath);
-  } catch (error) {
-    console.error(`Failed to load game card ${label}:`, error.message);
-    return '';
-  }
+  return gameCardPlatform.resources.getImageUrl(cardId, relativePath);
 }
 
-function useImageRequest(request, getPath, label, onChange) {
+function useImageRequest(request, getPath, label, onChange, onError, attempt) {
   const currentRef = React.useRef({ signature: null, revision: 0 });
   const handlerRef = React.useRef(onChange);
   const mountedRef = React.useRef(true);
@@ -35,8 +30,12 @@ function useImageRequest(request, getPath, label, onChange) {
     resolveImageUrl(cardId, relativePath, label).then(url => {
       if (!mountedRef.current || currentRef.current.revision !== revision) return;
       handlerRef.current?.({ url });
+    }).catch(error => {
+      if (!mountedRef.current || currentRef.current.revision !== revision) return;
+      currentRef.current.signature = null;
+      onError(error.message);
     });
-  }, [getPath, label, request]);
+  }, [attempt, getPath, label, onError, request]);
 
   React.useEffect(() => () => {
     mountedRef.current = false;
@@ -44,7 +43,7 @@ function useImageRequest(request, getPath, label, onChange) {
   }, []);
 }
 
-function usePortraitRequest(request, onChange) {
+function usePortraitRequest(request, onChange, onError, attempt) {
   const currentRef = React.useRef({ signature: null, revision: 0 });
   const handlerRef = React.useRef(onChange);
   const mountedRef = React.useRef(true);
@@ -69,8 +68,12 @@ function usePortraitRequest(request, onChange) {
       const detail = { portraits: items.filter(item => item.url) };
       if (sceneKind === 'cg') detail.immediate = true;
       handlerRef.current?.(detail);
+    }).catch(error => {
+      if (!mountedRef.current || currentRef.current.revision !== revision) return;
+      currentRef.current.signature = null;
+      onError(error.message);
     });
-  }, [request]);
+  }, [attempt, onError, request]);
 
   React.useEffect(() => () => {
     mountedRef.current = false;
@@ -85,8 +88,10 @@ function GameCardBackgroundRuntime({
   onPortraitChange,
   onVisualPanelChange
 }) {
-  useImageRequest(backgroundRequest, getSceneRelativePath, 'scene', onBackgroundChange);
-  usePortraitRequest(portraitRequest, onPortraitChange);
+  const [error, setError] = React.useState('');
+  const [attempt, setAttempt] = React.useState(0);
+  useImageRequest(backgroundRequest, getSceneRelativePath, 'scene', onBackgroundChange, setError, attempt);
+  usePortraitRequest(portraitRequest, onPortraitChange, setError, attempt);
 
   React.useEffect(() => {
     if (!backgroundRequest) return;
@@ -98,7 +103,10 @@ function GameCardBackgroundRuntime({
   React.useEffect(() => () => {
     onVisualPanelChange?.({ textPanel: 'center', cardId: '' });
   }, [onVisualPanelChange]);
-  return null;
+  return error ? React.createElement('div', { role: 'alert', className: 'web-resource-error' },
+    `演出资源加载失败：${error}`, React.createElement('button', { onClick: () => {
+      setError(''); setAttempt(value => value + 1);
+    } }, '重试演出加载')) : null;
 }
 
 const updateRequest = PropTypes.shape({

@@ -1,29 +1,25 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import CardDownload from '../../../src/web/CardDownload.jsx';
-import { hostedCards } from '../../../src/web/hostedCards.js';
-jest.mock('../../../src/web/hostedCards.js', () => ({ hostedCards: { prepare: jest.fn() } }));
-
-test('prepares resources, shows progress and ready, then supports checking again', async () => {
-  hostedCards.prepare.mockImplementation(async (_card, { onProgress }) => {
-    onProgress({ phase: 'downloading', completedBytes: 1, totalBytes: 10 });
-    onProgress({ phase: 'ready', completedBytes: 10, totalBytes: 10 });
-  });
-  render(<CardDownload card={{ cardId: 'one' }} />);
-  fireEvent.click(screen.getByRole('button'));
-  expect(await screen.findByText(/资源已就绪/)).toBeInTheDocument();
-  await act(async () => {});
-  expect(screen.getByRole('button')).toBeEnabled();
-});
-test('cancel reaches the in-flight request and retry clears its error', async () => {
-  hostedCards.prepare.mockImplementation((_card, { signal }) => new Promise((_resolve, reject) => {
-    signal.addEventListener('abort', () => reject(new DOMException('canceled', 'AbortError')));
+import GameCardSwitcher from '../../../src/renderer/components/GameCardSwitcher.jsx';
+jest.mock('@platform', () => ({ capabilities: { cardImport: false }, rendererServices: { cards: {} } }));
+test('shared selector displays preparation progress, cancellation and allows retry', async () => {
+  let signal;
+  const activate = jest.fn((_card, options) => new Promise((_resolve, reject) => {
+    signal = options.signal;
+    options.onProgress({ phase: 'downloading', completedBytes: 1, totalBytes: 10 });
+    signal.addEventListener('abort', () => reject(new DOMException('取消下载', 'AbortError')));
   }));
-  render(<CardDownload card={{ cardId: 'one' }} />);
-  fireEvent.click(screen.getByRole('button'));
-  fireEvent.click(screen.getByText('取消下载'));
-  expect(await screen.findByRole('alert')).toHaveTextContent('下载已取消');
-  hostedCards.prepare.mockRejectedValue(new Error('空间不足'));
-  fireEvent.click(screen.getByText('重试下载'));
-  expect(await screen.findByRole('alert')).toHaveTextContent('空间不足');
+  const props = { onActivate: activate, onImport: jest.fn(), onUninstall: jest.fn(), onError: jest.fn(),
+    repository: { list: async () => [{ id: 'one', name: '示例卡' }] } };
+  const { unmount } = render(<GameCardSwitcher {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '切换游戏卡' }));
+  fireEvent.click(await screen.findByText('示例卡'));
+  expect(await screen.findByRole('status')).toHaveTextContent('下载并校验');
+  await act(async () => { fireEvent.click(screen.getByText('取消下载')); });
+  expect(signal.aborted).toBe(true);
+  expect(props.onError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('取消') }));
+  activate.mockResolvedValueOnce({ id: 'one' });
+  await act(async () => { fireEvent.click(screen.getByText('示例卡')); });
+  expect(activate).toHaveBeenCalledTimes(2);
+  unmount();
 });

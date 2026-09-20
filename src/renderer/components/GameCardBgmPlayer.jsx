@@ -21,6 +21,8 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
   const [audioSource, setAudioSource] = React.useState('');
   const [blocked, setBlocked] = React.useState(false);
   const [enabled, setEnabled] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [attempt, setAttempt] = React.useState(0);
   enabledRef.current = enabled;
 
   const cancelScheduledPlay = React.useCallback(() => {
@@ -72,6 +74,7 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
 
     stop();
     setBlocked(false);
+    setError('');
     const revision = sourceRef.current.revision + 1;
     sourceRef.current = { signature, revision, url: '' };
     setAudioSource('');
@@ -88,9 +91,11 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
       .catch(error => {
         if (!mountedRef.current || sourceRef.current.revision !== revision) return;
         console.error('Failed to load game card audio:', error.message);
+        sourceRef.current.signature = null;
+        setError(error.message);
         pendingPlayRef.current = false;
       });
-  }, [playCurrent, stop, updateRequest]);
+  }, [attempt, playCurrent, stop, updateRequest]);
 
   React.useEffect(() => {
     if (audioSource && pendingPlayRef.current) void playCurrent();
@@ -108,15 +113,28 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
 
   const toggle = event => {
     event.stopPropagation();
+    if (error) { setError(''); setAttempt(value => value + 1); return; }
+    if (blocked) {
+      // play() must run in the click handler for browsers requiring user activation.
+      const audio = audioRef.current;
+      if (!audio) return;
+      cancelScheduledPlay();
+      setEnabled(true);
+      audio.play().then(() => { playingRef.current = true; setBlocked(false); })
+        .catch(() => setBlocked(true));
+      return;
+    }
     const nextEnabled = !enabled;
     setEnabled(nextEnabled);
     if (!nextEnabled) stop();
     else void playCurrent(true);
   };
   const icon = enabled ? 'music_note' : 'music_off';
-  const title = blocked ? '浏览器需要手动播放 BGM' : (enabled ? '关闭 BGM' : '开启 BGM');
+  const title = error ? `重试 BGM：${error}` : blocked ? '浏览器需要手动播放 BGM' : (enabled ? '关闭 BGM' : '开启 BGM');
   return <div className="game-card-bgm-player" data-gc-part="bgm-player">
-    <audio ref={audioRef} src={audioSource} loop />
+    <audio ref={audioRef} src={audioSource || undefined} preload="auto" loop onError={() => {
+      if (audioSource) { sourceRef.current.signature = null; setError('音频无法解码或加载'); }
+    }} />
     <button type="button"
       className={`md-btn md-btn-icon game-card-bgm-btn${blocked ? ' blocked' : ''}${!audioSource ? ' no-source' : ''}`}
       data-gc-part="bgm-button" onClick={toggle} title={title} aria-label={title}>

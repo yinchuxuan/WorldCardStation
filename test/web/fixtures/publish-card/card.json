@@ -6,8 +6,16 @@
   "files": { "book": { "directory": "worldbook", "include": ["*.md"] } },
   "stateSchema": "state.json",
   "audio": { "bgm": { "theme": "audio/tone.wav" } },
-  "visual": { "background": { "room": "images/cover.png" } },
+  "visual": { "background": { "room": "images/cover.png", "outside": "images/outside.png" },
+    "portrait": { "guide": { "smile": "images/cover.png" } } },
   "ui": { "root": { "source": "ui/root.jsx" }, "stylesheet": "ui/style.css",
     "scripts": { "pick": "scripts/main.js" } },
-  "rules": [{ "$import": "rules/init.json" }]
+  "rules": [{ "$import": "rules/init.json" },
+    { "when": { "phase": "pre_send" }, "then": [{ "type": "state.inc", "path": "count", "value": 1 }] },
+    { "when": { "phase": "after_response" }, "then": [
+      { "type": "state.set", "path": "visual.scene", "value": "outside" },
+      { "type": "state.set", "path": "visual.portraits", "value": { "guide": "smile" } },
+      { "type": "visual.updateBackground" }, { "type": "audio.updateBgm" }
+    ] }
+  ]
 }

@@ -1,5 +1,6 @@
 [
   { "when": { "phase": "init" }, "then": [
-    { "type": "exec", "sourceFile": "scripts/main.js" }
+    { "type": "exec", "sourceFile": "scripts/main.js" },
+    { "type": "state.set", "path": "visual.scene", "value": "room" }
   ] }
 ]

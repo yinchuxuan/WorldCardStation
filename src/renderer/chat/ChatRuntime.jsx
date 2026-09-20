@@ -15,7 +15,7 @@ import PlatformResponseWarningNotice from '../components/PlatformResponseWarning
 import useLastUserMessageEdit from './useLastUserMessageEdit.js';
 import useSegmentedReading from './useSegmentedReading.js';
 import useTypewriter from './useTypewriter.js';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 import { useGameCardRuntime } from './GameCardRuntimeProvider.jsx';
 import useAppClosePersistence from './useAppClosePersistence.js';
 import useChatGeneration from './useChatGeneration.js';
@@ -80,7 +80,7 @@ function ChatRuntime({
     onResetView: scroll.collapseHistory,
     onSessionLoaded: presentationHandlers.onSessionLoaded
   });
-  const gameCards = useGameCardSwitching({ isLoading, presentation, runtime, session });
+  const gameCards = useGameCardSwitching({ isLoading, setIsLoading, presentation, runtime, session });
   React.useEffect(() => { setRequestError(null); setResponseWarning(null); }, [session.revision]);
   const editUserMessage = useLastUserMessageEdit({ messages, isLoading,
     retryBaseMessages: persistence.retryBaseRef.current });
@@ -120,7 +120,8 @@ function ChatRuntime({
   const toggleHistory = () => {
     const next = !showMsgHistory;
     setShowMsgHistory(next);
-    if (next) rendererServices.sessions.loadHistory()
+    if (next && savePolicy === 'manual') setMsgHistoryMessages(messages);
+    else if (next) rendererServices.sessions.loadHistory()
       .then(result => setMsgHistoryMessages(result.messages))
       .catch(error => setActionError(error));
   };

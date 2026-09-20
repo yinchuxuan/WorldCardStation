@@ -12,12 +12,12 @@ Tauri is the only desktop target.
 | `npm run build` | Build the renderer and native Tauri desktop installer |
 | `npm run renderer:dev` | Start only the Vite renderer on port `1420` |
 | `npm run renderer:build` | Build only the renderer to `dist/renderer/` |
-| `npm run web:dev` | Start the Web startup skeleton on port `1422` |
-| `npm run web:build` | Build the static Web skeleton to `dist/web/` |
+| `npm run web:dev` | Start the Web play preview on port `1422` |
+| `npm run web:build` | Build the static Web player to `dist/web/` |
 | `npm run test:web:unit` | Run focused Web Jest tests; full `test:js` enforces coverage |
 | `npm run test:web:integration` | Verify dual-build isolation and run real-browser platform contract tests |
-| `npm run test:web:e2e` | Build and test production startup at root and `/play/` |
-| `npm run test:web` | Run Web unit, build-isolation, browser integration and startup tests |
+| `npm run test:web:e2e` | Build and test production catalog/gameplay, including root and `/play/` startup |
+| `npm run test:web` | Run Web unit, build-isolation, browser integration and gameplay tests |
 | `npm run game-card:export -- <card-dir> --format gamecard` | Validate and export a game card package to `dist/game-cards/` |
 | `npm run game-card:publish -- <card-dir> [--cover <relative-path>]` | Publish immutable static releases and catalog to `dist/web-cards/`; see [protocol](./web_static_release.md) |
 | `npm run game-card:export -- <card-dir> --format png --cover <path>` | Export a renderable PNG containing the complete game card |
@@ -46,7 +46,7 @@ Tauri is the only desktop target.
 
 ## Web build and browser tests
 
-The Web target provides hosted catalog browsing, full resource downloads, Cache Storage/IndexedDB readiness and local resource adapters; see [resource cache](./web_resource_cache.md). Gameplay, models and session saves are not implemented. Unimplemented services throw `PLATFORM_UNAVAILABLE`; there is no in-memory fake save. Desktop functionality remains unchanged.
+The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [resource cache](./web_resource_cache.md) and [Web runtime](./web_runtime.md). Progress is in-memory only; Session persistence is not implemented. Unavailable services throw `PLATFORM_UNAVAILABLE`, without pretending to save. Desktop retains automatic saving.
 
 `web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
 
@@ -58,7 +58,7 @@ It also runs the real Rust publisher against the minimal card fixture, verifies 
 
 WebdriverIO uses ordinary browser drivers, without the Tauri service. `WEB_BROWSER` selects `chrome` (default), `firefox`, or `safari`; Safari requires macOS and enabled Safari remote automation. Drivers/browsers may need network downloads on first use. CI covers Chrome and Firefox on Linux, and real Safari/WebKit on macOS; no Safari result is inferred from Chrome.
 
-The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides the port), serves production assets without SPA fallback, and adds only a test-time error observer to HTML. It records requests, browser errors and failure screenshots in `test-results/web/`. Test-only fault endpoints exercise 404, bad bytes, truncation and cancellation. Integration tests use real Cache Storage/IndexedDB, Blob URLs and two published versions; quota and marker-write errors are injected at storage boundaries. UI E2E verifies download, reuse and repair. Worker/model gameplay is added in the next step; no real model credentials are used.
+The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides it); a real cross-origin model SSE server uses the next port. Test servers record requests without credentials, browser errors and screenshots in `test-results/web/`. Cache fault tests cover 404, bad bytes, truncation and cancellation; quota/marker failures are injected at storage boundaries. Runtime tests exercise actual Worker, CORS, SSE, default key persistence/clearing and background Blobs. Production E2E covers downloads, multi-turn state/UI/media and retry. A shared scenario compares browser Worker results with a Node VM desktop-pipeline baseline, not a native WebView. No real model credentials are used.
 
 `test:web:unit` is a focused fast run without standalone global coverage collection; all new production files remain included in the unchanged `test:js` coverage gate. `npm run test:web` tests one selected browser; CI runs it for each browser in the matrix. Desktop regression gates remain independent.
 

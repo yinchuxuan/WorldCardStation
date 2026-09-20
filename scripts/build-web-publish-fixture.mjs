@@ -13,8 +13,12 @@ try {
   await cp('test/web/fixtures/publish-card', source, { recursive: true });
   await mkdir(path.join(source, 'images'));
   await mkdir(path.join(source, 'audio'));
-  await writeFile(path.join(source, 'audio/tone.wav'), Buffer.from('UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=', 'base64'));
+  const wav = Buffer.alloc(8044, 128);
+  Buffer.from('UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=', 'base64').copy(wav);
+  wav.writeUInt32LE(8036, 4); wav.writeUInt32LE(8000, 40);
+  await writeFile(path.join(source, 'audio/tone.wav'), wav);
   await copyFile('src/tauri/icons/32x32.png', path.join(source, 'images/cover.png'));
+  await copyFile('src/tauri/icons/32x32.png', path.join(source, 'images/outside.png'));
   const args = ['run', '--quiet', '--manifest-path', 'src/tauri/Cargo.toml', '--bin', 'game-card-publish',
     '--', source, '--output', output, '--cover', 'images/cover.png'];
   const manifest = JSON.parse(execFileSync('cargo', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }));

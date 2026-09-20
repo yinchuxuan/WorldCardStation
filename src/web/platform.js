@@ -1,9 +1,16 @@
 import { webPolicy } from './platformPolicy.js';
 import { hostedCards } from './hostedCards.js';
+import { controlledScriptExecutor } from '../renderer/platform/controlledScriptExecutor.js';
+import { webConfig } from './config.js';
+import { webBackground } from './background.js';
+import { modelFetch } from './modelFetch.js';
+import { imageReady } from './imageReady.js';
+import { createHostedRepository } from './cardRepository.js';
+import { selectBackgroundImage } from './selectBackground.js';
 
 function unavailable(operation) {
   return () => {
-    const error = new Error(`Web 端暂不支持 ${operation}，当前版本支持目录浏览和资源准备，尚未开放游玩。`);
+    const error = new Error(`Web 端暂不支持 ${operation}`);
     error.code = 'PLATFORM_UNAVAILABLE';
     error.operation = operation;
     throw error;
@@ -15,25 +22,37 @@ function unavailableService(name, methods) {
 }
 
 const rendererServices = Object.freeze({
-  config: unavailableService('config', ['load', 'save']),
-  background: unavailableService('background', ['load', 'save', 'selectImage', 'subscribe']),
-  sessions: unavailableService('sessions', [
-    'loadHistory', 'saveHistory', 'list', 'getActive', 'create', 'setActive', 'rename', 'delete'
-  ]),
-  cards: unavailableService('cards', [
-    'list', 'setActive', 'uninstall', 'importFile',
+  config: webConfig,
+  background: { ...webBackground, selectImage: selectBackgroundImage },
+  sessions: {
+    ...unavailableService('sessions', ['saveHistory', 'list', 'getActive', 'create', 'setActive', 'rename', 'delete']),
+    // Step 4 starts a fresh in-memory playthrough. No pretend save or persistence.
+    loadHistory: async () => ({ messages: [], gameState: {} })
+  },
+  cards: { ...unavailableService('cards', [
+    'uninstall', 'importFile',
     'stageTavernImport', 'commitTavernImport', 'cancelTavernImport'
-  ]),
+  ]), ...createHostedRepository() },
   development: unavailableService('development', ['getInstructions']),
   trace: unavailableService('trace', ['start', 'append', 'close']),
-  window: unavailableService('window', ['destroy', 'isFullscreen', 'onCloseRequested', 'setFullscreen'])
+  window: {
+    ...unavailableService('window', ['destroy', 'onCloseRequested']),
+    isFullscreen: async () => Boolean(document.fullscreenElement),
+    async setFullscreen(value) {
+      if (value) {
+        if (!document.documentElement.requestFullscreen) throw new Error('此浏览器不支持网页全屏');
+        await document.documentElement.requestFullscreen();
+      } else if (document.fullscreenElement) await document.exitFullscreen();
+    }
+  }
 });
 const gameCardPlatform = Object.freeze({
-  resources: hostedCards.resources,
+  resources: { ...hostedCards.resources,
+    getImageUrl: (...args) => imageReady(hostedCards.resources.getImageUrl(...args))
+  },
   repository: hostedCards.repository,
-  scriptExecutor: unavailableService('scriptExecutor', ['run'])
+  scriptExecutor: controlledScriptExecutor
 });
-const modelFetch = unavailable('modelFetch');
 const { capabilities, savePolicy } = webPolicy;
 
 export { gameCardPlatform, rendererServices, modelFetch, capabilities, savePolicy };

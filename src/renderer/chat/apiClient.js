@@ -137,7 +137,10 @@ async function sendChatRequest(config, callbacks = {}) {
   if (!response.body?.getReader) throw new Error('API response body is empty');
   const reader = response.body.getReader();
   try { await readSSEStream(reader, protocol, callbacks); }
-  finally { reader.releaseLock(); }
+  finally {
+    reader.releaseLock();
+    response.dispose?.();
+  }
 }
 
 export { readSSEStream, sendChatRequest };

@@ -1,5 +1,6 @@
 import { build } from 'vite';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -40,4 +41,8 @@ for (const directory of ['web', 'web-subpath', 'web-harness']) {
 }
 console.log('Dual-build isolation and Web dependency graphs passed.');
 await import('./build-web-publish-fixture.mjs');
+await build({ configFile: false, logLevel: 'warn', build: { ssr: 'test/web/pipelineBaseline.js',
+  outDir: 'dist/web-baseline', rollupOptions: { output: { format: 'cjs', entryFileNames: 'baseline.cjs' } } } });
+const baseline = await createRequire(import.meta.url)(path.join(root, 'dist/web-baseline/baseline.cjs')).baseline();
+await writeFile('dist/web-fixture/pipeline.json', JSON.stringify(baseline));
 await import('./test-web-dev-server.mjs');

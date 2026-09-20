@@ -2,7 +2,7 @@
 
 ## 用户入口与范围
 
-目录中的“下载资源 / 检查缓存”准备选定的固定 release，显示已完成校验的字节数和总量，支持取消与重试。资源完整并完成规则预加载后显示就绪；当前仍不开放模型连接、执行游戏或保存进度。
+Web 复用客户端游戏卡选择器。选择托管游戏后准备固定 release，在下拉面板内显示已校验字节数和总量，支持取消；失败后可再次选择重试。资源就绪后切入[游玩运行时](./web_runtime.md)；当前尚不保存进度。
 
 需要 HTTPS 或 localhost，以及浏览器允许使用 Cache Storage、IndexedDB。浏览器普通 HTTP 缓存不是游戏资源缓存；不引入 Service Worker，不承诺网页离线启动或模型离线推理。
 
@@ -11,7 +11,7 @@
 发布引用使用 `sourceUrl + cardId + releaseId` 三元组，不能只用作者版本号。sourceUrl 是固定可信目录的规范 URL，sourceId 为其 UTF-8 SHA-256。
 
 - Cache Storage：`wcs-card-v1-<sourceId>-<cardId>-<releaseId>`；保存 release 清单、所有运行文件和预览封面。请求键为该 release 下的固定资源 URL。
-- IndexedDB：`WorldCardStationWeb`，数据库版本 1，`cardReferences` store，keyPath 为 `key`。记录来源、卡片、release、内容指纹和 `ready`；本步不创建或修改 Session、设置、模型密钥。
+- IndexedDB：`WorldCardStationWeb`，数据库版本 2，`cardReferences` store，keyPath 为 `key`。记录来源、卡片、release、内容指纹和 `ready`；缓存模块不修改 Session、设置或模型密钥。模型与背景使用独立 store。
 - 每个页面的活动资源上下文只在内存中。退出资源上下文不删缓存、不删发布引用，也不保存游戏进度。
 
 同卡不同 release 和不同来源分别准备，不覆盖旧缓存。UI 当前从在线目录选择版本；已持久化发布引用不是会话恢复 UI，后续存档流程才会使用它。
@@ -43,7 +43,7 @@ Cache Storage 与 IndexedDB 没有跨库事务。标记写入失败时，完整�
 
 每次资源读取仍检查实际缓存。缓存缺失返回“重新检查并补齐缓存”，不隐藏网络修复。规则同步 `readFile` 使用现有预加载结果，目录动态文本仍走异步受控读取；不改变 DSL 语义。
 
-失败的资源 Promise 不会在新一轮 prepare 中复用：新上下文使用新的资源对象，避免把上一次失败永久记住。真实游玩中的画面保留、资源解码及过期演出结果处理属于下一步运行闭环。
+失败的资源 Promise 不会在新一轮 prepare 中复用：新上下文使用新的资源对象，避免把上一次失败永久记住。画面保留、图片解码、演出重试和过期结果处理见[游玩运行时](./web_runtime.md)。
 
 ## 自动化验证
 

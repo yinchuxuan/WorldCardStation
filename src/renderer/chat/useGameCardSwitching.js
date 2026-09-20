@@ -1,9 +1,10 @@
 import React from 'react';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 import { checkImportCanceled, prepareTavernImport } from '../gameCard/prepareTavernImport.js';
 
 function useGameCardSwitching({
   isLoading,
+  setIsLoading,
   presentation,
   runtime,
   session,
@@ -20,12 +21,20 @@ function useGameCardSwitching({
     return card || null;
   }, [presentation, runtime, session]);
 
-  const activate = React.useCallback(async (card) => {
+  const activate = React.useCallback(async (card, options) => {
     if (isLoading) return null;
+    if (savePolicy === 'manual') {
+      if (!window.confirm('当前预览版不保存进度，切换游戏会丢弃本次进度。继续吗？')) return null;
+      setIsLoading?.(true);
+      try {
+        const prepared = await repository.setActive(card?.id || null, options);
+        return await finishSwitch(prepared);
+      } finally { setIsLoading?.(false); }
+    }
     await session.saveCurrent();
     await repository.setActive(card?.id || null);
     return finishSwitch(card);
-  }, [finishSwitch, isLoading, repository, session]);
+  }, [finishSwitch, isLoading, repository, session, setIsLoading]);
 
   const importCard = React.useCallback(async (confirm, { targetCard, signal, onProgress } = {}) => {
     if (isLoading) return null;

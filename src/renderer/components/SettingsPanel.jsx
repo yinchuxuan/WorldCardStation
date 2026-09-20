@@ -4,6 +4,7 @@ import SettingsModelConfig from './SettingsModelConfig.jsx';
 import SettingsGameCardDevelopment from './SettingsGameCardDevelopment.jsx';
 import useSettingsState from '../settings/useSettingsState.js';
 import { PropTypes } from './componentPropTypes.js';
+import { capabilities } from '../platform/index.js';
 
 function SettingsPanel({ onToggleTheme, theme, onBackgroundChange }) {
   const [visible, setVisible] = React.useState(false);
@@ -48,7 +49,8 @@ function SettingsPanel({ onToggleTheme, theme, onBackgroundChange }) {
               maskApiKey={maskApiKey}
               isConfigured={isConfigured}
           />
-          <SettingsGameCardDevelopment />
+          {capabilities?.localDevelopment !== false && <SettingsGameCardDevelopment />}
+          {state.error && <p role="alert">{state.error.message}</p>}
         </div>
       </div>
     </div>

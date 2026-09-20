@@ -1,0 +1,26 @@
+import { createWebBackground } from '../../../src/web/background.js';
+test('stores a Blob, restores fresh URLs and revokes replaced/cleared URLs', async () => {
+  let record;
+  const store = { get: async () => record, put: async value => { record = value; } };
+  let seq = 0;
+  const urls = { createObjectURL: jest.fn(() => `blob:${++seq}`), revokeObjectURL: jest.fn() };
+  const background = createWebBackground(() => store, urls);
+  const listener = jest.fn(); const unsubscribe = background.subscribe(listener);
+  expect((await background.load()).backgroundImageUrl).toBe('');
+  const blob = new Blob(['image'], { type: 'image/png' });
+  await background.setImage(blob);
+  expect(record.blob).toBe(blob);
+  expect(record.backgroundImageUrl).toBeUndefined();
+  expect((await background.load()).backgroundImageUrl).toBe('blob:1');
+  await background.save({ backgroundImageUrl: 'blob:1', backgroundOpacity: 0.7 });
+  expect(urls.createObjectURL).toHaveBeenCalledTimes(1);
+  await background.setImage(new Blob(['other'], { type: 'image/jpeg' }));
+  expect(urls.revokeObjectURL).toHaveBeenCalledWith('blob:1');
+  const restored = createWebBackground(() => store, urls);
+  expect((await restored.load()).backgroundOpacity).toBe(0.7);
+  await background.save({ backgroundImageUrl: '', backgroundOpacity: 2 });
+  expect(record.blob).toBeNull(); expect(record.opacity).toBe(1);
+  restored.dispose(); unsubscribe();
+  expect(listener).toHaveBeenCalled();
+  await expect(background.setImage(new Blob(['x'], { type: 'text/plain' }))).rejects.toThrow('图片');
+});

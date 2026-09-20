@@ -1,7 +1,7 @@
 import React from 'react';
 import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
 import { createLatestSaveQueue } from './latestSaveQueue.js';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 
 function normalizedViewState(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
@@ -75,7 +75,7 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
   }, []);
 
   React.useEffect(() => {
-    if (!loadedRef.current || isLoading) return;
+    if (savePolicy === 'manual' || !loadedRef.current || isLoading) return;
     void saveQueue.enqueue(snapshot()).catch(() => {});
   }, [gameState, isLoading, messages, saveQueue, snapshot, viewState]);
 

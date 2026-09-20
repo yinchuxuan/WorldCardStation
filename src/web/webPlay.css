@@ -1,0 +1,4 @@
+.web-application { height: 100%; }
+.game-card-switch-cover { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+.game-card-switch-panel > .game-card-import-message { white-space: normal; line-height: 1.5; margin: 8px 16px; font-size: 12px; }
+.web-resource-error { position: fixed; top: 60px; left: 8px; z-index: 210; background: var(--md-surface, white); color: var(--md-error, #922); padding: 8px; }

@@ -4,6 +4,7 @@ import GameCardErrorPanel from './GameCardErrorPanel.jsx';
 import GameCardSwitcher from './GameCardSwitcher.jsx';
 import { useGameCardRuntime } from '../chat/GameCardRuntimeProvider.jsx';
 import { PropTypes } from './componentPropTypes.js';
+import { savePolicy } from '../platform/index.js';
 
 function GameCardTitleControl({ modelName, isLoading = false, onBeforeSessionChange, onSessionChanged, onSwitchSession, onActivateCard, onImportCard, onUninstallCard, audioControl, onImportError, cardRepository }) {
   const { activeCard: card } = useGameCardRuntime();
@@ -25,12 +26,12 @@ function GameCardTitleControl({ modelName, isLoading = false, onBeforeSessionCha
       {modelName ? <span className="config-status configured game-card-model-status" data-gc-part="model-status">{modelName}</span> : null}
       <div className="game-card-title-actions" data-gc-part="game-card-title-actions">
         {audioControl || null}
-        <ChatSessionManager
+        {savePolicy === 'manual' ? <span className="config-status" title="刷新、关闭或切换游戏将丢失进度">进度未保存</span> : <ChatSessionManager
           cardId={card?.id || ''}
           onBeforeSessionChange={onBeforeSessionChange}
           onSessionChanged={onSessionChanged}
           onSwitchSession={onSwitchSession}
-        />
+        />}
         {error ? (
           <button className="game-card-title-error" data-gc-part="game-card-title-error" type="button" aria-label={errorTitle} onClick={(event) => event.stopPropagation()}>
             <span className="material-icons">error</span>

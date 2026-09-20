@@ -2,9 +2,6 @@ import React from 'react';
 import { reasoningEffortsForProtocol } from '../chat/modelGenerationParams.js';
 import { PropTypes } from './componentPropTypes.js';
 
-// SettingsModelConfig - Model configuration settings section
-// Part of SettingsPanel component - inline editing, no separate edit mode
-
 const EFFORT_LABELS = {
   none: '无（none）', minimal: '极低（minimal）', low: '低（low）',
   medium: '中（medium）', high: '高（high）', xhigh: '极高（xhigh）', max: '最大（max）'
@@ -94,7 +91,7 @@ function SettingsModelConfig({
       : (selectedOption?.label || (options ? options[0].label : config[field]) || '未设置');
 
     return (
-      <div className="settings-field-inline">
+      <div className="settings-field-inline" data-model-field={field}>
         <span className="settings-field-label">
           <span className="material-icons">{icon}</span>
           {label}
@@ -102,6 +99,7 @@ function SettingsModelConfig({
         {isEditing ? (
           options ? (
             <select
+              aria-label={label}
               className="md-input settings-inline-input"
               value={tempValue}
               onChange={(e) => setTempValue(e.target.value)}
@@ -115,6 +113,7 @@ function SettingsModelConfig({
             </select>
           ) : (
             <input
+              aria-label={label}
               type={type}
               className="md-input settings-inline-input"
               value={tempValue}

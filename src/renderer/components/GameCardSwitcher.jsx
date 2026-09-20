@@ -1,6 +1,7 @@
 import React from 'react';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, capabilities } from '../platform/index.js';
+import GameCardTransferStatus from './GameCardTransferStatus.jsx';
 import GameCardSwitchRow from './GameCardSwitchRow.jsx';
 import TavernImportDialog from './TavernImportDialog.jsx';
 import { useGameCardImport } from '../gameCard/useGameCardImport.js';
@@ -24,6 +25,8 @@ function GameCardSwitcher({
   const [removingId, setRemovingId] = React.useState('');
   const [importStatus, setImportStatus] = React.useState(IDLE_IMPORT);
   const closeTimer = React.useRef(null);
+  const download = React.useRef(null);
+  const hosted = capabilities?.cardImport === false;
   const conversion = useGameCardImport(onImport);
 
   const loadCards = React.useCallback(async () => {
@@ -42,6 +45,7 @@ function GameCardSwitcher({
   }, [mounted, open]);
 
   React.useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  React.useEffect(() => () => download.current?.abort(), []);
 
   const toggle = (event) => {
     event.stopPropagation();
@@ -63,11 +67,21 @@ function GameCardSwitcher({
     setBusy(true);
     onError?.(null);
     try {
-      await onActivate(card);
+      if (hosted) download.current = new AbortController();
+      const options = hosted ? { signal: download.current.signal, onProgress: progress => {
+        const size = value => (value / 1024 / 1024).toFixed(2);
+        setImportStatus({ state: 'importing', message: progress.phase === 'downloading'
+          ? `下载并校验：${size(progress.completedBytes)} / ${size(progress.totalBytes)} MB`
+          : progress.phase === 'checking' ? '正在检查缓存…' : '正在准备游戏…' });
+      } } : undefined;
+      if (hosted) await onActivate(card, options);
+      else await onActivate(card);
       setOpen(false);
     } catch (error) {
       onError?.(normalizeGameCardError(error, { title: '切换游戏卡失败' }));
     } finally {
+      download.current = null;
+      if (hosted) setImportStatus(IDLE_IMPORT);
       setBusy(false);
     }
   };
@@ -128,7 +142,8 @@ function GameCardSwitcher({
   const title = activeCard?.name || activeCard?.id || '普通聊天';
   const renderCard = card => <GameCardSwitchRow key={card?.id || 'no-card'} card={card}
     active={(card?.id || null) === (activeCard?.id || null)} busy={busy || isLoading}
-    removing={removingId === card?.id} onActivate={activate} onUninstall={uninstallCard} onUpdate={importCard} />;
+    removing={removingId === card?.id} onActivate={activate}
+    onUninstall={hosted ? undefined : uninstallCard} onUpdate={hosted ? undefined : importCard} />;
 
   return <div className="game-card-switcher" data-gc-part="game-card-switcher">
     <button type="button" className="game-card-title-main" data-gc-part="game-card-title-main"
@@ -141,26 +156,19 @@ function GameCardSwitcher({
       data-state={open ? 'open' : 'closing'} aria-hidden={!open}
       onClick={event => event.stopPropagation()}>
       <div className="game-card-switch-heading">切换游戏卡</div>
+      {hosted && <p className="game-card-import-message">选择托管游戏后检查并下载完整资源。当前预览版暂不保存进度。</p>}
       <div className="game-card-switch-list">
         {renderCard(null)}
         {cards.map(renderCard)}
       </div>
-      <button type="button" className="game-card-switch-import" onClick={importCard}
+      {!hosted && <button type="button" className="game-card-switch-import" onClick={importCard}
         disabled={busy || isLoading} aria-label="导入游戏卡文件" title="选择卡片文件，或项目目录中的 card.json（导入整个目录）">
         <span className={`material-icons${busy ? ' importing' : ''}`}>
           {busy ? 'progress_activity' : 'upload_file'}
         </span><span>{busy ? '正在导入…' : '导入卡片'}</span>
-      </button>
+      </button>}
       {conversion.cancelable ? <button type="button" className="game-card-switch-import" onClick={conversion.cancel}>取消导入</button> : null}
-      {importStatus.state !== 'idle' ? <div className="game-card-import-status"
-        data-state={importStatus.state} role="status" aria-live="polite">
-        <span className="material-icons" aria-hidden="true">
-          {importStatus.state === 'success' ? 'check_circle' : importStatus.state === 'error' ? 'error' : 'hourglass_top'}
-        </span>
-        <span className="game-card-import-message">{importStatus.message}</span>
-        {importStatus.state === 'importing' ? <span className="game-card-import-progress"
-          role="progressbar" aria-label="游戏卡导入进度"><span /></span> : null}
-      </div> : null}
+      <GameCardTransferStatus status={importStatus} onCancel={download.current ? () => download.current.abort() : undefined} />
     </div> : null}
     {conversion.request ? <TavernImportDialog key={conversion.request.kind} request={conversion.request}
       isLoading={isLoading} onFinish={conversion.finish} /> : null}

@@ -1,0 +1,23 @@
+name: Test website notification
+on:
+  workflow_dispatch:
+    inputs:
+      probe_id:
+        description: Correlation ID for this notification test
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send diagnostic event (never deploys)
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          PROBE_ID: ${{ inputs.probe_id }}
+        run: |
+          test -n "$GH_TOKEN"
+          jq -n --arg source "$GITHUB_REPOSITORY" --arg probe "$PROBE_ID" \
+            '{event_type:"web-release-probe",client_payload:{source:$source,probe_id:$probe}}' > "$RUNNER_TEMP/probe.json"
+          gh api --method POST repos/yinchuxuan/WorldCardStation_website/dispatches --input "$RUNNER_TEMP/probe.json"

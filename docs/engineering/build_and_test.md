@@ -123,3 +123,9 @@ CI listens to pushes on `master`/`main`, pull requests and manual dispatch. It i
 Release tags use `wcs-v*`. The current release tag is `wcs-v1.0.0`; retired `app-v*` tags have been removed. Signing certificates are optional: without them, macOS uses an ad-hoc signature and Windows produces an unsigned installer. Apple certificate-based signing/notarization requires the corresponding certificate, password and Apple account secrets; Windows certificate-based signing requires a PFX certificate and password.
 
 The current version is `1.0.0`. Builds create a draft stable release; publish it only after all platforms finish successfully. `scripts/check-release-version.cjs` checks npm/Tauri/Cargo versions and rejects mismatched release tags. Run it locally before tagging. Publishing the draft still requires checking all four architecture/platform artifact sets, installation on clean systems, an upgrade with backed-up data, model connectivity and installed devkit/dry-run behavior. CI does not replace this manual acceptance or real-provider testing. Release notes live in `docs/releases/1.0.0.md`; the installation FAQ lives only in README.
+
+## Web formal releases
+
+`.github/workflows/web-release.yml` listens to published non-prerelease GitHub Releases (not ordinary pushes). It builds `/play/` assets, uploads `wcs-web.zip` and its SHA-256 checksum to the same Release, then notifies `yinchuxuan/WorldCardStation_website`. Existing desktop tag-to-draft releases remain unchanged.
+
+Configure `SITE_DISPATCH_TOKEN` with Contents write access only to the website repository; Cloudflare secrets stay in that repository. The website owns source allowlists, version reconciliation, immutable release records, historical card retention and deployment. See its `RELEASING.md` for setup and recovery. The manual workflow accepts an existing formal Release tag for retries; uploaded assets cannot be overwritten. New tags must contain the Web implementation and workflow.

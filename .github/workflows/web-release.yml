@@ -1,0 +1,82 @@
+name: Publish Web release artifact
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing formal release tag (retry/backfill)
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: web-artifact-${{ github.event.release.tag_name || inputs.tag }}
+  queue: max
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      ASSET: wcs-web.zip
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - name: Require a published stable release
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release.json"
+          python3 - <<'PYTHON'
+          import json, os
+          release = json.load(open(os.environ['RUNNER_TEMP'] + '/release.json'))
+          assert not release['draft'] and not release['prerelease'], 'Only formal releases may publish'
+          PYTHON
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run test:web:unit
+      - run: npm run web:build
+        env:
+          WEB_BASE: /play/
+      - name: Add build identity
+        run: |
+          node -e "const fs=require('fs'); fs.writeFileSync('dist/web/wcs-build.json', JSON.stringify({platformVersion:require('./package.json').version,schemaVersion:require('./src/shared/game-card/schema/game-card.schema.json')['x-schema-version'],base:'/play/'}))"
+      - name: Package static files
+        env:
+          SOURCE_DIR: dist/web
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, os, pathlib, zipfile
+          root = pathlib.Path(os.environ['SOURCE_DIR'])
+          asset = pathlib.Path(os.environ['ASSET'])
+          with zipfile.ZipFile(asset, 'w', zipfile.ZIP_DEFLATED) as archive:
+              for path in sorted(root.rglob('*')):
+                  if path.is_symlink():
+                      raise ValueError(f'Symlink is not publishable: {path}')
+                  if path.is_file():
+                      info = zipfile.ZipInfo(path.relative_to(root).as_posix())
+                      info.compress_type = zipfile.ZIP_DEFLATED
+                      archive.writestr(info, path.read_bytes())
+          digest = hashlib.sha256(asset.read_bytes()).hexdigest()
+          pathlib.Path(str(asset) + '.sha256').write_text(digest + '\n')
+          PYTHON
+      - name: Upload immutable artifact (safe retry)
+        run: |
+          mkdir -p "$RUNNER_TEMP/existing"
+          for file in "$ASSET" "$ASSET.sha256"; do
+            if jq -e --arg name "$file" '.assets[] | select(.name == $name)' "$RUNNER_TEMP/release.json" > /dev/null; then
+              gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir "$RUNNER_TEMP/existing"
+              cmp "$file" "$RUNNER_TEMP/existing/$file"
+            else
+              gh release upload "$RELEASE_TAG" "$file" --repo "$GITHUB_REPOSITORY"
+            fi
+          done
+      - name: Notify website after both assets are available
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN" || { echo 'Configure SITE_DISPATCH_TOKEN'; exit 1; }
+          gh api --method POST repos/yinchuxuan/WorldCardStation_website/dispatches -f event_type=web-release-ready

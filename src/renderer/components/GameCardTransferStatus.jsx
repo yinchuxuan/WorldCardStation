@@ -9,7 +9,7 @@ function GameCardTransferStatus({ status, onCancel }) {
     </span>
     <span className="game-card-import-message">{status.message}</span>
     {status.state === 'importing' && <span className="game-card-import-progress" role="progressbar" aria-label={onCancel ? '游戏资源准备进度' : '游戏卡导入进度'}><span /></span>}
-    {onCancel && <button className="game-card-switch-import" onClick={onCancel}>取消下载</button>}
+    {onCancel && <button type="button" className="game-card-transfer-cancel" onClick={onCancel}>取消下载</button>}
   </div>;
 }
 GameCardTransferStatus.propTypes = { status: PropTypes.object.isRequired, onCancel: PropTypes.func };

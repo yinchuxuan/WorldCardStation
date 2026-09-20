@@ -1,19 +1,5 @@
 .runtime-trace-control { flex: 0 0 auto; }
 
-.runtime-trace-toggle {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 44px;
-  width: 44px;
-  padding: 8px;
-  border: 0;
-  border-radius: var(--md-shape-corner-small);
-  background: transparent;
-  color: var(--md-primary);
-  cursor: pointer;
-}
-
 .runtime-trace-toggle:hover { background: color-mix(in srgb, var(--md-primary) 8%, transparent); }
 .runtime-trace-toggle[aria-pressed="true"] {
   background: var(--md-primary-container);
@@ -21,7 +7,6 @@
 }
 .runtime-trace-toggle:disabled { cursor: wait; opacity: 0.6; }
 .runtime-trace-toggle:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
-.chat-header .runtime-trace-toggle .material-icons { font-size: 28px; color: inherit; }
 .runtime-trace-toggle[data-state="recording"]::after,
 .runtime-trace-toggle[data-state="error"]::after {
   content: '';

@@ -37,10 +37,36 @@
 .game-card-title-main:disabled { cursor: default; opacity: 0.6; }
 .game-card-title-main:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
 
+.chat-header-emblem {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  width: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--md-shape-corner-small);
+  background: transparent;
+  color: var(--md-primary);
+  cursor: pointer;
+}
+
+.chat-header .chat-header-emblem .material-icons { font-size: 28px; color: inherit; }
+
 .game-card-title-icon {
   flex: 0 0 auto;
   font-size: 28px;
   color: var(--md-primary);
+  transition: transform 240ms var(--md-motion-easing-emphasized);
+}
+
+.chat-header:has(.game-card-title-main[aria-expanded="true"]) .game-card-title-icon {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card-title-icon { transition: none; }
 }
 
 .game-card-title-name {
@@ -69,7 +95,21 @@
 }
 
 .game-card-model-status {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: 0;
+  max-width: min(30vw, 320px);
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface-variant);
+}
+
+.game-card-model-status::before { flex-shrink: 0; }
+
+.game-card-model-status-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .game-card-title-error .material-icons {

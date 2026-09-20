@@ -1,9 +1,8 @@
 import React from 'react';
 import { PropTypes } from './componentPropTypes.js';
-import RuntimeTraceControl from './RuntimeTraceControl.jsx';
-import { capabilities } from '../platform/index.js';
+import ChatHeaderLeadingControl from './ChatHeaderLeadingControl.jsx';
 
-function ChatHeader({ children, onToggleHistory, icon = 'extension' }) {
+function ChatHeader({ children, onToggleHistory }) {
   const [hovered, setHovered] = React.useState(false);
   return <>
     <div className="chat-header-hover-trigger" data-gc-part="chat-header-trigger"
@@ -11,12 +10,12 @@ function ChatHeader({ children, onToggleHistory, icon = 'extension' }) {
     <div className={`chat-header chat-header-clickable${hovered ? ' chat-header-visible' : ''}`}
       data-gc-part="chat-header" onClick={onToggleHistory}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      {capabilities?.diskTrace !== false && <RuntimeTraceControl icon={icon} />}
+      <ChatHeaderLeadingControl />
       {children}
     </div>
   </>;
 }
 
-ChatHeader.propTypes = { children: PropTypes.node, onToggleHistory: PropTypes.func.isRequired, icon: PropTypes.string };
+ChatHeader.propTypes = { children: PropTypes.node, onToggleHistory: PropTypes.func.isRequired };
 
 export default ChatHeader;

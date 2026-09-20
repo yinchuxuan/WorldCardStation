@@ -6,6 +6,6 @@ import { desktopPolicy } from './platformPolicy.js';
 const gameCardPlatform = createTauriGameCardPlatform();
 const rendererServices = createTauriRendererServices();
 const modelFetch = createTauriModelFetch();
-const { capabilities, savePolicy } = desktopPolicy;
+const { capabilities, savePolicy, cardPolicy } = desktopPolicy;
 
-export { gameCardPlatform, rendererServices, modelFetch, capabilities, savePolicy };
+export { gameCardPlatform, rendererServices, modelFetch, capabilities, savePolicy, cardPolicy };

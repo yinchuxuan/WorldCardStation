@@ -4,7 +4,8 @@ const webPolicy = Object.freeze({
     cardImport: false, localDevelopment: false, diskTrace: false,
     nativeClose: false, fullscreen: true, gameplay: true
   }),
-  savePolicy: 'manual'
+  savePolicy: 'manual',
+  cardPolicy: Object.freeze({ prepareOnActivate: true, uninstall: 'resources-only' })
 });
 
 export { webPolicy };

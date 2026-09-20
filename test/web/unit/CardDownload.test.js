@@ -1,8 +1,13 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import GameCardSwitcher from '../../../src/renderer/components/GameCardSwitcher.jsx';
-jest.mock('@platform', () => ({ capabilities: { cardImport: false }, rendererServices: { cards: {} } }));
-test('shared selector displays preparation progress, cancellation and allows retry', async () => {
+import { capabilities } from '@platform';
+jest.mock('@platform', () => ({ ...jest.requireActual('../../../src/web/platformPolicy.js').webPolicy,
+  capabilities: { cardImport: false },
+  rendererServices: { cards: {} } }));
+afterEach(() => { capabilities.cardImport = false; });
+test.each([false, true])('preparation and cancellation do not depend on local import availability (%s)', async canImport => {
+  capabilities.cardImport = canImport;
   let signal;
   const activate = jest.fn((_card, options) => new Promise((_resolve, reject) => {
     signal = options.signal;

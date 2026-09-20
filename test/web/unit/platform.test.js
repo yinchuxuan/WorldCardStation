@@ -12,6 +12,8 @@ describe('platform contracts', () => {
     expect(desktop.capabilities).toBe(desktopPolicy.capabilities);
     expect(Object.values(desktop.capabilities).every(Boolean)).toBe(true);
     expect(desktop.savePolicy).toBe('automatic');
+    expect(desktop.cardPolicy).toEqual({ prepareOnActivate: false, uninstall: 'card-and-sessions' });
+    expect(Object.isFrozen(desktop.cardPolicy)).toBe(true);
     expect(selected).toBe(desktop.rendererServices);
     expect(selectedFetch).toBe(desktop.modelFetch);
   });
@@ -20,10 +22,12 @@ describe('platform contracts', () => {
     expect(web.capabilities).toBe(webPolicy.capabilities);
     expect(web.capabilities).toMatchObject({ gameplay: true, fullscreen: true, nativeClose: false, diskTrace: false });
     expect(web.savePolicy).toBe('manual');
+    expect(web.cardPolicy).toEqual({ prepareOnActivate: true, uninstall: 'resources-only' });
+    expect(Object.isFrozen(web.cardPolicy)).toBe(true);
     expect(Object.isFrozen(web.capabilities)).toBe(true);
   });
 
-  const services = { cards: Object.fromEntries(Object.entries(web.rendererServices.cards).filter(([key]) => !['list', 'setActive', 'restore'].includes(key))), trace: web.rendererServices.trace,
+  const services = { cards: Object.fromEntries(Object.entries(web.rendererServices.cards).filter(([key]) => !['list', 'setActive', 'restore', 'uninstall', 'getActiveSelection'].includes(key))), trace: web.rendererServices.trace,
     development: web.rendererServices.development };
   Object.entries(services).forEach(([group, methods]) => {
     Object.entries(methods).forEach(([name, method]) => {

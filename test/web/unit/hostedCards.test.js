@@ -6,7 +6,8 @@ jest.mock('../../../src/web/cache/prepareRelease.js', () => ({ prepareRelease: j
 const context = () => ({ card: { id: 'demo' }, preloaded: { fileContents: {} }, dispose: jest.fn(),
   resources: { readText: jest.fn().mockResolvedValue('text'), getImageUrl: jest.fn().mockResolvedValue('blob:image'),
     getAudioUrl: jest.fn().mockResolvedValue('blob:audio') } });
-const create = () => createHostedCards({ source: 'https://example.test/cards/', caches: {} });
+const create = () => createHostedCards({ source: 'https://example.test/cards/', caches: {},
+  lifecycle: { prepare: (_reference, operation) => operation() } });
 beforeEach(() => { createReference.mockResolvedValue({ key: 'one' }); });
 test('activates only prepared resources and disposes the previous context', async () => {
   const manager = create(), first = context(), second = context();

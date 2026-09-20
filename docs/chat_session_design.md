@@ -6,7 +6,7 @@
 
 ## 存储布局
 
-以下磁盘布局和自动保存规则描述 Tauri 客户端。Web 复用会话 UI 和运行管线，但使用 IndexedDB、显式保存目标和手动保存策略，见 [Web Session](./web_sessions.md)。
+以下磁盘布局和自动保存规则描述 Tauri 客户端。Web 复用会话 UI 和运行管线，但使用 IndexedDB、显式保存目标和手动保存策略，见 [Web 版本设计](./web_version_design.md)。
 
 聊天历史按 active game card 和 active session 读取：
 

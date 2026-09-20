@@ -26,7 +26,7 @@ test('automatically records the actual session from the title bar without showin
   const toggle = screen.getByRole('button', { name: '开发者模式' });
   const switchCard = screen.getByRole('button', { name: '切换游戏卡' });
   expect(toggle.closest('.chat-header')).not.toBeNull();
-  expect(toggle.querySelector('.game-card-title-icon')).toHaveTextContent('extension');
+  expect(toggle.querySelector('.game-card-title-icon')).toHaveTextContent('square');
   expect(switchCard.querySelector('.game-card-title-icon')).toBeNull();
   expect(switchCard).toHaveTextContent('我的游戏卡');
   expect(switchCard.querySelector('.material-icons')).toBeNull();
@@ -59,12 +59,12 @@ test('automatically records the actual session from the title bar without showin
   expect(toggleHistory).toHaveBeenCalledTimes(1);
 });
 
-test('retains the current card logo in history view and the chat logo in ordinary chat', () => {
-  const { rerender } = render(<ChatHeader onToggleHistory={jest.fn()} icon="extension">msg历史记录</ChatHeader>);
-  expect(screen.getByRole('button', { name: '开发者模式' }).querySelector('.material-icons')).toHaveTextContent('extension');
+test('uses the same square emblem in history view and ordinary chat', () => {
+  const { rerender } = render(<ChatHeader onToggleHistory={jest.fn()}>msg历史记录</ChatHeader>);
+  expect(screen.getByRole('button', { name: '开发者模式' }).querySelector('.material-icons')).toHaveTextContent('square');
   expect(screen.getAllByRole('button', { name: '开发者模式' })).toHaveLength(1);
-  rerender(<ChatHeader onToggleHistory={jest.fn()} icon="chat">普通聊天</ChatHeader>);
-  expect(screen.getByRole('button', { name: '开发者模式' }).querySelector('.material-icons')).toHaveTextContent('chat');
+  rerender(<ChatHeader onToggleHistory={jest.fn()}>普通聊天</ChatHeader>);
+  expect(screen.getByRole('button', { name: '开发者模式' }).querySelector('.material-icons')).toHaveTextContent('square');
 });
 
 test('native failure is visible and never claimed as a complete log', async () => {

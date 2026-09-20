@@ -4,6 +4,16 @@ import GameCardTitleControl from '../../src/renderer/components/GameCardTitleCon
 import { GameCardRuntimeProvider } from '../../src/renderer/chat/GameCardRuntimeProvider.jsx';
 
 describe('GameCardTitleControl', () => {
+  test.each([['', '模型未配置'], ['example-model', 'example-model']])('shows model status: %s', async (modelName, expected) => {
+    const platform = { repository: { getActiveCard: jest.fn(async () => null) } };
+    const { container } = render(<GameCardRuntimeProvider platform={platform}>
+      <GameCardTitleControl modelName={modelName} onActivateCard={jest.fn()} onImportCard={jest.fn()}
+        onUninstallCard={jest.fn()} cardRepository={{ list: async () => [] }} />
+    </GameCardRuntimeProvider>);
+    await screen.findByText('普通聊天');
+    expect(container.querySelector('[data-gc-part="model-status"]')).toHaveTextContent(expected);
+    expect(container.querySelector('[data-gc-part="model-status"]')).toHaveClass('game-card-model-status');
+  });
   test('routes import through the game card switch callback', async () => {
     const card = { id: 'imported', name: 'Imported Card', version: '1', rules: [] };
     const onImportCard = jest.fn(async () => card);

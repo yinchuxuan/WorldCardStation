@@ -2,6 +2,7 @@ import { capabilities, savePolicy, rendererServices } from '../../../src/rendere
 import './cacheHarness.js';
 import './runtimeHarness.js';
 import './sessionHarness.js';
+import './resourceLifecycleHarness.js';
 
 // A separate browser entry exercises real production module resolution.
 const operations = [rendererServices.window.onCloseRequested, rendererServices.trace.start,

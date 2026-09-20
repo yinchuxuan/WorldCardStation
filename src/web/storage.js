@@ -32,6 +32,7 @@ export function createWebStore(storeName, indexedDB = globalThis.indexedDB, name
     } finally { db.close(); }
   }
   return {
+    list: () => transaction('readonly', store => store.getAll()),
     get: key => transaction('readonly', store => store.get(key)),
     put: record => transaction('readwrite', store => store.put(record)),
     async update(key, change) {

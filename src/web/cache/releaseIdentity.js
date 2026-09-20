@@ -22,10 +22,14 @@ export async function createReference(entry, source) {
       || base.username || base.password || !base.pathname.endsWith('/')) throw new Error('发布来源无效');
   const [card] = parseCatalog({ formatVersion: 1, cards: [entry] }, base);
   const sourceId = await sha256(encode(base.href));
-  return { sourceId, sourceUrl: base.href, cardId: card.cardId, cardVersion: card.cardVersion,
+  return { ...card, sourceId, sourceUrl: base.href, cardId: card.cardId, cardVersion: card.cardVersion,
     releaseId: card.releaseId, releaseUrl: card.releaseUrl, baseUrl: new URL('./', card.releaseUrl).href,
     key: JSON.stringify([base.href, card.cardId, card.releaseId]),
     cacheName: `wcs-card-v1-${sourceId}-${card.cardId}-${card.releaseId}` };
+}
+export function referenceEntry(reference) {
+  return { ...reference, name: reference.name || reference.cardId, description: reference.description || '',
+    cover: reference.cover || null, release: `${reference.cardId}/${reference.releaseId}/release.json` };
 }
 export function canonical(value) {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;

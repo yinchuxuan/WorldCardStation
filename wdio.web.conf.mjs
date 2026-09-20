@@ -11,7 +11,7 @@ export const config = {
   runner: 'local',
   specs: ['./test/web/browser/startup.browser.js', './test/web/browser/catalog.browser.js', './test/web/browser/gameplay.browser.js',
     './test/web/browser/sessions.browser.js', './test/web/browser/session-playback.browser.js',
-    './test/web/browser/session-failures.browser.js'],
+    './test/web/browser/session-failures.browser.js', './test/web/browser/resource-lifecycle.browser.js'],
   maxInstances: 1,
   baseUrl: `http://127.0.0.1:${port}`,
   capabilities: [{ browserName,

@@ -21,7 +21,10 @@ test('Web state, messages and reading changes keep retry base but never auto-sav
 test('Web never subscribes to native close or mounts developer controls during gameplay', () => {
   const windowService = { onCloseRequested: jest.fn() };
   renderHook(() => useAppClosePersistence({ windowService, flush: jest.fn() }));
-  render(<ChatHeader onToggleHistory={jest.fn()}>游戏</ChatHeader>);
+  const { container } = render(<ChatHeader onToggleHistory={jest.fn()}>游戏</ChatHeader>);
   expect(windowService.onCloseRequested).not.toHaveBeenCalled();
   expect(screen.queryByRole('button', { name: '开发者模式' })).toBeNull();
+  expect(container.querySelector('.chat-header-emblem')).toHaveAttribute('aria-hidden', 'true');
+  expect(container.querySelector('[data-gc-part="game-card-title-icon"]')).toHaveTextContent('square');
+  expect(container.querySelector('.runtime-trace-toggle')).toBeNull();
 });

@@ -17,3 +17,13 @@ test('only entries returned by the trusted catalog can activate; readiness optio
   await expect(repository.setActive(null)).resolves.toBeNull();
   expect(manager.release).toHaveBeenCalledTimes(1);
 });
+test('uninstall only accepts listed entries and explicitly requests all versions by default', async () => {
+  const entry = { cardId: 'demo', name: 'Demo' };
+  const manager = { uninstall: jest.fn().mockResolvedValue({ removed: ['one'] }) };
+  const repository = createHostedRepository(manager, async () => [entry]);
+  await expect(repository.uninstall('missing')).rejects.toThrow('确认要卸载');
+  await repository.list(); await repository.uninstall('demo');
+  expect(manager.uninstall).toHaveBeenLastCalledWith(entry, { allVersions: true });
+  await repository.uninstall('demo', { allVersions: false });
+  expect(manager.uninstall).toHaveBeenLastCalledWith(entry, { allVersions: false });
+});

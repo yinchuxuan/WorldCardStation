@@ -27,7 +27,7 @@ function useGameCardSwitching({
       if (!await session.beforeLeave()) return null;
       setIsLoading?.(true);
       try {
-        const prepared = await repository.setActive(card?.id || null, options);
+        const prepared = await repository.setActive(card?.selectionId || card?.id || null, options);
         return await finishSwitch(prepared);
       } finally { session.afterLeave?.(); setIsLoading?.(false); }
     }
@@ -62,6 +62,11 @@ function useGameCardSwitching({
 
   const uninstallCard = React.useCallback(async (card) => {
     if (isLoading || !card?.id) return null;
+    if (savePolicy === 'manual') {
+      if (!await session.beforeLeave()) return null;
+      try { return await repository.uninstall(card.selectionId || card.id); }
+      finally { session.afterLeave?.(); }
+    }
     const isActive = runtime.activeCard?.id === card.id;
     if (isActive) await session.saveCurrent();
     await repository.uninstall(card.id);

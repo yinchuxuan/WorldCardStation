@@ -105,12 +105,14 @@ function ChatSessionManager({ cardId, disabled = false, saveControl, onBeforeSes
     setBusy(true);
     setError(null);
     try {
-      if (savePolicy !== 'manual') await onBeforeSessionChange?.();
+      if (savePolicy !== 'manual' || id === activeId) {
+        if (await onBeforeSessionChange?.() === false) return;
+      }
       const result = await repository.delete(id);
       if (savePolicy !== 'manual' || id === activeId) await onSessionChanged?.(result.id);
       await loadSessions();
     } catch (nextError) { setError(nextError); }
-    finally { setBusy(false); }
+    finally { onAfterSessionChange?.(); setBusy(false); }
   };
 
   const togglePanel = (event) => {

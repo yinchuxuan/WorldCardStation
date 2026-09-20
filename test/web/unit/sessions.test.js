@@ -9,8 +9,8 @@ function fixture() {
   const store = { get: jest.fn(async key => copy(records.get(key))),
     update: jest.fn(async (key, fn) => { const next = fn(copy(records.get(key))); records.set(key, copy(next)); return next; }) };
   let reference = null;
-  const create = () => createWebSessions({ scope: async () => reference, store, selection: null });
-  return { create, store, setScope: key => { reference = { key }; } };
+  const create = (options = {}) => createWebSessions({ scope: async () => reference, store, selection: null, ...options });
+  return { create, store, setScope: key => { reference = key ? { key } : null; } };
 }
 const messages = [{ id: 'u', role: 'user', content: 'test', _meta: { ttl: 2 } }];
 test('full snapshot round trip, explicit target and compare-and-swap conflict', async () => {
@@ -22,6 +22,23 @@ test('full snapshot round trip, explicit target and compare-and-swap conflict', 
   expect(saved.saveTarget.revision).toBe(1);
   await expect(b.saveHistory([], { saveTarget: stale.saveTarget })).rejects.toMatchObject({ code: 'SESSION_CONFLICT' });
   expect(await b.loadHistory()).toMatchObject({ ...options, messages, saveTarget: saved.saveTarget });
+});
+test('deleting inactive/current/last sessions updates selection and exits only an empty card scope', async () => {
+  const { create, setScope } = fixture(), onEmpty = jest.fn(), service = create({ onEmpty });
+  setScope('card');
+  const first = await service.loadHistory(), second = await service.create('second');
+  await service.delete(first.saveTarget.id);
+  expect(await service.getActive()).toEqual(second);
+  expect(onEmpty).not.toHaveBeenCalled();
+  await service.delete(second.id);
+  expect(onEmpty).toHaveBeenCalledTimes(1);
+  expect(onEmpty).toHaveBeenCalledWith({ key: 'card' });
+  expect(await service.list()).toEqual({ activeId: null, sessions: [] });
+  expect(await service.loadHistory()).toMatchObject({ sessionMissing: true });
+  setScope(null);
+  const ordinary = await service.loadHistory();
+  await service.delete(ordinary.saveTarget.id);
+  expect(onEmpty).toHaveBeenCalledTimes(1);
 });
 test('scope switching cannot redirect delayed saves and deletion cannot resurrect a session', async () => {
   const { create, setScope } = fixture(), service = create();

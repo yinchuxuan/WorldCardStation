@@ -1,1 +1,1 @@
-export { gameCardPlatform, rendererServices, capabilities, savePolicy } from '@platform';
+export { gameCardPlatform, rendererServices, capabilities, savePolicy, cardPolicy } from '@platform';

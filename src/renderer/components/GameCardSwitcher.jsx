@@ -1,6 +1,6 @@
 import React from 'react';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
-import { rendererServices, capabilities } from '../platform/index.js';
+import { rendererServices, capabilities, cardPolicy } from '../platform/index.js';
 import GameCardTransferStatus from './GameCardTransferStatus.jsx';
 import GameCardSwitchRow from './GameCardSwitchRow.jsx';
 import TavernImportDialog from './TavernImportDialog.jsx';
@@ -8,6 +8,7 @@ import { useGameCardImport } from '../gameCard/useGameCardImport.js';
 import { gameCard, PropTypes } from './componentPropTypes.js';
 
 const IDLE_IMPORT = Object.freeze({ state: 'idle', message: '' });
+const identity = card => card?.selectionId || card?.id || null;
 
 function GameCardSwitcher({
   activeCard,
@@ -26,7 +27,9 @@ function GameCardSwitcher({
   const [importStatus, setImportStatus] = React.useState(IDLE_IMPORT);
   const closeTimer = React.useRef(null);
   const download = React.useRef(null);
-  const hosted = capabilities?.cardImport === false;
+  const canImport = capabilities?.cardImport !== false;
+  const prepareOnActivate = cardPolicy?.prepareOnActivate === true;
+  const activeIdentity = activeCard ? repository.getActiveSelection?.() || identity(activeCard) : null;
   const conversion = useGameCardImport(onImport);
 
   const loadCards = React.useCallback(async () => {
@@ -60,28 +63,28 @@ function GameCardSwitcher({
 
   const activate = async (event, card) => {
     event.stopPropagation();
-    if (busy || (card?.id || null) === (activeCard?.id || null)) {
+    if (busy || identity(card) === activeIdentity) {
       setOpen(false);
       return;
     }
     setBusy(true);
     onError?.(null);
     try {
-      if (hosted) download.current = new AbortController();
-      const options = hosted ? { signal: download.current.signal, onProgress: progress => {
+      if (prepareOnActivate) download.current = new AbortController();
+      const options = prepareOnActivate ? { signal: download.current.signal, onProgress: progress => {
         const size = value => (value / 1024 / 1024).toFixed(2);
         setImportStatus({ state: 'importing', message: progress.phase === 'downloading'
           ? `下载并校验：${size(progress.completedBytes)} / ${size(progress.totalBytes)} MB`
           : progress.phase === 'checking' ? '正在检查缓存…' : '正在准备游戏…' });
       } } : undefined;
-      if (hosted) await onActivate(card, options);
+      if (prepareOnActivate) await onActivate(card, options);
       else await onActivate(card);
       setOpen(false);
     } catch (error) {
       onError?.(normalizeGameCardError(error, { title: '切换游戏卡失败' }));
     } finally {
       download.current = null;
-      if (hosted) setImportStatus(IDLE_IMPORT);
+      if (prepareOnActivate) setImportStatus(IDLE_IMPORT);
       setBusy(false);
     }
   };
@@ -122,7 +125,9 @@ function GameCardSwitcher({
     event.stopPropagation();
     if (busy || !card?.id) return;
     const name = card.name || card.id;
-    if (window.confirm && !window.confirm(`卸载“${name}”？\n\n这会删除游戏卡资源和全部存档，且无法恢复。`)) return;
+    const warning = cardPolicy?.uninstall === 'resources-only' ? `卸载“${name}”在此来源下所有版本的游戏资源？\n\n存档会保留，再次游玩时重新下载。正在游玩的页面将退出，未存档进度会丢弃。`
+      : `卸载“${name}”？\n\n这会删除游戏卡资源和全部存档，且无法恢复。`;
+    if (window.confirm && !window.confirm(warning)) return;
     window.clearTimeout(closeTimer.current);
     setImportStatus(IDLE_IMPORT);
     setBusy(true);
@@ -140,10 +145,10 @@ function GameCardSwitcher({
   };
 
   const title = activeCard?.name || activeCard?.id || '普通聊天';
-  const renderCard = card => <GameCardSwitchRow key={card?.id || 'no-card'} card={card}
-    active={(card?.id || null) === (activeCard?.id || null)} busy={busy || isLoading}
+  const renderCard = card => <GameCardSwitchRow key={identity(card) || 'no-card'} card={card}
+    active={identity(card) === activeIdentity} busy={busy || isLoading}
     removing={removingId === card?.id} onActivate={activate}
-    onUninstall={hosted ? undefined : uninstallCard} onUpdate={hosted ? undefined : importCard} />;
+    onUninstall={uninstallCard} onUpdate={canImport ? importCard : undefined} />;
 
   return <div className="game-card-switcher" data-gc-part="game-card-switcher">
     <button type="button" className="game-card-title-main" data-gc-part="game-card-title-main"
@@ -160,7 +165,7 @@ function GameCardSwitcher({
         {renderCard(null)}
         {cards.map(renderCard)}
       </div>
-      {!hosted && <button type="button" className="game-card-switch-import" onClick={importCard}
+      {canImport && <button type="button" className="game-card-switch-import" onClick={importCard}
         disabled={busy || isLoading} aria-label="导入游戏卡文件" title="选择卡片文件，或项目目录中的 card.json（导入整个目录）">
         <span className={`material-icons${busy ? ' importing' : ''}`}>
           {busy ? 'progress_activity' : 'upload_file'}
@@ -181,7 +186,7 @@ GameCardSwitcher.propTypes = {
   onImport: PropTypes.func.isRequired,
   onUninstall: PropTypes.func.isRequired,
   onError: PropTypes.func,
-  repository: PropTypes.shape({ list: PropTypes.func.isRequired })
+  repository: PropTypes.shape({ list: PropTypes.func.isRequired, getActiveSelection: PropTypes.func })
 };
 
 export default GameCardSwitcher;

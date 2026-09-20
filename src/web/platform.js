@@ -26,9 +26,10 @@ const cards = createHostedRepository();
 const rendererServices = Object.freeze({
   config: webConfig,
   background: { ...webBackground, selectImage: selectBackgroundImage },
-  sessions: createWebSessions({ scope: async () => { await cards.restore(); return hostedCards.getReference(); } }),
+  sessions: createWebSessions({ scope: async () => { await cards.restore(); return hostedCards.getReference(); },
+    onEmpty: reference => { if (hostedCards.getReference()?.key === reference.key) hostedCards.exit(); } }),
   cards: { ...unavailableService('cards', [
-    'uninstall', 'importFile',
+    'importFile',
     'stageTavernImport', 'commitTavernImport', 'cancelTavernImport'
   ]), ...cards },
   development: unavailableService('development', ['getInstructions']),
@@ -51,6 +52,6 @@ const gameCardPlatform = Object.freeze({
   repository: { getActiveCard: async () => { await cards.restore(); return hostedCards.repository.getActiveCard(); } },
   scriptExecutor: controlledScriptExecutor
 });
-const { capabilities, savePolicy } = webPolicy;
+const { capabilities, savePolicy, cardPolicy } = webPolicy;
 
-export { gameCardPlatform, rendererServices, modelFetch, capabilities, savePolicy };
+export { gameCardPlatform, rendererServices, modelFetch, capabilities, savePolicy, cardPolicy };

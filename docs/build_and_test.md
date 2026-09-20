@@ -19,7 +19,7 @@ Tauri is the only desktop target.
 | `npm run test:web:e2e` | Build and test production catalog/gameplay, including root and `/play/` startup |
 | `npm run test:web` | Run Web unit, build-isolation, browser integration and gameplay tests |
 | `npm run game-card:export -- <card-dir> --format gamecard` | Validate and export a game card package to `dist/game-cards/` |
-| `npm run game-card:publish -- <card-dir> [--cover <relative-path>]` | Publish immutable static releases and catalog to `dist/web-cards/`; see [protocol](./web_static_release.md) |
+| `npm run game-card:publish -- <card-dir> [--cover <relative-path>]` | Publish immutable static releases and catalog to `dist/web-cards/`; see [Web design](./web_version_design.md) |
 | `npm run game-card:export -- <card-dir> --format png --cover <path>` | Export a renderable PNG containing the complete game card |
 | `npm run test` | Run Jest, integration, Rust and Tauri desktop E2E tests |
 | `npm run test:js` | Run Jest unit and JavaScript integration tests |
@@ -46,7 +46,7 @@ Tauri is the only desktop target.
 
 ## Web build and browser tests
 
-The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [resource cache](./web_resource_cache.md) and [Web runtime](./web_runtime.md). [Sessions](./web_sessions.md) use explicit IndexedDB saving with complete snapshots and revision conflict checks. Unavailable services throw `PLATFORM_UNAVAILABLE`, without pretending to save. Desktop retains automatic saving.
+The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [Web design](./web_version_design.md). Sessions use explicit IndexedDB saving with complete snapshots and revision conflict checks. Resource removal preserves sessions and coordinates tabs via Web Locks; session deletion preserves resources. Unavailable services throw `PLATFORM_UNAVAILABLE`. Desktop retains automatic saving.
 
 `web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
 

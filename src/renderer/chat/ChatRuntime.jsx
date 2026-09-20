@@ -146,7 +146,7 @@ function ChatRuntime({
       uiScopeKey={session.revision} onError={runtime.setRuntimeError}
       beginOperation={persistence.manual.beginOperation} canMutate={persistence.manual.canMutate} />
     <div className="chat-main" data-gc-part="chat-main">
-      <ChatHeader onToggleHistory={toggleHistory} icon={runtime.activeCard ? 'extension' : 'chat'}>
+      <ChatHeader onToggleHistory={toggleHistory}>
         {showMsgHistory ? <span className="header-title">msg历史记录</span> : <GameCardTitleControl
           modelName={modelConfig?.apiUrl ? (modelConfig.modelName || '已连接') : ''} isLoading={isLoading}
           onBeforeSessionChange={session.beforeLeave}

@@ -4,15 +4,19 @@
 
 平台 adapter 隔离 React/game card runtime 与 Tauri native backend。Shared core 只接收普通数据和显式依赖，不读取 `window`、DOM、本地文件系统或 Tauri API。
 
-Tauri 是唯一桌面 target；Web 提供可信目录、全量缓存、本地资源、模型直连及共享游玩运行时，进度采用 [Session 显式保存](./web_sessions.md)。见[资源缓存](./web_resource_cache.md)和[Web runtime](./web_runtime.md)。memory adapter 用于 unit test，不参与生产构建。
+Tauri 是唯一桌面 target；Web 提供可信目录、全量缓存、本地资源、模型直连及共享游玩运行时，进度采用 Session 显式保存，见 [Web 版本设计](./web_version_design.md)。memory adapter 用于 unit test，不参与生产构建。
 
 ## 双端入口与能力
 
 Vite 通过 `@platform` 选择 `src/renderer/platform/desktop.js` 或 `src/web/platform.js`；renderer 下的 `index.js` / `modelFetch.js` 作为共享代码的稳定导出入口。Web 专属入口、页面、目录服务和能力策略位于与 `src/tauri/` 平级的 `src/web/`。Jest 默认选择桌面入口，浏览器集成测试验证 Web 的真实构建解析。
 
-两个入口统一导出 `gameCardPlatform`、`rendererServices`、`modelFetch`、`capabilities`、`savePolicy`。能力声明只表示当前已实现的能力，包含 `cardImport`、`localDevelopment`、`diskTrace`、`nativeClose`、`fullscreen` 和 `gameplay`；保存策略分别为 `automatic` / `manual`，不混入能力字段。
+两个入口统一导出 `gameCardPlatform`、`rendererServices`、`modelFetch`、`capabilities`、`savePolicy`、`cardPolicy`。能力声明只表示当前已实现的能力，包含 `cardImport`、`localDevelopment`、`diskTrace`、`nativeClose`、`fullscreen` 和 `gameplay`；保存策略分别为 `automatic` / `manual`，不混入能力字段。
 
-Web 开启 `gameplay` / `fullscreen`；其他 capability 关闭。`@application` 直接使用共享 App、顶栏、游戏卡选择器、Session 管理和设置面板；Web cards.list 读取可信托管目录，setActive 准备完整缓存后返回运行卡片。共享组件隐藏本地导入/更新/卸载及开发入口，不订阅原生关闭。共享 hooks 按 manual 策略跳过自动保存，切换前提供保存／放弃／取消。Web sessions.loadHistory 返回完整快照与显式 saveTarget，saveHistory 在 IndexedDB 事务内校验 revision；未实现的其它服务仍抛出 `PLATFORM_UNAVAILABLE`。
+共享组件维护一份布局、样式与交互；平台策略只决定可用操作和业务语义，不另建 Web 版组件。标题栏的 `ChatHeaderEmblem` 统一图标和尺寸，`ChatHeaderLeadingControl` 按 `diskTrace` 决定是否包装开发者模式操作；Web 不挂载日志订阅。图标转动、模型状态、卡片选择和 Session 菜单均使用共享实现。
+
+`cardPolicy.prepareOnActivate` 指定选择卡片时是否显示准备/下载进度及取消操作；`cardPolicy.uninstall` 指定卸载确认语义：桌面为 `card-and-sessions`，Web 为 `resources-only`。它们不依赖 `cardImport`，后者只控制本地导入/更新入口。真正的下载、资源清理和 Session 存储仍由对应 adapter 执行；UI 策略不代替数据层约束。
+
+Web 开启 `gameplay` / `fullscreen`；其他 capability 关闭。`@application` 使用共享 App、顶栏、卡片选择器、Session 管理和设置；cards.list 合并可信目录与历史发布引用，setActive 准备完整缓存后返回运行卡片。隐藏本地导入/更新和开发入口，不订阅原生关闭；Web 卸载只清资源并保留 Session。manual 策略不自动保存，切换直接执行、不弹额外存档确认。sessions.loadHistory 返回完整快照与显式 saveTarget，saveHistory 在 IndexedDB 事务内校验 revision；未实现的其它服务仍抛出 `PLATFORM_UNAVAILABLE`。
 
 桌面入口仍挂载原有 App 并使用原有 native 服务，自动保存语义不变。构建期依赖检查禁止 Web 产物引入 Tauri API、Tauri adapter 或 WebDriver。
 

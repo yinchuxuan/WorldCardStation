@@ -23,7 +23,10 @@ function GameCardTitleControl({ modelName, isLoading = false, saveControl, onBef
       <GameCardSwitcher activeCard={card} isLoading={isLoading}
         onActivate={onActivateCard} onImport={onImportCard} onUninstall={onUninstallCard} onError={reportError}
         repository={cardRepository} />
-      {modelName ? <span className="config-status configured game-card-model-status" data-gc-part="model-status">{modelName}</span> : null}
+      <span className={`config-status game-card-model-status${modelName ? ' configured' : ''}`}
+        data-gc-part="model-status" title={modelName || '模型未配置'}>
+        <span className="game-card-model-status-label">{modelName || '模型未配置'}</span>
+      </span>
       <div className="game-card-title-actions" data-gc-part="game-card-title-actions">
         {audioControl || null}
         <ChatSessionManager

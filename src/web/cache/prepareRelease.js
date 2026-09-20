@@ -12,6 +12,9 @@ export async function prepareRelease(reference, dependencies, options = {}) {
   let context;
   try {
     checkAbort(signal);
+    const previous = await records.get(reference.key);
+    await records.put({ ...previous, ...reference, ready: false });
+    checkAbort(signal);
     onProgress({ phase: 'checking', completedBytes: 0, totalBytes: 0 });
     const cache = await caches.open(reference.cacheName);
     const cachedManifest = await cache.match(reference.releaseUrl);
@@ -24,7 +27,6 @@ export async function prepareRelease(reference, dependencies, options = {}) {
     catch { if (cachedManifest) await cache.delete(reference.releaseUrl); throw new Error('发布清单不是有效 JSON'); }
     try { await validateManifest(manifest, reference); }
     catch (error) { if (cachedManifest) await cache.delete(reference.releaseUrl); throw error; }
-    const previous = await records.get(reference.key);
     const record = { ...reference, contentFingerprint: manifest.contentFingerprint, ready: false };
     await records.put(record);
     if (!cachedManifest) await cache.put(reference.releaseUrl,

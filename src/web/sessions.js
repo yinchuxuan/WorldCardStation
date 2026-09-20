@@ -13,7 +13,7 @@ function newSession(title) {
 }
 
 // One scope record keeps snapshots and their index in the same IndexedDB transaction.
-export function createWebSessions({ scope, store = createWebStore('sessions'), selection = globalThis.sessionStorage }) {
+export function createWebSessions({ scope, store = createWebStore('sessions'), selection = globalThis.sessionStorage, onEmpty }) {
   const selected = new Map();
   let loaded = null;
   const keyFor = value => value?.key || 'no-card';
@@ -103,6 +103,7 @@ export function createWebSessions({ scope, store = createWebStore('sessions'), s
       });
       const next = active(record)?.id || null;
       choose(ctx.key, next);
+      if (!next && ctx.reference) await onEmpty?.(ctx.reference);
       return { id: next };
     }
   };

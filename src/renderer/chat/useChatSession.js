@@ -2,7 +2,7 @@ import React from 'react';
 import generationServices from './generationServices.js';
 import { ensureMessageIds } from './messageIds.js';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
-import { rendererServices, savePolicy } from '../platform/index.js';
+import { rendererServices, savePolicy, gameCardPlatform } from '../platform/index.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
@@ -25,7 +25,7 @@ function useChatSession({
       const result = await repository.loadHistory();
       if (result.sessionMissing) {
         setMessages([]); setGameState({}); setRuntimeError(null);
-        onSessionLoaded?.({ card: null, state: {} });
+        onSessionLoaded?.({ card: await gameCardPlatform.repository.getActiveCard(), state: {} });
         return result;
       }
       persistence.hydrate(result);

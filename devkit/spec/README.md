@@ -8,18 +8,18 @@
 
 | 任务 | 文档 |
 | --- | --- |
-| 消息结构、可见性、TTL、规则阶段和执行顺序 | [游戏卡运行流程](./game_card_design.md) |
-| 卡结构校验与协议版本 | [Schema 边界](./game_card/game_card_schema.md) |
-| insert/remove/replace、state action、exec/args/include | [操作](./game_card/game_card_actions.md) |
-| 消息匹配、逻辑组合、最近 N 条 | [Predicate](./game_card/game_card_predicates.md) |
-| 模板、文件/目录授权、find、include/select、transform | [Content](./game_card/game_card_content.md) |
-| JSON 文件拆分与加载限制 | [JSON import](./game_card/game_card_imports.md) |
-| 变量默认值、约束、引用、state_patch、持久化 | [State](./game_card/game_card_state.md) |
-| 显示变换与分段阅读 | [Display](./game_card/game_card_display.md)、[只读模板和深度](./game_card/game_card_display_templates.md) |
-| 回复契约与自动重试 | [Response validation](./game_card/game_card_response_validation.md) |
-| BGM、背景、CG、立绘与阅读面板 | [Audio](./game_card/game_card_audio.md)、[Visual](./game_card/game_card_visual.md)、[面板](./game_card/game_card_visual_panel.md) |
-| CSS、自定义 React root 与受控 UI 事件 | [UI runtime](./game_card/game_card_ui_runtime.md) |
-| 实际游玩行为排查、session 日志格式与完整性 | [Runtime trace](./game_card/game_card_runtime_trace.md) |
+| 消息结构、可见性、TTL、规则阶段和执行顺序 | [游戏卡运行流程](./game_card/overview.md) |
+| 卡结构校验与协议版本 | [Schema 边界](./game_card/schema.md) |
+| insert/remove/replace、state action、exec/args/include | [操作](./game_card/rules/actions.md) |
+| 消息匹配、逻辑组合、最近 N 条 | [Predicate](./game_card/rules/predicates.md) |
+| 模板、文件/目录授权、find、include/select、transform | [Content](./game_card/rules/content.md) |
+| JSON 文件拆分与加载限制 | [JSON import](./game_card/packaging/imports.md) |
+| 变量默认值、约束、引用、state_patch、持久化 | [State](./game_card/rules/state.md) |
+| 显示变换与分段阅读 | [Display](./game_card/presentation/display.md)、[只读模板和深度](./game_card/presentation/display_templates.md) |
+| 回复契约与自动重试 | [Response validation](./game_card/rules/response_validation.md) |
+| BGM、背景、CG、立绘与阅读面板 | [Audio](./game_card/presentation/audio.md)、[Visual](./game_card/presentation/visual.md)、[面板](./game_card/presentation/visual_panel.md) |
+| CSS、自定义 React root 与受控 UI 事件 | [UI runtime](./game_card/presentation/ui_runtime.md) |
+| 实际游玩行为排查、session 日志格式与完整性 | [Runtime trace](./authoring/runtime_trace.md) |
 
 库说明不属于 DSL spec，见 [内置 lib 索引](../libs.md)。lib 与普通 exec 使用同一套权限和参数语义。
 

@@ -24,7 +24,7 @@ client --init-project .
 
 - 从库索引或开发者提供的库中选型，先阅读该版本的 README，确认用途、入口、参数和依赖。
 - 内置库按索引通过初始化命令获取；其它库按其文档将所需脚本及配套文档复制到卡内（通常为 `lib/<库名>/`），保持相对目录结构，不直接引用客户端或平台源码中的库。
-- 按库文档准备游戏卡自己的配置、内容和资源授权，在指定规则阶段通过普通 `exec` 的 `sourceFile`、`args` 调用入口；共享脚本依赖按需使用 `include(...)`。具体字段以库文档为准，语法见 [exec](./spec/game_card/game_card_actions.md#exec)。复制文件不等于完成接入。
+- 按库文档准备游戏卡自己的配置、内容和资源授权，在指定规则阶段通过普通 `exec` 的 `sourceFile`、`args` 调用入口；共享脚本依赖按需使用 `include(...)`。具体字段以库文档为准，语法见 [exec](./spec/game_card/rules/actions.md#exec)。复制文件不等于完成接入。
 
 脚本、库和资源放在游戏卡目录内，使用相对路径；文本读取遵守 `files` 注册或目录 scope 授权。保留开发者已有内容和指定的库版本。
 
@@ -46,6 +46,6 @@ dry-run 只检查语法和静态引用，不执行规则、不调用模型、不
 
 在 `gameCardsPath` 下读取 `active.json` 获取卡 ID，再读 `cards/<card-id>/sessions/active.json` 获取 session ID，最后读取该 session 目录的 `trace.jsonl`。若已切换会话，按原名称在对应卡的 `sessions/index.json` 中查找；同名时确认目标。
 
-按 [运行日志说明](./spec/game_card/game_card_runtime_trace.md) 对照预期检查 messages/state 的实际变化。核对日志归属、复现时间和完整性；日志缺失时先确认记录已开启并重新复现。只读平台数据，修复在开发仓库中进行。
+按 [运行日志说明](./spec/authoring/runtime_trace.md) 对照预期检查 messages/state 的实际变化。核对日志归属、复现时间和完整性；日志缺失时先确认记录已开启并重新复现。只读平台数据，修复在开发仓库中进行。
 
 修复后重新 dry-run，再由开发者重新导入并验证；修改源码不会自动更新已安装卡。不要将日志、密钥或本机绝对路径放入卡内容或提交 Git。

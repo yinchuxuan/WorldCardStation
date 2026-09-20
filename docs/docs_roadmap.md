@@ -1,37 +1,25 @@
-# Docs Roadmap
+# Agent 文档入口
 
-Read only the documents relevant to the current task.
+本页只索引一级目录。选择与任务匹配的目录主文档，再由该文档进入下一层；不要预先读取所有分支。
 
-- [Coding rules](./coding_rules.md)
-- [JavaScript style](./coding_styles/coding_styles_js.md)
-- [React style](./coding_styles/coding_style_react.md)
-- [UI design](./ui_design_spec.md)
-- [Architecture](./architecture.md)
-- [Build and test](./build_and_test.md)
-- [Chat sessions](./chat_session_design.md)
-- [Platform adapter](./platform_adapter.md)
-- [Web version design](./web_version_design.md)
-- [Game card design](./game_card_design.md)
-- [Agent-assisted game card development](./game_card/game_card_agent_development.md)
-- [Offline game card devkit](./game_card/game_card_devkit.md)
-- [Game card project initialization](./game_card/game_card_project_init.md)
-- [Client game card dry-run](./game_card/game_card_dry_run.md)
-- [Developer-mode runtime trace](./game_card/game_card_runtime_trace.md)
-- [Game card schema](./game_card/game_card_schema.md)
-- [Game card state](./game_card/game_card_state.md)
-- [Game card display](./game_card/game_card_display.md)
-- [Game card display templates](./game_card/game_card_display_templates.md)
-- [Game card actions](./game_card/game_card_actions.md)
-- [Game card worldbook library](../libs/worldbook-library/README.md)
-- [Game card timeline library](../libs/timeline-library/README.md)
-- [Game card predicates](./game_card/game_card_predicates.md)
-- [Game card content](./game_card/game_card_content.md)
-- [Game card imports](./game_card/game_card_imports.md)
-- [Game card packages](./game_card/game_card_packages.md)
-- [Tavern card import and conversion](./game_card/game_card_tavern_import.md)
-- [Tavern regex conversion](./game_card/game_card_tavern_regex.md)
-- [Game card response validation](./game_card/game_card_response_validation.md)
-- [Game card audio](./game_card/game_card_audio.md)
-- [Game card visual](./game_card/game_card_visual.md)
-- [Game card visual panel](./game_card/game_card_visual_panel.md)
-- [Game card UI runtime](./game_card/game_card_ui_runtime.md)
+## 阅读规则
+
+- 修改实现时，先进入工程规范分支，按语言选择必要规范；纯文档任务不需要读取语言规范。
+- 跨模块任务先进入架构分支确认职责，再进入对应功能分支。
+- 目录主文档只索引本层文档与直接子目录的主文档，不越级展开。
+- 叶子文档定义具体契约；其中的前置文档和相关契约链接可跨分支引用，不代表必须遍历整个分支。
+- “相关代码”相对于仓库根目录。文档不足或与行为冲突时再核对实现及测试。
+- 区分目标设计、当前契约和历史记录；字段约束以唯一 Schema 为准。
+- 本入口服务平台仓库维护；游戏卡仓库中的 Agent 使用客户端分发的 development.md。
+
+## 一级目录
+
+| 任务范围 | 目录主文档 |
+| --- | --- |
+| 编码约束、构建、验证与发布 | [工程规范](./engineering/README.md) |
+| 模块职责、双端服务、Session、共享 UI 与 Web 设计 | [平台架构](./architecture/README.md) |
+| 游戏卡结构、执行语义、规则、演出与分发 | [游戏卡协议](./game_card/README.md) |
+| Agent 写卡流程、初始化、静态检查与运行日志 | [写卡工具](./authoring/README.md) |
+| 酒馆等外部格式的转换与兼容 | [兼容适配](./compatibility/README.md) |
+| 世界书、时间线等可选库 | [扩展库](./libraries/README.md) |
+| 历史发布信息 | [版本记录](./releases/README.md) |

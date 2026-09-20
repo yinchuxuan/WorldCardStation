@@ -6,7 +6,8 @@ fn main() {
     for path in [
         "devkit",
         "docs/game_card",
-        "docs/game_card_design.md",
+        "docs/authoring",
+        "docs/compatibility",
         "libs/worldbook-library",
         "package.json",
         "src/shared/game-card/schema/game-card.schema.json",

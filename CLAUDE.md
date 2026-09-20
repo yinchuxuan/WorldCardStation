@@ -8,7 +8,7 @@ Node.js + Tauri + React
 
 ## Docs
 
-*Read docs/docs_roadmap.md for more context. You MUST search and read all the docs you need for the task first. Unless you need extra information, do not read the files directly.*
+Read `docs/docs_roadmap.md` first and follow its task routes. Read only the matching contracts and their explicit prerequisites; do not recursively read the whole documentation tree. Use each document's code pointers when implementation details are needed. Pure documentation tasks do not require language-specific coding guides.
 
 ## auto mode
 

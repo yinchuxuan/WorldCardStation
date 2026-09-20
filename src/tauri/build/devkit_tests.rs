@@ -53,6 +53,22 @@ fn devkit_is_deterministic_versioned_and_contains_only_offline_resources() {
 }
 
 #[test]
+fn devkit_uses_task_directories_without_repository_only_routing() {
+    let root = root();
+    let bundle = collect(&root, env!("CARGO_PKG_VERSION")).unwrap();
+    for relative in super::SPEC_DOCUMENTS {
+        let source = fs::read_to_string(root.join("docs").join(relative)).unwrap();
+        let bundled = std::str::from_utf8(&bundle[&format!("spec/{relative}")]).unwrap();
+        assert!(source.contains("适用任务："), "{relative}");
+        assert!(!bundled.contains("适用任务："), "{relative}");
+        assert_eq!(bundled, files::offline_markdown(&source).unwrap());
+    }
+    assert!(bundle.contains_key("spec/game_card/rules/actions.md"));
+    assert!(bundle.contains_key("spec/authoring/runtime_trace.md"));
+    assert!(!bundle.contains_key("spec/game_card_design.md"));
+}
+
+#[test]
 fn devkit_library_scripts_match_the_canonical_library_and_ship_with_docs() {
     let bundle = collect(&root(), env!("CARGO_PKG_VERSION")).unwrap();
     let mut library = files::Files::new();

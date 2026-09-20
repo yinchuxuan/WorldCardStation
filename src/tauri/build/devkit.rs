@@ -8,22 +8,23 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-const SPEC_TOPICS: &[&str] = &[
-    "schema",
-    "actions",
-    "predicates",
-    "content",
-    "imports",
-    "state",
-    "display",
-    "display_templates",
-    "audio",
-    "visual",
-    "visual_panel",
-    "ui_runtime",
-    "response_validation",
-    "runtime_trace",
-    "tavern_regex",
+const SPEC_DOCUMENTS: &[&str] = &[
+    "game_card/overview.md",
+    "game_card/schema.md",
+    "game_card/rules/actions.md",
+    "game_card/rules/predicates.md",
+    "game_card/rules/content.md",
+    "game_card/packaging/imports.md",
+    "game_card/rules/state.md",
+    "game_card/presentation/display.md",
+    "game_card/presentation/display_templates.md",
+    "game_card/presentation/audio.md",
+    "game_card/presentation/visual.md",
+    "game_card/presentation/visual_panel.md",
+    "game_card/presentation/ui_runtime.md",
+    "game_card/rules/response_validation.md",
+    "authoring/runtime_trace.md",
+    "compatibility/tavern/regex.md",
 ];
 
 fn json_field(root: &Path, file: &str, field: &str) -> io::Result<String> {
@@ -50,12 +51,8 @@ pub fn collect(root: &Path, platform_version: &str) -> io::Result<Files> {
     )?;
     let mut bundle = Files::new();
     read_tree(&root.join("devkit"), "", &mut bundle)?;
-    for relative in std::iter::once("game_card_design.md".to_string()).chain(
-        SPEC_TOPICS
-            .iter()
-            .map(|topic| format!("game_card/game_card_{topic}.md")),
-    ) {
-        let source = fs::read_to_string(root.join("docs").join(&relative))?;
+    for relative in SPEC_DOCUMENTS {
+        let source = fs::read_to_string(root.join("docs").join(relative))?;
         bundle.insert(
             format!("spec/{relative}"),
             offline_markdown(&source)?.into_bytes(),

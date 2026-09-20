@@ -3,9 +3,9 @@ export function createWebStore(storeName, indexedDB = globalThis.indexedDB, name
     if (!indexedDB) throw new Error('当前浏览器无法使用 IndexedDB');
     return new Promise((resolve, reject) => {
       let blocked = false;
-      const request = indexedDB.open(name, 2);
+      const request = indexedDB.open(name, 3);
       request.onupgradeneeded = () => {
-        for (const store of ['cardReferences', 'settings', 'backgrounds']) {
+        for (const store of ['cardReferences', 'settings', 'backgrounds', 'sessions']) {
           if (!request.result.objectStoreNames.contains(store)) request.result.createObjectStore(store, { keyPath: 'key' });
         }
       };
@@ -33,6 +33,24 @@ export function createWebStore(storeName, indexedDB = globalThis.indexedDB, name
   }
   return {
     get: key => transaction('readonly', store => store.get(key)),
-    put: record => transaction('readwrite', store => store.put(record))
+    put: record => transaction('readwrite', store => store.put(record)),
+    async update(key, change) {
+      const db = await open();
+      try {
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          let value, failure;
+          const request = store.get(key);
+          request.onsuccess = () => {
+            try { value = change(request.result); store.put(value); }
+            catch (error) { failure = error; tx.abort(); }
+          };
+          tx.oncomplete = () => resolve(value);
+          tx.onabort = () => reject(failure || tx.error || new Error('会话事务失败'));
+          tx.onerror = () => {};
+        });
+      } finally { db.close(); }
+    }
   };
 }

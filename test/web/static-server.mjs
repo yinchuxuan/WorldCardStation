@@ -40,8 +40,10 @@ export async function startStaticServer(port = 1430) {
         return;
       }
     }
-    const cardsPrefix = url.pathname.startsWith('/play/cards/') ? '/play/cards/' : '/cards/';
-    const mount = url.pathname.startsWith(cardsPrefix) ? [cardsPrefix, 'web-fixture/cards']
+    const cardsPrefix = url.pathname.startsWith('/reading/cards/') ? '/reading/cards/'
+      : url.pathname.startsWith('/play/cards/') ? '/play/cards/' : '/cards/';
+    const mount = url.pathname.startsWith(cardsPrefix) ? [cardsPrefix, cardsPrefix === '/reading/cards/' ? 'web-reading-fixture/cards' : 'web-fixture/cards']
+      : url.pathname.startsWith('/reading/') ? ['/reading/', 'web']
       : url.pathname.startsWith('/play/') ? ['/play/', 'web-subpath']
       : url.pathname.startsWith('/integration/') ? ['/integration/', 'web-harness'] : ['/', 'web'];
     const root = path.resolve('dist', mount[1]);

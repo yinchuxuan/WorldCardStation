@@ -94,10 +94,10 @@ function useSegmentedReading({
   }, [commit, entries]);
 
   React.useLayoutEffect(() => {
-    if (!enabled || entries.length === 0 || restoredTokenRef.current === restoreToken) return;
+    if (!enabled || (isLoading && restorePosition?.messageId) || entries.length === 0 || restoredTokenRef.current === restoreToken) return;
     restoredTokenRef.current = restoreToken;
     commit(restoreReadingCursor(entries, restorePosition));
-  }, [commit, enabled, entries, restorePosition, restoreToken]);
+  }, [commit, enabled, entries, isLoading, restorePosition, restoreToken]);
 
   React.useEffect(() => () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current);

@@ -37,7 +37,8 @@ function useReadingStatePatches({
   scopeKey,
   onPatchApplied,
   onPresentationEffects,
-  onError
+  onError,
+  beginOperation
 }) {
   const messagesRef = React.useRef(messages);
   const stateRef = React.useRef(state);
@@ -45,6 +46,7 @@ function useReadingStatePatches({
   const queueRef = React.useRef(Promise.resolve());
   messagesRef.current = messages;
   stateRef.current = state;
+  const { getAppliedPatchCount, markPatchApplied } = typewriter;
 
   React.useEffect(() => {
     progressRef.current = new Map();
@@ -59,7 +61,7 @@ function useReadingStatePatches({
     const key = entry.key;
     const saved = progressRef.current.get(key);
     let appliedCount = saved?.appliedCount
-      ?? (entry.streaming ? typewriter.getAppliedPatchCount?.() || 0 : meta.appliedPatchCount || 0);
+      ?? (entry.streaming ? getAppliedPatchCount?.() || 0 : meta.appliedPatchCount || 0);
     let afterResponseApplied = saved?.afterResponseApplied ?? meta?.afterResponseApplied === true;
     const pending = entry.patches.filter(patch => (
       patch.ordinal >= appliedCount && patch.boundary <= targetBoundary
@@ -86,7 +88,7 @@ function useReadingStatePatches({
         });
       }
       appliedCount = patch.ordinal + 1;
-      typewriter.markPatchApplied?.(appliedCount);
+      markPatchApplied?.(appliedCount);
       progressRef.current.set(key, { appliedCount, afterResponseApplied });
     }
 
@@ -127,15 +129,17 @@ function useReadingStatePatches({
     });
     messagesRef.current = completed;
     setMessages(completed);
-  }, [card, onError, onPatchApplied, onPresentationEffects, setMessages, setState, typewriter]);
+  }, [card, getAppliedPatchCount, markPatchApplied, onError, onPatchApplied, onPresentationEffects, setMessages, setState]);
 
   return React.useCallback((progress) => {
+    const end = beginOperation?.();
     const traceContext = runtimeTrace.capture();
     queueRef.current = queueRef.current
       .then(() => consume({ ...progress, traceContext }))
-      .catch(error => onError?.(generationServices.normalizeGameCardError(error)));
+      .catch(error => onError?.(generationServices.normalizeGameCardError(error)))
+      .finally(() => end?.());
     return queueRef.current;
-  }, [consume, onError]);
+  }, [beginOperation, consume, onError]);
 }
 
 export { latestAssistantIndex, playbackMeta, updatePlayback };

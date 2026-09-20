@@ -7,7 +7,7 @@ describe('real browser platform module integration', () => {
     const result = JSON.parse(await $('#result').getText());
     expect(result.savePolicy).toBe('manual');
     expect(result.capabilities).toMatchObject({ gameplay: true, fullscreen: true, nativeClose: false, diskTrace: false });
-    expect(result.errors).toEqual(Array(5).fill('PLATFORM_UNAVAILABLE'));
+    expect(result.errors).toEqual(Array(4).fill('PLATFORM_UNAVAILABLE'));
     expect(await browser.execute(() => window.__startupErrors)).toEqual([]);
   });
 });

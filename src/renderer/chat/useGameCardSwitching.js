@@ -24,12 +24,12 @@ function useGameCardSwitching({
   const activate = React.useCallback(async (card, options) => {
     if (isLoading) return null;
     if (savePolicy === 'manual') {
-      if (!window.confirm('当前预览版不保存进度，切换游戏会丢弃本次进度。继续吗？')) return null;
+      if (!await session.beforeLeave()) return null;
       setIsLoading?.(true);
       try {
         const prepared = await repository.setActive(card?.id || null, options);
         return await finishSwitch(prepared);
-      } finally { setIsLoading?.(false); }
+      } finally { session.afterLeave?.(); setIsLoading?.(false); }
     }
     await session.saveCurrent();
     await repository.setActive(card?.id || null);

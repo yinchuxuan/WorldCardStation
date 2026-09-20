@@ -10,6 +10,7 @@ function useChatSession({
   setGameState,
   setRuntimeError,
   isLoading,
+  setIsLoading,
   persistence,
   typewriter,
   onResetView,
@@ -19,8 +20,14 @@ function useChatSession({
   const [revision, setRevision] = React.useState(0);
   const loadCurrent = React.useCallback(async () => {
     persistence.reset();
+    if (savePolicy === 'manual') setIsLoading?.(true);
     try {
       const result = await repository.loadHistory();
+      if (result.sessionMissing) {
+        setMessages([]); setGameState({}); setRuntimeError(null);
+        onSessionLoaded?.({ card: null, state: {} });
+        return result;
+      }
       persistence.hydrate(result);
       const loadedMessages = result.messages || [];
       const loadedState = result.gameState || {};
@@ -44,8 +51,8 @@ function useChatSession({
     } catch (error) {
       setRuntimeError(normalizeGameCardError(error));
       return null;
-    }
-  }, [onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError]);
+    } finally { if (savePolicy === 'manual') setIsLoading?.(false); }
+  }, [onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
 
   const load = React.useCallback(() => {
     setRevision(value => value + 1);
@@ -55,9 +62,14 @@ function useChatSession({
   React.useEffect(() => { void load(); }, [load]);
 
   const saveCurrent = React.useCallback(async () => {
-    if (isLoading) return null;
+    if (isLoading) throw new Error('操作尚未完成，请稍后保存');
     return persistence.save();
   }, [isLoading, persistence]);
+  const beforeLeave = React.useCallback(async () => {
+    if (savePolicy === 'manual') return persistence.manual.requestLeave();
+    await saveCurrent();
+    return true;
+  }, [persistence, saveCurrent]);
 
   const reload = React.useCallback(async () => {
     typewriter.clearStreaming();
@@ -66,16 +78,18 @@ function useChatSession({
   }, [load, onResetView, typewriter]);
 
   const switchSession = React.useCallback(async (id) => {
-    setRevision(value => value + 1);
-    await saveCurrent();
-    const result = await repository.setActive(id);
-    typewriter.clearStreaming();
-    onResetView?.();
-    await loadCurrent();
-    return { success: true, ...result };
-  }, [loadCurrent, onResetView, repository, saveCurrent, typewriter]);
+    if (!await beforeLeave()) return { canceled: true };
+    try {
+      setRevision(value => value + 1);
+      const result = await repository.setActive(id);
+      typewriter.clearStreaming();
+      onResetView?.();
+      await loadCurrent();
+      return { success: true, ...result };
+    } finally { if (savePolicy === 'manual') persistence.manual.endLeave(); }
+  }, [beforeLeave, loadCurrent, onResetView, persistence, repository, typewriter]);
 
-  return { load, reload, revision, saveCurrent, switchSession };
+  return { load, reload, revision, saveCurrent, beforeLeave, afterLeave: persistence.manual?.endLeave, switchSession };
 }
 
 export default useChatSession;

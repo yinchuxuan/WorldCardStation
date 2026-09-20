@@ -156,7 +156,6 @@ function GameCardSwitcher({
       data-state={open ? 'open' : 'closing'} aria-hidden={!open}
       onClick={event => event.stopPropagation()}>
       <div className="game-card-switch-heading">切换游戏卡</div>
-      {hosted && <p className="game-card-import-message">选择托管游戏后检查并下载完整资源。当前预览版暂不保存进度。</p>}
       <div className="game-card-switch-list">
         {renderCard(null)}
         {cards.map(renderCard)}

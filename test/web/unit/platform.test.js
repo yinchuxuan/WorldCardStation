@@ -23,7 +23,7 @@ describe('platform contracts', () => {
     expect(Object.isFrozen(web.capabilities)).toBe(true);
   });
 
-  const services = { cards: Object.fromEntries(Object.entries(web.rendererServices.cards).filter(([key]) => !['list', 'setActive'].includes(key))), trace: web.rendererServices.trace,
+  const services = { cards: Object.fromEntries(Object.entries(web.rendererServices.cards).filter(([key]) => !['list', 'setActive', 'restore'].includes(key))), trace: web.rendererServices.trace,
     development: web.rendererServices.development };
   Object.entries(services).forEach(([group, methods]) => {
     Object.entries(methods).forEach(([name, method]) => {

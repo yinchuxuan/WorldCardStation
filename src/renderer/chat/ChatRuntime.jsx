@@ -75,6 +75,7 @@ function ChatRuntime({
     setGameState: runtime.setGameState,
     setRuntimeError: runtime.setRuntimeError,
     isLoading,
+    setIsLoading,
     persistence,
     typewriter,
     onResetView: scroll.collapseHistory,
@@ -94,7 +95,8 @@ function ChatRuntime({
     scopeKey: session.revision,
     onPatchApplied: presentationHandlers.onStatePatchApplied,
     onPresentationEffects: presentation.applyEffects,
-    onError: runtime.setRuntimeError
+    onError: runtime.setRuntimeError,
+    beginOperation: persistence.manual.beginOperation
   });
   const segmented = useSegmentedReading({
     enabled: segmentedReading,
@@ -141,12 +143,14 @@ function ChatRuntime({
       canRetry={Boolean(editUserMessage.retrySource && modelConfig?.apiUrl && modelConfig?.apiKey)}
       retrySource={editUserMessage.retrySource} onRetry={handleRetry}
       reading={segmented.ui} onReadingNavigate={segmented.navigate}
-      uiScopeKey={session.revision} onError={runtime.setRuntimeError} />
+      uiScopeKey={session.revision} onError={runtime.setRuntimeError}
+      beginOperation={persistence.manual.beginOperation} canMutate={persistence.manual.canMutate} />
     <div className="chat-main" data-gc-part="chat-main">
       <ChatHeader onToggleHistory={toggleHistory} icon={runtime.activeCard ? 'extension' : 'chat'}>
         {showMsgHistory ? <span className="header-title">msg历史记录</span> : <GameCardTitleControl
           modelName={modelConfig?.apiUrl ? (modelConfig.modelName || '已连接') : ''} isLoading={isLoading}
-          onBeforeSessionChange={session.saveCurrent}
+          onBeforeSessionChange={session.beforeLeave}
+          saveControl={persistence.manual}
           onSessionChanged={session.reload}
           onSwitchSession={session.switchSession}
           onActivateCard={gameCards.activate}

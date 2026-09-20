@@ -52,7 +52,7 @@ describe('published game catalog', () => {
     await browser.refresh();
     await $('.app-container').waitForExist();
     const refreshStart = await browser.execute(() => performance.getEntriesByType('resource').length);
-    await selectCard('静态发布测试卡');
+    await $('#test-state').waitForExist();
     const afterRefresh = await browser.execute(start => performance.getEntriesByType('resource').slice(start)
       .filter(entry => /\/(release|card)\.json$/.test(entry.name)), refreshStart);
     expect(afterRefresh).toHaveLength(0);

@@ -54,7 +54,9 @@ function GameCardUIRootContent({
   onRetry,
   reading = {},
   onReadingNavigate,
-  onError
+  onError,
+  beginOperation,
+  canMutate
 }) {
   const R = React;
   const [loadedRoot, setLoadedRoot] = R.useState(null);
@@ -64,7 +66,7 @@ function GameCardUIRootContent({
   const C = R.createElement;
 
   const emitStateEvent = useUiStateEventQueue({
-    card, gameState, messages, setGameState, onError: setError
+    card, gameState, messages, setGameState, onError: setError, beginOperation, canMutate
   });
 
   R.useEffect(() => {
@@ -172,7 +174,8 @@ const gameCardUIRootPropTypes = {
   }),
   onReadingNavigate: PropTypes.func,
   uiScopeKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  onError: PropTypes.func
+  onError: PropTypes.func,
+  beginOperation: PropTypes.func, canMutate: PropTypes.func
 };
 GameCardUIRootContent.propTypes = gameCardUIRootPropTypes;
 GameCardUIRoot.propTypes = gameCardUIRootPropTypes;

@@ -4,9 +4,9 @@
 
 Web 直接挂载与客户端相同的 App、聊天顶栏、游戏卡选择器和右侧设置面板，不另设预览首页。点击顶栏游戏卡名称打开选择器，查看托管卡封面与版本；选择后检查固定 release 的全部资源、补齐缓存并预加载规则，进度与取消按钮显示在原选择器内。选择“普通聊天”退出当前游戏卡，不删除缓存。
 
-当前预览版仅在内存中保存消息、变量、阅读位置和 retry base。刷新、关闭或切换游戏会丢弃本次进度；切换游戏有确认，页面离开有浏览器提醒。顶栏显示“进度未保存”。提醒不能保证在崩溃或所有移动浏览器中出现。Session 持久化与显式保存属于后续步骤，不显示“已保存”，不创建 Session 存储。
+游玩时消息、变量、阅读位置和 retry base 在内存中变化；玩家打开与客户端相同的会话面板，点击“存档”后才在 IndexedDB 创建新的完整快照，不覆盖旧档。顶栏不另设保存按钮。刷新恢复本页最近一次存档，未存档的修改会丢失。切卡和切会话直接执行，不弹窗、不自动存档；刷新或关闭页面仍有浏览器补充提醒。详见 [Web Session 与显式保存](./web_sessions.md)。
 
-Web 复用 `ChatRuntime`、`sendPipeline`、state patch、分段阅读、响应校验和重试，不另写规则引擎。`savePolicy: manual` 阻止初始化和运行中的自动保存；桌面仍使用 `automatic`。共享卡片选择器在 Web 隐藏本地导入、酒馆更新和卸载入口；设置隐藏开发指引，顶栏隐藏 Session 管理和磁盘 trace，不订阅原生关闭事件。
+Web 复用 `ChatRuntime`、`sendPipeline`、state patch、分段阅读、响应校验和重试，不另写规则引擎。`savePolicy: manual` 阻止初始化和运行中的自动保存；桌面仍使用 `automatic`。共享卡片选择器在 Web 隐藏本地导入、酒馆更新和卸载入口；设置隐藏开发指引，顶栏保留 Session 管理但隐藏磁盘 trace，不订阅原生关闭事件。
 
 ## 模型与密钥
 
@@ -20,7 +20,7 @@ Web 复用 `ChatRuntime`、`sendPipeline`、state patch、分段阅读、响应�
 
 ## 浏览器存储
 
-`WorldCardStationWeb` 版本 2 保留 `cardReferences` 并增加 `settings` 和 `backgrounds`。升级不删除已有发布引用。连接收到 versionchange 即关闭；升级被旧页面阻塞时提示关闭旧页面后重试。
+`WorldCardStationWeb` 版本 3 包含 `cardReferences`、`settings`、`backgrounds` 和 `sessions`。升级不删除已有记录。连接收到 versionchange 即关闭；升级被旧页面阻塞时提示关闭旧页面后重试。
 
 模型配置以 `settings/model` 保存，包含 `apiKey` 字段，不再使用 `rememberKey` 开关。背景以 `backgrounds/current` 保存图片 Blob 和透明度，不持久化临时对象 URL。允许 20 MB 以内 PNG/JPEG/WebP/GIF/BMP；读取后创建本页 Blob URL，替换或清除时撤销旧 URL。卡片背景仍优先于用户背景。
 
@@ -33,7 +33,7 @@ Web 复用 `ChatRuntime`、`sendPipeline`、state patch、分段阅读、响应�
 - BGM 加载/解码失败可点击重试；自动播放被拒绝时提示手动播放，点击时直接调用播放接口，不通过绕过浏览器策略的参数解锁。
 - 不提供独立全屏按钮，可使用浏览器全屏快捷键；现有 F11 适配使用 Fullscreen API，不支持或拒绝时记录错误，不模拟原生窗口操作。
 
-缓存被浏览器回收时资源接口仍明确报错，需要重新选择游戏以检查并补齐缓存。当前切换游戏会丢弃内存进度，应在提示中明确考虑这一限制；尚无运行中无损缓存修复或存档恢复能力。
+缓存被浏览器回收时资源接口仍明确报错，需要重新进入游戏以检查并补齐缓存。切换前可保存进度，重新进入后恢复存档；尚无运行中无损缓存修复能力。
 
 ## 验证边界
 

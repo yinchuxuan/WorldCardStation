@@ -2,7 +2,7 @@
 
 ## 用户入口与范围
 
-Web 复用客户端游戏卡选择器。选择托管游戏后准备固定 release，在下拉面板内显示已校验字节数和总量，支持取消；失败后可再次选择重试。资源就绪后切入[游玩运行时](./web_runtime.md)；当前尚不保存进度。
+Web 复用客户端游戏卡选择器。选择托管游戏后准备固定 release，在下拉面板内显示已校验字节数和总量，支持取消；失败后可再次选择重试。资源就绪后切入[游玩运行时](./web_runtime.md)，进度通过 [Session 显式保存](./web_sessions.md)。
 
 需要 HTTPS 或 localhost，以及浏览器允许使用 Cache Storage、IndexedDB。浏览器普通 HTTP 缓存不是游戏资源缓存；不引入 Service Worker，不承诺网页离线启动或模型离线推理。
 
@@ -11,10 +11,10 @@ Web 复用客户端游戏卡选择器。选择托管游戏后准备固定 releas
 发布引用使用 `sourceUrl + cardId + releaseId` 三元组，不能只用作者版本号。sourceUrl 是固定可信目录的规范 URL，sourceId 为其 UTF-8 SHA-256。
 
 - Cache Storage：`wcs-card-v1-<sourceId>-<cardId>-<releaseId>`；保存 release 清单、所有运行文件和预览封面。请求键为该 release 下的固定资源 URL。
-- IndexedDB：`WorldCardStationWeb`，数据库版本 2，`cardReferences` store，keyPath 为 `key`。记录来源、卡片、release、内容指纹和 `ready`；缓存模块不修改 Session、设置或模型密钥。模型与背景使用独立 store。
+- IndexedDB：`WorldCardStationWeb`，数据库版本 3，`cardReferences` store，keyPath 为 `key`。记录来源、卡片、release、内容指纹和 `ready`；缓存模块不修改 Session、设置或模型密钥。模型、背景与 Session 使用独立 store。
 - 每个页面的活动资源上下文只在内存中。退出资源上下文不删缓存、不删发布引用，也不保存游戏进度。
 
-同卡不同 release 和不同来源分别准备，不覆盖旧缓存。UI 当前从在线目录选择版本；已持久化发布引用不是会话恢复 UI，后续存档流程才会使用它。
+同卡不同 release 和不同来源分别准备，不覆盖旧缓存。UI 从在线目录选择版本；刷新时依据本标签页记住的固定发布引用准备资源，再恢复该版本的会话，不自动升级旧存档。
 
 ## 准备流程
 

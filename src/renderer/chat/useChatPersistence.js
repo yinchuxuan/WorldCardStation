@@ -2,6 +2,7 @@ import React from 'react';
 import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
 import { createLatestSaveQueue } from './latestSaveQueue.js';
 import { rendererServices, savePolicy } from '../platform/index.js';
+import useManualSave from './useManualSave.js';
 
 function normalizedViewState(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
@@ -29,6 +30,7 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
     viewStateRef.current = nextViewState;
     readingRestoreTokenRef.current += 1;
     setViewState(nextViewState);
+    manualRef.current.hydrate(result);
   }, []);
 
   const reset = React.useCallback(() => {
@@ -54,13 +56,17 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
       viewState: viewStateRef.current
     }
   }), []);
+  const manual = useManualSave({ snapshot, loadedRef, repository, isLoading });
+  const manualRef = React.useRef(manual);
+  manualRef.current = manual;
   const save = React.useCallback((nextMessages, nextState) => {
     if (!loadedRef.current) return Promise.reject(new Error('会话尚未成功加载，不能保存'));
+    if (savePolicy === 'manual') return manual.save();
     return saveQueue.flush(snapshot(nextMessages, nextState));
-  }, [saveQueue, snapshot]);
+  }, [manual, saveQueue, snapshot]);
   const flush = React.useCallback(() => (
-    loadedRef.current ? saveQueue.flush(snapshot()) : saveQueue.waitForIdle()
-  ), [saveQueue, snapshot]);
+    loadedRef.current ? (savePolicy === 'manual' ? manual.save() : saveQueue.flush(snapshot())) : saveQueue.waitForIdle()
+  ), [manual, saveQueue, snapshot]);
 
   const setReadingPosition = React.useCallback((position) => {
     const messageId = String(position?.messageId || '');
@@ -79,10 +85,11 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
     void saveQueue.enqueue(snapshot()).catch(() => {});
   }, [gameState, isLoading, messages, saveQueue, snapshot, viewState]);
 
-  const markLoaded = React.useCallback(() => { loadedRef.current = true; }, []);
+  const markLoaded = React.useCallback(() => { loadedRef.current = true; manual.changed(); }, [manual]);
 
   return React.useMemo(() => ({
     hydrate,
+    manual,
     flush,
     markLoaded,
     reset,
@@ -93,7 +100,7 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
     save,
     setReadingPosition,
     setRetryBase
-  }), [flush, hydrate, markLoaded, reset, save, setReadingPosition, setRetryBase]);
+  }), [flush, hydrate, manual, markLoaded, reset, save, setReadingPosition, setRetryBase]);
 }
 
 export default useChatPersistence;

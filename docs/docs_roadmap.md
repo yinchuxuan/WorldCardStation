@@ -15,6 +15,7 @@ Read only the documents relevant to the current task.
 - [Web static card release protocol and publisher](./web_static_release.md)
 - [Web full-resource cache and local resource interfaces](./web_resource_cache.md)
 - [Web model, rules and presentation runtime](./web_runtime.md)
+- [Web sessions and explicit saving](./web_sessions.md)
 - [Game card design](./game_card_design.md)
 - [Agent-assisted game card development](./game_card/game_card_agent_development.md)
 - [Offline game card devkit](./game_card/game_card_devkit.md)

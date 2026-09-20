@@ -47,6 +47,11 @@ try {
   const secondIndex = JSON.parse(await readFile(path.join(output, 'index.json'), 'utf8'));
   await writeFile(path.resolve('dist/web-fixture/versions.json'), JSON.stringify([index.cards[0], secondIndex.cards[0]]));
   await writeFile(path.join(output, 'index.json'), before);
+  // A separate catalog tests reading checkpoints without changing the normal fixture's semantics.
+  await writeFile(path.join(source, 'card.json'), JSON.stringify({ ...card, display: { segmentedReading: true } }));
+  const readingArgs = [...args];
+  readingArgs[readingArgs.indexOf('--output') + 1] = path.resolve('dist/web-reading-fixture/cards');
+  execFileSync('cargo', readingArgs, { encoding: 'utf8' });
   console.log('Real Rust publisher round-trip, checksums and immutable repeat passed.');
 } finally {
   await rm(temporary, { recursive: true, force: true });

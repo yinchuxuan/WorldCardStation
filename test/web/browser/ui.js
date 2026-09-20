@@ -1,4 +1,4 @@
-const { browser, $, expect } = require('@wdio/globals');
+const { browser, $, $$, expect } = require('@wdio/globals');
 
 async function openCards() {
   await $('[data-gc-part="chat-header-trigger"]').moveTo();
@@ -11,7 +11,7 @@ async function selectCard(name) {
   const card = $(`.game-card-switch-row*=${name}`);
   await card.waitForDisplayed();
   await card.click();
-  await browser.acceptAlert();
+  await $('#game-card-switch-panel[data-state="open"]').waitForExist({ reverse: true });
   if (name === '普通聊天') await $('#test-state').waitForExist({ reverse: true });
   else await $('#test-state').waitForExist();
   await $('#game-card-switch-panel[data-state="open"]').waitForExist({ reverse: true });
@@ -54,4 +54,22 @@ async function keyValue() {
   await browser.keys('Enter');
   return value;
 }
-module.exports = { openCards, selectCard, configure, openSettings, keyValue, editField };
+async function openSessions() {
+  const error = $('button[aria-label="关闭请求错误"]');
+  if (await error.isExisting()) await error.click();
+  await $('[data-gc-part="chat-header-trigger"]').moveTo();
+  if (!await $('#chat-session-panel[data-state="open"]').isExisting()) {
+    await $('button[aria-label="管理聊天会话"]').click();
+  }
+  await $('#chat-session-panel[data-state="open"]').waitForDisplayed();
+}
+async function archive() {
+  await openSessions();
+  const button = $('button[aria-label="保存当前会话"]');
+  const count = await $$('.chat-session-row').length;
+  await button.waitForClickable(); await button.click();
+  await expect($$('.chat-session-row')).toBeElementsArrayOfSize(count + 1);
+  await $('button[aria-label="管理聊天会话"]').waitForEnabled();
+  await $('button[aria-label="管理聊天会话"]').click();
+}
+module.exports = { openCards, selectCard, configure, openSettings, keyValue, editField, openSessions, archive };

@@ -6,7 +6,7 @@ import { useGameCardRuntime } from '../chat/GameCardRuntimeProvider.jsx';
 import { PropTypes } from './componentPropTypes.js';
 import { savePolicy } from '../platform/index.js';
 
-function GameCardTitleControl({ modelName, isLoading = false, onBeforeSessionChange, onSessionChanged, onSwitchSession, onActivateCard, onImportCard, onUninstallCard, audioControl, onImportError, cardRepository }) {
+function GameCardTitleControl({ modelName, isLoading = false, saveControl, onBeforeSessionChange, onSessionChanged, onSwitchSession, onActivateCard, onImportCard, onUninstallCard, audioControl, onImportError, cardRepository }) {
   const { activeCard: card } = useGameCardRuntime();
   const [error, setError] = React.useState(null);
 
@@ -26,12 +26,15 @@ function GameCardTitleControl({ modelName, isLoading = false, onBeforeSessionCha
       {modelName ? <span className="config-status configured game-card-model-status" data-gc-part="model-status">{modelName}</span> : null}
       <div className="game-card-title-actions" data-gc-part="game-card-title-actions">
         {audioControl || null}
-        {savePolicy === 'manual' ? <span className="config-status" title="刷新、关闭或切换游戏将丢失进度">进度未保存</span> : <ChatSessionManager
+        <ChatSessionManager
+          saveControl={savePolicy === 'manual' ? saveControl : undefined}
+          disabled={isLoading || saveControl?.saving}
           cardId={card?.id || ''}
           onBeforeSessionChange={onBeforeSessionChange}
+          onAfterSessionChange={savePolicy === 'manual' ? saveControl?.endLeave : undefined}
           onSessionChanged={onSessionChanged}
           onSwitchSession={onSwitchSession}
-        />}
+        />
         {error ? (
           <button className="game-card-title-error" data-gc-part="game-card-title-error" type="button" aria-label={errorTitle} onClick={(event) => event.stopPropagation()}>
             <span className="material-icons">error</span>
@@ -46,6 +49,7 @@ function GameCardTitleControl({ modelName, isLoading = false, onBeforeSessionCha
 GameCardTitleControl.propTypes = {
   modelName: PropTypes.string,
   isLoading: PropTypes.bool,
+  saveControl: PropTypes.object,
   onBeforeSessionChange: PropTypes.func,
   onSessionChanged: PropTypes.func,
   onSwitchSession: PropTypes.func,

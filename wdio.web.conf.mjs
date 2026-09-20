@@ -9,7 +9,9 @@ const output = `test-results/web/${browserName}`;
 const port = Number(process.env.WEB_TEST_PORT || 1430);
 export const config = {
   runner: 'local',
-  specs: ['./test/web/browser/startup.browser.js', './test/web/browser/catalog.browser.js', './test/web/browser/gameplay.browser.js'],
+  specs: ['./test/web/browser/startup.browser.js', './test/web/browser/catalog.browser.js', './test/web/browser/gameplay.browser.js',
+    './test/web/browser/sessions.browser.js', './test/web/browser/session-playback.browser.js',
+    './test/web/browser/session-failures.browser.js'],
   maxInstances: 1,
   baseUrl: `http://127.0.0.1:${port}`,
   capabilities: [{ browserName,
@@ -33,7 +35,7 @@ export const config = {
     const { browser } = await import('@wdio/globals');
     await browser.saveScreenshot(`${output}/failure-${Date.now()}.png`);
     const errors = await browser.execute(() => window.__startupErrors);
-    await writeFile(`${output}/browser-errors.json`, JSON.stringify(errors));
+    await writeFile(`${output}/browser-errors.json`, JSON.stringify(errors ?? []));
   },
   async onComplete() {
     if (!server) return;

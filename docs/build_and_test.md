@@ -46,7 +46,7 @@ Tauri is the only desktop target.
 
 ## Web build and browser tests
 
-The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [resource cache](./web_resource_cache.md) and [Web runtime](./web_runtime.md). Progress is in-memory only; Session persistence is not implemented. Unavailable services throw `PLATFORM_UNAVAILABLE`, without pretending to save. Desktop retains automatic saving.
+The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [resource cache](./web_resource_cache.md) and [Web runtime](./web_runtime.md). [Sessions](./web_sessions.md) use explicit IndexedDB saving with complete snapshots and revision conflict checks. Unavailable services throw `PLATFORM_UNAVAILABLE`, without pretending to save. Desktop retains automatic saving.
 
 `web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
 

@@ -4,7 +4,7 @@
 
 平台 adapter 隔离 React/game card runtime 与 Tauri native backend。Shared core 只接收普通数据和显式依赖，不读取 `window`、DOM、本地文件系统或 Tauri API。
 
-Tauri 是唯一桌面 target；Web 提供可信目录、全量缓存、本地资源、模型直连及共享游玩运行时，进度暂仅在内存中。见[资源缓存](./web_resource_cache.md)和[Web runtime](./web_runtime.md)。memory adapter 用于 unit test，不参与生产构建。
+Tauri 是唯一桌面 target；Web 提供可信目录、全量缓存、本地资源、模型直连及共享游玩运行时，进度采用 [Session 显式保存](./web_sessions.md)。见[资源缓存](./web_resource_cache.md)和[Web runtime](./web_runtime.md)。memory adapter 用于 unit test，不参与生产构建。
 
 ## 双端入口与能力
 
@@ -12,7 +12,7 @@ Vite 通过 `@platform` 选择 `src/renderer/platform/desktop.js` 或 `src/web/p
 
 两个入口统一导出 `gameCardPlatform`、`rendererServices`、`modelFetch`、`capabilities`、`savePolicy`。能力声明只表示当前已实现的能力，包含 `cardImport`、`localDevelopment`、`diskTrace`、`nativeClose`、`fullscreen` 和 `gameplay`；保存策略分别为 `automatic` / `manual`，不混入能力字段。
 
-Web 开启 `gameplay` / `fullscreen`；其他 capability 关闭。`@application` 直接使用共享 App、顶栏、游戏卡选择器和设置面板；Web cards.list 读取可信托管目录，setActive 准备完整缓存后返回运行卡片。共享组件隐藏本地导入/更新/卸载、Session 管理及开发入口，不订阅原生关闭。共享 hooks 按 manual 策略跳过自动保存，切卡前确认丢弃进度。未实现服务抛出 `PLATFORM_UNAVAILABLE`，不伪造保存成功；当前 loadHistory 返回新一局的空初始数据，不代表已有 Session 存储。
+Web 开启 `gameplay` / `fullscreen`；其他 capability 关闭。`@application` 直接使用共享 App、顶栏、游戏卡选择器、Session 管理和设置面板；Web cards.list 读取可信托管目录，setActive 准备完整缓存后返回运行卡片。共享组件隐藏本地导入/更新/卸载及开发入口，不订阅原生关闭。共享 hooks 按 manual 策略跳过自动保存，切换前提供保存／放弃／取消。Web sessions.loadHistory 返回完整快照与显式 saveTarget，saveHistory 在 IndexedDB 事务内校验 revision；未实现的其它服务仍抛出 `PLATFORM_UNAVAILABLE`。
 
 桌面入口仍挂载原有 App 并使用原有 native 服务，自动保存语义不变。构建期依赖检查禁止 Web 产物引入 Tauri API、Tauri adapter 或 WebDriver。
 

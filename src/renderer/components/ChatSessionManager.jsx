@@ -1,8 +1,9 @@
 import React from 'react';
-import { rendererServices } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 import { PropTypes, sessionRepository } from './componentPropTypes.js';
+import SessionSaveControl from './SessionSaveControl.jsx';
 
-function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, onSwitchSession, repository = rendererServices.sessions }) {
+function ChatSessionManager({ cardId, disabled = false, saveControl, onBeforeSessionChange, onAfterSessionChange, onSessionChanged, onSwitchSession, repository = rendererServices.sessions }) {
   const R = React;
   const [open, setOpen] = R.useState(false), [sessions, setSessions] = R.useState([]), [activeId, setActiveId] = R.useState(null);
   const [panelMounted, setPanelMounted] = R.useState(false);
@@ -25,13 +26,13 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
   }, [open, panelMounted]);
 
   const activate = async (id) => {
-    if (id === activeId || busy) return;
+    if (id === activeId || busy || disabled) return;
     setBusy(true);
     setError(null);
     try {
-      if (onSwitchSession) await onSwitchSession(id);
+      if (onSwitchSession) { if ((await onSwitchSession(id))?.canceled) return; }
       else {
-        await onBeforeSessionChange?.();
+        if (await onBeforeSessionChange?.() === false) return;
         await repository.setActive(id);
         await onSessionChanged?.(id);
       }
@@ -46,16 +47,16 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
 
   const createSession = async (event) => {
     event.stopPropagation();
-    if (busy) return;
+    if (busy || disabled) return;
     setBusy(true);
     setError(null);
     try {
-      await onBeforeSessionChange?.();
+      if (await onBeforeSessionChange?.() === false) return;
       const result = await repository.create('新会话');
       await onSessionChanged?.(result.id);
       await loadSessions();
     } catch (nextError) { setError(nextError); }
-    finally { setBusy(false); }
+    finally { onAfterSessionChange?.(); setBusy(false); }
   };
 
   const saveSession = async (event) => {
@@ -64,6 +65,11 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
     setBusy(true);
     setError(null);
     try {
+      if (savePolicy === 'manual') {
+        await saveControl.save();
+        await loadSessions();
+        return;
+      }
       await onBeforeSessionChange?.();
       const snapshot = await repository.loadHistory();
       const currentId = activeId;
@@ -93,13 +99,15 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
 
   const deleteSession = async (event, id) => {
     event.stopPropagation();
-    if (busy || (window.confirm && !window.confirm('删除这个会话？'))) return;
+    const warning = savePolicy === 'manual' && id === activeId
+      ? '删除这个会话？当前会话的未保存修改也将丢弃。' : '删除这个会话？';
+    if (busy || disabled || (window.confirm && !window.confirm(warning))) return;
     setBusy(true);
     setError(null);
     try {
-      await onBeforeSessionChange?.();
+      if (savePolicy !== 'manual') await onBeforeSessionChange?.();
       const result = await repository.delete(id);
-      await onSessionChanged?.(result.id);
+      if (savePolicy !== 'manual' || id === activeId) await onSessionChanged?.(result.id);
       await loadSessions();
     } catch (nextError) { setError(nextError); }
     finally { setBusy(false); }
@@ -142,7 +150,7 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
 
   return <div className="chat-session-manager" data-gc-part="chat-session-manager"
     title={error?.message || ''}>
-    <button className="chat-session-btn" data-gc-part="chat-session-button" onClick={togglePanel}
+    <button className="chat-session-btn" disabled={disabled} data-gc-part="chat-session-button" onClick={togglePanel}
       title="管理聊天会话" aria-label="管理聊天会话" aria-expanded={open}
       aria-controls="chat-session-panel"><span className="material-icons">inventory_2</span></button>
     {panelMounted ? <div id="chat-session-panel" className="chat-session-panel"
@@ -151,16 +159,17 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
       <div className="chat-session-panel-head" data-gc-part="chat-session-panel-head">
         <span className="chat-session-panel-title">会话</span>
         <div className="chat-session-head-actions">
-          <button className="chat-session-text-action" onClick={saveSession} disabled={busy}
+          <button className="chat-session-text-action" onClick={saveSession} disabled={busy || disabled || saveControl?.blocked}
             title="保存当前会话" aria-label="保存当前会话">
             <span className="material-icons">save</span><span>存档</span>
           </button>
-          <button className="chat-session-text-action" onClick={createSession} disabled={busy}
+          <button className="chat-session-text-action" onClick={createSession} disabled={busy || disabled}
             title="新建会话" aria-label="新建会话">
             <span className="material-icons">add</span><span>新建</span>
           </button>
         </div>
       </div>
+      {savePolicy === 'manual' ? <SessionSaveControl control={saveControl} onReload={onSessionChanged} /> : null}
       {error ? <div className="chat-session-error" role="alert">{error.message}</div> : null}
       <div className="chat-session-list" data-gc-part="chat-session-list">
         {sessions.map(renderSession)}
@@ -171,7 +180,10 @@ function ChatSessionManager({ cardId, onBeforeSessionChange, onSessionChanged, o
 
 ChatSessionManager.propTypes = {
   cardId: PropTypes.string,
+  disabled: PropTypes.bool,
+  saveControl: PropTypes.object,
   onBeforeSessionChange: PropTypes.func,
+  onAfterSessionChange: PropTypes.func,
   onSessionChanged: PropTypes.func,
   onSwitchSession: PropTypes.func,
   repository: sessionRepository

@@ -4,7 +4,7 @@ import { prepareRelease } from './cache/prepareRelease.js';
 
 export function createHostedCards(options = {}) {
   const pending = new Set();
-  let active = null, generation = 0;
+  let active = null, generation = 0, activeReference = null;
   const source = () => options.source || new URL('cards/', document.baseURI).href;
   function requireActive() {
     if (!active) throw new Error('游戏资源尚未就绪，请先下载并检查缓存');
@@ -24,13 +24,14 @@ export function createHostedCards(options = {}) {
       if (!dependencies.caches) throw new Error('当前浏览器不支持 Cache Storage');
       const context = await prepareRelease(reference, dependencies, config);
       if (revision !== generation) { context.dispose(); throw new Error('资源准备结果已过期，请重试'); }
-      active?.dispose(); active = context;
+      active?.dispose(); active = context; activeReference = reference;
       return { card: context.card, reference, preloaded: context.preloaded };
     } finally { pending.delete(reference.key); }
   }
   return {
     prepare,
-    release() { generation += 1; active?.dispose(); active = null; },
+    getReference: () => activeReference,
+    release() { generation += 1; active?.dispose(); active = null; activeReference = null; },
     resources: {
       readText: (...args) => requireActive().resources.readText(...args),
       getImageUrl: (...args) => requireActive().resources.getImageUrl(...args),

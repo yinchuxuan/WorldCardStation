@@ -13,6 +13,7 @@ test('shared selector shows hosted cover/version and hides local import, update 
   expect(screen.getByAltText('示例卡封面')).toHaveAttribute('src', 'https://example.test/cover.png');
   expect(screen.queryByRole('button', { name: /导入|卸载|更新/ })).toBeNull();
   expect(screen.getByRole('button', { name: '普通聊天' })).toBeInTheDocument();
+  expect(screen.queryByText(/选择游戏后下载完整资源/)).toBeNull();
 });
 test('catalog load error is reported; reopening retries the actual repository', async () => {
   const props = actions();

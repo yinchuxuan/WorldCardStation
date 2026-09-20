@@ -7,6 +7,7 @@ import { modelFetch } from './modelFetch.js';
 import { imageReady } from './imageReady.js';
 import { createHostedRepository } from './cardRepository.js';
 import { selectBackgroundImage } from './selectBackground.js';
+import { createWebSessions } from './sessions.js';
 
 function unavailable(operation) {
   return () => {
@@ -21,18 +22,15 @@ function unavailableService(name, methods) {
   return Object.freeze(Object.fromEntries(methods.map(method => [method, unavailable(`${name}.${method}`)])));
 }
 
+const cards = createHostedRepository();
 const rendererServices = Object.freeze({
   config: webConfig,
   background: { ...webBackground, selectImage: selectBackgroundImage },
-  sessions: {
-    ...unavailableService('sessions', ['saveHistory', 'list', 'getActive', 'create', 'setActive', 'rename', 'delete']),
-    // Step 4 starts a fresh in-memory playthrough. No pretend save or persistence.
-    loadHistory: async () => ({ messages: [], gameState: {} })
-  },
+  sessions: createWebSessions({ scope: async () => { await cards.restore(); return hostedCards.getReference(); } }),
   cards: { ...unavailableService('cards', [
     'uninstall', 'importFile',
     'stageTavernImport', 'commitTavernImport', 'cancelTavernImport'
-  ]), ...createHostedRepository() },
+  ]), ...cards },
   development: unavailableService('development', ['getInstructions']),
   trace: unavailableService('trace', ['start', 'append', 'close']),
   window: {
@@ -50,7 +48,7 @@ const gameCardPlatform = Object.freeze({
   resources: { ...hostedCards.resources,
     getImageUrl: (...args) => imageReady(hostedCards.resources.getImageUrl(...args))
   },
-  repository: hostedCards.repository,
+  repository: { getActiveCard: async () => { await cards.restore(); return hostedCards.repository.getActiveCard(); } },
   scriptExecutor: controlledScriptExecutor
 });
 const { capabilities, savePolicy } = webPolicy;

@@ -56,7 +56,7 @@ function useChatGeneration({
 
   const send = React.useCallback(async (rawValue) => {
     const value = String(rawValue || '');
-    if (!value.trim() || isLoading) return false;
+    if (!value.trim() || isLoading || persistence.manual?.canMutate() === false) return false;
     if (!modelConfig?.apiUrl || !modelConfig?.apiKey) {
       setMessages(prev => [...prev, createChatMessage({ role: 'user', content: value })]);
       setRequestError?.('请先在右侧设置面板配置模型 API');
@@ -72,6 +72,7 @@ function useChatGeneration({
     persistence, run, setMessages, setRequestError]);
 
   const retry = React.useCallback(async (editedContent) => {
+    if (persistence.manual?.canMutate() === false) return false;
     if (!modelConfig?.apiUrl || !modelConfig?.apiKey) return false;
     if (chatGeneration.findLastUserIndex(messages) < 0) return false;
     onAudioSubmit?.();

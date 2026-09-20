@@ -24,11 +24,12 @@ export async function startModelServer(port) {
     const slow = url.pathname.startsWith('/slow/');
     response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
     response.flushHeaders();
-    const text = '你好，旅人。<state_patch>{"score":7}</state_patch>新的旅程开始了。';
+    const text = url.pathname.startsWith('/pages/') ? '第一页的内容。\n\n第二页的内容。'
+      : '你好，旅人。<state_patch>{"score":7}</state_patch>新的旅程开始了。';
     const anthropic = url.pathname.endsWith('/messages');
     let closed = false;
     response.on('close', () => { closed = true; });
-    for (const content of text.match(/.{1,5}/gu)) {
+    for (const content of text.match(/[\s\S]{1,5}/gu)) {
       if (closed) return;
       const data = anthropic ? { type: 'content_block_delta', delta: { type: 'text_delta', text: content } }
         : { choices: [{ delta: { content } }] };

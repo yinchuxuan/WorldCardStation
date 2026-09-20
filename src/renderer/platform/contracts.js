@@ -33,7 +33,13 @@
  * @property {() => Promise<string>} selectImage
  * @property {(listener: (value: JsonObject) => void) => (() => void)} subscribe
  */
-/** @typedef {Record<string, (...args: any[]) => Promise<any>>} SessionRepository */
+/** @typedef {{scope: string, id: string, revision: number}} SessionSaveTarget */
+/**
+ * @typedef {Record<string, (...args: any[]) => Promise<any>>} SessionRepository
+ * Web loadHistory includes saveTarget and savedAt; saveHistory requires that same
+ * explicit target in options and returns the committed target/revision/time.
+ * Desktop keeps its existing active-session, automatic-saving contract.
+ */
 /**
  * @typedef {Object} CardRepository
  * @property {() => Promise<GameCard[]>} list

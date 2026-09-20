@@ -4,7 +4,17 @@
 
 平台 adapter 隔离 React/game card runtime 与 Tauri native backend。Shared core 只接收普通数据和显式依赖，不读取 `window`、DOM、本地文件系统或 Tauri API。
 
-Tauri 是唯一桌面 target；memory adapter 用于 unit test，不参与生产构建。
+Tauri 是唯一桌面 target；Web 目前仅提供启动骨架。memory adapter 用于 unit test，不参与生产构建。
+
+## 双端入口与能力
+
+Vite 通过 `@platform` 选择 `desktop.js` 或 `web.js`；现有 `index.js` / `modelFetch.js` 作为稳定导出入口。Jest 默认选择桌面入口，浏览器集成测试验证 Web 的真实构建解析。
+
+两个入口统一导出 `gameCardPlatform`、`rendererServices`、`modelFetch`、`capabilities`、`savePolicy`。能力声明只表示当前已实现的能力，包含 `cardImport`、`localDevelopment`、`diskTrace`、`nativeClose`、`fullscreen` 和 `gameplay`；保存策略分别为 `automatic` / `manual`，不混入能力字段。
+
+步骤 1 的 Web 能力全部关闭：`@application` 选择不挂载聊天、设置、trace 或原生窗口订阅的启动页；普通聊天只显示未开放入口。所有未实现服务调用抛出含 `code: PLATFORM_UNAVAILABLE`、`operation` 的 Error，不返回空数据或伪造保存成功。后续接入共享运行时时须落实入口能力控制和手动保存策略，不能仅靠声明改变桌面 hooks 的行为。
+
+桌面入口仍挂载原有 App 并使用原有 native 服务，自动保存语义不变。构建期依赖检查禁止 Web 产物引入 Tauri API、Tauri adapter 或 WebDriver。
 
 ## Game Card Contract
 

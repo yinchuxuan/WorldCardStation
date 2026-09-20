@@ -22,6 +22,40 @@ jobs:
       - name: Jest and integration tests
         run: npm run test:js
 
+  web:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            os: ubuntu-22.04
+          - browser: firefox
+            os: ubuntu-22.04
+          - browser: safari
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      WEB_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Enable Safari WebDriver
+        if: matrix.browser == 'safari'
+        run: sudo safaridriver --enable
+      - run: npm run test:web
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-tests-${{ matrix.browser }}
+          path: test-results/web/**
+          if-no-files-found: warn
+
   desktop:
     strategy:
       fail-fast: false

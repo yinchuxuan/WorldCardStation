@@ -2,6 +2,8 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/test/setup.js'],
   moduleNameMapper: {
+    '^@platform$': '<rootDir>/src/renderer/platform/desktop.js',
+    '^@application$': '<rootDir>/src/renderer/App.jsx',
     '\\.css$': 'identity-obj-proxy'
   },
   testMatch: ['<rootDir>/test/**/*.test.js'],

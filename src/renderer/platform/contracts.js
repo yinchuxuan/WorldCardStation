@@ -1,5 +1,15 @@
 /** @typedef {Record<string, unknown>} JsonObject */
 /** @typedef {JsonObject & {id?: string}} GameCard */
+/** @typedef {'automatic'|'manual'} SavePolicy */
+/**
+ * @typedef {Object} PlatformCapabilities
+ * @property {boolean} cardImport
+ * @property {boolean} localDevelopment
+ * @property {boolean} diskTrace
+ * @property {boolean} nativeClose
+ * @property {boolean} fullscreen
+ * @property {boolean} gameplay
+ */
 
 /**
  * @typedef {Object} GameCardResources

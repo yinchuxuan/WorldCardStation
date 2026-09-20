@@ -1,6 +1,6 @@
 # World Card Station Web 版本设计
 
-状态：提案，尚未实现。日期：2026-09-20。
+状态：目标设计；步骤 1 双端构建与测试骨架已落地，其余能力尚未实现。日期：2026-09-20。
 
 ## 1. 目标与范围
 
@@ -16,7 +16,7 @@ Web 定位为轻量游玩端：从主站选择游戏、连接自己的模型、�
 
 ## 2. 现状与迁移原则
 
-当前 `src/renderer/` 是 React/Vite 应用；`src/shared/game-card/` 为平台无关核心。`src/renderer/platform/` 隔离资源、仓库、脚本执行、Session 和配置。`index.js` 与 `modelFetch.js` 当前固定选择 Tauri；Rust 承担磁盘存储、卡片安装与模型 HTTP。
+当前 `src/renderer/` 是 React/Vite 应用；`src/shared/game-card/` 为平台无关核心。`src/renderer/platform/` 隔离资源、仓库、脚本执行、Session 和配置。`index.js` 与 `modelFetch.js` 通过构建别名选择平台；Web 仅有启动骨架，桌面 Rust 承担磁盘存储、卡片安装与模型 HTTP。
 
 沿用现有业务接口，在平台边界新增 Web 实现。memory adapter 仍仅用于测试，不充当持久化生产实现。现有架构文档描述当前实现，本文描述拟新增能力。
 

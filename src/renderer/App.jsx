@@ -102,7 +102,7 @@ function App() {
     setVisualPanel({ textPanel, cardId: detail?.cardId || '' });
   }, []);
 
-  const backgroundImageUrl = gameCardBackgroundUrl || backgroundConfig.backgroundImageUrl;
+  const hasBackgroundImage = Boolean(gameCardBackgroundUrl || backgroundConfig.backgroundImageUrl);
   const gameCardPortraits = portraitLayers.current;
   const cssUrl = (url) => `url("${String(url).replace(/["\\]/g, '\\$&')}")`;
   const gameCardThemeClass = React.useMemo(() => {
@@ -111,12 +111,12 @@ function App() {
   }, [visualPanel.cardId]);
 
   React.useEffect(() => {
-    setBackgroundLayers(prev => prev.current === backgroundImageUrl
+    setBackgroundLayers(prev => prev.current === gameCardBackgroundUrl
       ? prev
-      : backgroundImageUrl
-        ? { current: backgroundImageUrl, previous: prev.current }
+      : gameCardBackgroundUrl
+        ? { current: gameCardBackgroundUrl, previous: prev.current }
         : { current: '', previous: '' });
-  }, [backgroundImageUrl]);
+  }, [gameCardBackgroundUrl]);
 
   const handleBackgroundAnimationEnd = React.useCallback(() => {
     setBackgroundLayers(prev => prev.previous ? { ...prev, previous: '' } : prev);
@@ -131,7 +131,7 @@ function App() {
 
   // Generate overlay style for opacity
   const getOverlayStyle = React.useCallback(() => {
-    if (backgroundImageUrl) {
+    if (hasBackgroundImage) {
       const baseColor = theme === 'dark' ? 'rgba(20, 18, 24,' : 'rgba(255, 251, 254,';
       return {
         position: 'absolute',
@@ -146,16 +146,19 @@ function App() {
       };
     }
     return {};
-  }, [backgroundImageUrl, backgroundConfig.backgroundOpacity, theme]);
+  }, [hasBackgroundImage, backgroundConfig.backgroundOpacity, theme]);
 
   return (
     <div
-      className={`app-container game-card-visual-layout game-card-visual-position-${visualPanel.textPanel}${gameCardThemeClass}${backgroundImageUrl ? ' has-background-image' : ''}${gameCardPortraits.length || portraitLayers.exiting.length ? ' has-portrait' : ''}`}
+      className={`app-container game-card-visual-layout game-card-visual-position-${visualPanel.textPanel}${gameCardThemeClass}${hasBackgroundImage ? ' has-background-image' : ''}${gameCardPortraits.length || portraitLayers.exiting.length ? ' has-portrait' : ''}`}
       data-gc-part="app"
     >
+      <div className="app-base-background" data-gc-part="base-background"
+        style={{ '--app-base-background-image': backgroundConfig.backgroundImageUrl
+          ? cssUrl(backgroundConfig.backgroundImageUrl) : 'none' }} />
       {backgroundLayers.previous && <div className="app-background-layer app-background-layer-previous" style={getBackgroundStyle(backgroundLayers.previous)} />}
       {backgroundLayers.current && <div key={backgroundLayers.current} className="app-background-layer app-background-layer-current" style={getBackgroundStyle(backgroundLayers.current)} onAnimationEnd={handleBackgroundAnimationEnd} />}
-      {backgroundImageUrl && <div data-gc-part="background-overlay" style={getOverlayStyle()} />}
+      {hasBackgroundImage && <div data-gc-part="background-overlay" style={getOverlayStyle()} />}
       <GameCardPortraitLayers layers={portraitLayers}
         onExitEnd={handlePortraitExitEnd} onExpressionExitEnd={handleExpressionExitEnd} />
       <div className="app-content-wrapper">

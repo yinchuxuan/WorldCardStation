@@ -105,7 +105,7 @@ describe('App Component - Interaction', () => {
     expect(appContainer.className).toContain('has-background-image');
   });
 
-  test('should let game card background override and clear back to settings background', async () => {
+  test('should keep the base background independent of scene changes and clearing', async () => {
     const mockSettingsPanelWithBgChange = ({ onBackgroundChange }) =>
       React.createElement('button', {
         onClick: () => onBackgroundChange({
@@ -122,21 +122,30 @@ describe('App Component - Interaction', () => {
     await act(async () => { await Promise.resolve(); });
     _fireEvent.click(_screen.getByText('Set Settings Background'));
     await act(async () => { await Promise.resolve(); });
-    expect(document.querySelector('.app-background-layer-current').style.backgroundImage).toContain('settings-bg-url');
+    expect(document.querySelector('[data-gc-part="base-background"]').style.getPropertyValue('--app-base-background-image')).toContain('settings-bg-url');
+    expect(document.querySelector('.app-background-layer-current')).toBeNull();
 
     await act(async () => {
       chatPanelProps.onBackgroundChange({ url: 'game-card-bg-url' });
     });
     expect(document.querySelector('.app-background-layer-current').style.backgroundImage).toContain('game-card-bg-url');
-    expect(document.querySelector('.app-background-layer-previous').style.backgroundImage).toContain('settings-bg-url');
+    expect(document.querySelector('.app-background-layer-previous')).toBeNull();
+    await act(async () => { chatPanelProps.onBackgroundChange({ url: 'second-scene-url' }); });
+    expect(document.querySelector('.app-background-layer-previous').style.backgroundImage).toContain('game-card-bg-url');
     _fireEvent.animationEnd(document.querySelector('.app-background-layer-current'));
     expect(document.querySelector('.app-background-layer-previous')).toBeNull();
     expect(document.querySelector('[data-gc-part="background-overlay"]').style.opacity).toBe('0.3');
 
     await act(async () => {
-      chatPanelProps.onBackgroundChange({ url: '' });
+      chatPanelProps.onBackgroundChange({ url: 'third-scene-url' });
     });
-    expect(document.querySelector('.app-background-layer-current').style.backgroundImage).toContain('settings-bg-url');
+    expect(document.querySelector('.app-background-layer-previous')).not.toBeNull();
+    await act(async () => {
+      chatPanelProps.onBackgroundChange({ url: null });
+    });
+    expect(document.querySelector('[data-gc-part="base-background"]').style.getPropertyValue('--app-base-background-image')).toContain('settings-bg-url');
+    expect(document.querySelector('.app-background-layer-current')).toBeNull();
+    expect(document.querySelector('.app-background-layer-previous')).toBeNull();
     expect(document.querySelector('[data-gc-part="background-overlay"]').style.opacity).toBe('0.3');
   });
 
@@ -155,6 +164,8 @@ describe('App Component - Interaction', () => {
 
     expect(appContainer.className).toContain('game-card-visual-position-right');
     expect(appContainer.className).toContain('game-card-theme-white-album-2');
+    await act(async () => { chatPanelProps.onVisualPanelChange({ cardId: '' }); });
+    expect(appContainer.className).not.toContain('game-card-theme-white-album-2');
   });
 
   test('should render ChatPanel without a global registration', async () => {

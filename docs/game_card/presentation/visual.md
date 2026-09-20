@@ -21,7 +21,8 @@ Visual 不进入 LLM prompt，不写入消息正文，也不由 display rules �
 - 游戏卡规则只修改语义化 key，不直接散落文件路径。
 - 图片资源只能来自当前游戏卡目录，禁止路径穿越。
 - 视觉背景是 UI 运行时能力，不改变 messages、retry base 或 LLM 请求。
-- 游戏卡背景优先级高于用户设置背景；当前游戏卡没有背景时回落到用户设置背景。
+- 基础背景层显示用户设置的背景图片（无图片时露出容器底色），游戏卡可通过 `data-gc-part="base-background"` 覆盖这一层。
+- 场景图片层位于基础背景之上；`visual.scene = null` 只清空场景及其过渡图片，露出基础背景，不改变立绘。
 
 ## 游戏卡配置
 
@@ -120,7 +121,7 @@ gameState.visual.scene
 
 行为要求：
 
-- active game card 为空时使用用户设置背景。
+- active game card 为空时清空场景层并移除卡的样式作用域，恢复用户设置的基础背景。
 - 当前 key 缺失或资源不存在时使用用户设置背景并记录错误。
 - 切换游戏卡时清理旧游戏卡背景。
 - 切换 session 后按恢复出的 `gameState.visual.scene` 展示背景或 CG。

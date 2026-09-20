@@ -5,6 +5,7 @@
   "description": "包含规则、脚本依赖、世界书和演出资源的最小卡。",
   "files": { "book": { "directory": "worldbook", "include": ["*.md"] } },
   "stateSchema": "state.json",
+  "audio": { "bgm": { "theme": "audio/tone.wav" } },
   "visual": { "background": { "room": "images/cover.png" } },
   "ui": { "root": { "source": "ui/root.jsx" }, "stylesheet": "ui/style.css",
     "scripts": { "pick": "scripts/main.js" } },

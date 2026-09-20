@@ -10,8 +10,33 @@ addEventListener('unhandledrejection',e=>window.__startupErrors.push(String(e.re
 
 export async function startStaticServer(port = 1430) {
   const requests = [];
+  let fault = { mode: 'none', suffix: '' };
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
+    if (url.pathname === '/__versions') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(await readFile('dist/web-fixture/versions.json')); return;
+    }
+    if (url.pathname === '/__fault') {
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      fault = JSON.parse(body); response.writeHead(200).end(); return;
+    }
+    if (url.pathname === '/__requests') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(requests)); return;
+    }
+    if (url.pathname.includes('/cards/') && decodeURIComponent(url.pathname).endsWith(fault.suffix)) {
+      if (fault.mode === 'delay') await new Promise(resolve => setTimeout(resolve, 1000));
+      if (fault.mode === '404') {
+        requests.push({ path: url.pathname, status: 404 }); response.writeHead(404).end(); return;
+      }
+      if (fault.mode === 'corrupt' || fault.mode === 'truncate') {
+        requests.push({ path: url.pathname, status: 200 });
+        response.writeHead(200, fault.mode === 'truncate' ? { 'Content-Length': '1000' } : {});
+        response.write('bad');
+        if (fault.mode === 'truncate') response.destroy(); else response.end();
+        return;
+      }
+    }
     const cardsPrefix = url.pathname.startsWith('/play/cards/') ? '/play/cards/' : '/cards/';
     const mount = url.pathname.startsWith(cardsPrefix) ? [cardsPrefix, 'web-fixture/cards']
       : url.pathname.startsWith('/play/') ? ['/play/', 'web-subpath']

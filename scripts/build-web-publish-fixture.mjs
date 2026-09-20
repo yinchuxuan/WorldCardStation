@@ -1,4 +1,4 @@
-import { mkdtemp, cp, mkdir, copyFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, cp, mkdir, copyFile, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -12,6 +12,8 @@ const output = path.resolve('dist/web-fixture/cards');
 try {
   await cp('test/web/fixtures/publish-card', source, { recursive: true });
   await mkdir(path.join(source, 'images'));
+  await mkdir(path.join(source, 'audio'));
+  await writeFile(path.join(source, 'audio/tone.wav'), Buffer.from('UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=', 'base64'));
   await copyFile('src/tauri/icons/32x32.png', path.join(source, 'images/cover.png'));
   const args = ['run', '--quiet', '--manifest-path', 'src/tauri/Cargo.toml', '--bin', 'game-card-publish',
     '--', source, '--output', output, '--cover', 'images/cover.png'];
@@ -35,6 +37,12 @@ try {
   assert.equal(manifest.contentFingerprint, `wcs-content-v1-${contentHash.digest('hex')}`);
   assert.equal(JSON.parse(execFileSync('cargo', args, { encoding: 'utf8' })).releaseId, manifest.releaseId);
   assert.deepEqual(await readFile(path.join(output, 'index.json')), before);
+  const card = JSON.parse(await readFile(path.join(source, 'card.json'), 'utf8'));
+  await writeFile(path.join(source, 'card.json'), JSON.stringify({ ...card, version: '2.0' }));
+  execFileSync('cargo', args, { encoding: 'utf8' });
+  const secondIndex = JSON.parse(await readFile(path.join(output, 'index.json'), 'utf8'));
+  await writeFile(path.resolve('dist/web-fixture/versions.json'), JSON.stringify([index.cards[0], secondIndex.cards[0]]));
+  await writeFile(path.join(output, 'index.json'), before);
   console.log('Real Rust publisher round-trip, checksums and immutable repeat passed.');
 } finally {
   await rm(temporary, { recursive: true, force: true });

@@ -15,7 +15,8 @@ test('renders name, version, escaped description and optional cover', async () =
   expect(screen.getByText('版本 1.0')).toBeInTheDocument();
   expect(screen.getByAltText('示例卡封面')).toHaveAttribute('src', 'https://example.test/cover.png');
   expect(container.querySelector('script')).toBeNull();
-  screen.getAllByRole('button').forEach(button => expect(button).toBeDisabled());
+  screen.getAllByRole('button', { name: '开始游玩（筹备中）' }).forEach(button => expect(button).toBeDisabled());
+  screen.getAllByRole('button', { name: '下载资源 / 检查缓存' }).forEach(button => expect(button).toBeEnabled());
 });
 
 test('shows loading, failure, retry, then empty state', async () => {

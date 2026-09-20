@@ -1,8 +1,9 @@
 import { webPolicy } from './platformPolicy.js';
+import { hostedCards } from './hostedCards.js';
 
 function unavailable(operation) {
   return () => {
-    const error = new Error(`Web 端暂不支持 ${operation}，当前版本仅支持目录浏览。`);
+    const error = new Error(`Web 端暂不支持 ${operation}，当前版本支持目录浏览和资源准备，尚未开放游玩。`);
     error.code = 'PLATFORM_UNAVAILABLE';
     error.operation = operation;
     throw error;
@@ -28,8 +29,8 @@ const rendererServices = Object.freeze({
   window: unavailableService('window', ['destroy', 'isFullscreen', 'onCloseRequested', 'setFullscreen'])
 });
 const gameCardPlatform = Object.freeze({
-  resources: unavailableService('resources', ['readText', 'getImageUrl', 'getAudioUrl']),
-  repository: unavailableService('repository', ['getActiveCard']),
+  resources: hostedCards.resources,
+  repository: hostedCards.repository,
   scriptExecutor: unavailableService('scriptExecutor', ['run'])
 });
 const modelFetch = unavailable('modelFetch');

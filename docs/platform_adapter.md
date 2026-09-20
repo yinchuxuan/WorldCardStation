@@ -4,7 +4,7 @@
 
 平台 adapter 隔离 React/game card runtime 与 Tauri native backend。Shared core 只接收普通数据和显式依赖，不读取 `window`、DOM、本地文件系统或 Tauri API。
 
-Tauri 是唯一桌面 target；Web 目前提供启动页及可信托管卡目录浏览，尚未接入共享游玩运行时。memory adapter 用于 unit test，不参与生产构建。
+Tauri 是唯一桌面 target；Web 提供可信目录、全量资源缓存及本地 resources/repository，复用规则预加载但尚未开放游玩。见[资源缓存](./web_resource_cache.md)。memory adapter 用于 unit test，不参与生产构建。
 
 ## 双端入口与能力
 

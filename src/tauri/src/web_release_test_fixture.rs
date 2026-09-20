@@ -13,6 +13,15 @@ impl Fixture {
         let source =
             game_card_copy::prepare(&repo.join("test/web/fixtures/publish-card"), &root).unwrap();
         fs::create_dir(source.join("images")).unwrap();
+        fs::create_dir(source.join("audio")).unwrap();
+        use base64::Engine;
+        fs::write(
+            source.join("audio/tone.wav"),
+            base64::engine::general_purpose::STANDARD
+                .decode("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=")
+                .unwrap(),
+        )
+        .unwrap();
         fs::copy(
             repo.join("src/tauri/icons/32x32.png"),
             source.join("images/cover.png"),

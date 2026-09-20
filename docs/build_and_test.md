@@ -46,7 +46,7 @@ Tauri is the only desktop target.
 
 ## Web build and browser tests
 
-The Web target provides startup and trusted hosted catalog browsing, not gameplay, downloads, model connections or storage. Unimplemented services throw `PLATFORM_UNAVAILABLE`; there is no in-memory fake save. Its policy is manual saving, but saving itself is not implemented yet. Desktop functionality remains unchanged.
+The Web target provides hosted catalog browsing, full resource downloads, Cache Storage/IndexedDB readiness and local resource adapters; see [resource cache](./web_resource_cache.md). Gameplay, models and session saves are not implemented. Unimplemented services throw `PLATFORM_UNAVAILABLE`; there is no in-memory fake save. Desktop functionality remains unchanged.
 
 `web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
 
@@ -58,7 +58,7 @@ It also runs the real Rust publisher against the minimal card fixture, verifies 
 
 WebdriverIO uses ordinary browser drivers, without the Tauri service. `WEB_BROWSER` selects `chrome` (default), `firefox`, or `safari`; Safari requires macOS and enabled Safari remote automation. Drivers/browsers may need network downloads on first use. CI covers Chrome and Firefox on Linux, and real Safari/WebKit on macOS; no Safari result is inferred from Chrome.
 
-The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides the port), serves production assets without SPA fallback, and adds only a test-time error observer to HTML. It records request paths/statuses, browser errors and failure screenshots in `test-results/web/`. Test scenarios contain no real model credentials. The integration test currently checks real module selection and unavailable-operation errors; storage, Worker and model integration are added with their corresponding implementation steps.
+The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides the port), serves production assets without SPA fallback, and adds only a test-time error observer to HTML. It records requests, browser errors and failure screenshots in `test-results/web/`. Test-only fault endpoints exercise 404, bad bytes, truncation and cancellation. Integration tests use real Cache Storage/IndexedDB, Blob URLs and two published versions; quota and marker-write errors are injected at storage boundaries. UI E2E verifies download, reuse and repair. Worker/model gameplay is added in the next step; no real model credentials are used.
 
 `test:web:unit` is a focused fast run without standalone global coverage collection; all new production files remain included in the unchanged `test:js` coverage gate. `npm run test:web` tests one selected browser; CI runs it for each browser in the matrix. Desktop regression gates remain independent.
 

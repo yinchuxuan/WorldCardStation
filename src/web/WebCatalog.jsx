@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { loadCatalog } from './catalog.js';
 import './webCatalog.css';
+import CardDownload from './CardDownload.jsx';
 
 function WebCatalog() {
   const [cards, setCards] = useState(null);
@@ -26,12 +27,13 @@ function WebCatalog() {
         : cards === null ? <p>正在读取游戏目录…</p>
           : cards.length === 0 ? <p>暂时没有已发布的游戏卡。</p>
             : <ul>{cards.map(card => (
-              <li key={card.cardId} data-card-id={card.cardId}>
+              <li key={`${card.cardId}:${card.releaseId}`} data-card-id={card.cardId}>
                 {card.coverUrl && <img src={card.coverUrl} alt={`${card.name}封面`} referrerPolicy="no-referrer" />}
                 <h3>{card.name}</h3>
                 <p>版本 {card.cardVersion}</p>
                 <p>{card.description}</p>
                 <button type="button" disabled>开始游玩（筹备中）</button>
+                <CardDownload card={card} />
               </li>
             ))}</ul>}
     </section>

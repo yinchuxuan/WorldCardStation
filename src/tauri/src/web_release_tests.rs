@@ -15,7 +15,6 @@ mod fixture;
 use fixture::Fixture;
 #[path = "web_release_extra_tests.rs"]
 mod extra;
-
 #[test]
 fn web_release_is_deterministic_complete_and_private_by_default() {
     let f = Fixture::new();
@@ -39,6 +38,7 @@ fn web_release_is_deterministic_complete_and_private_by_default() {
     assert_eq!(
         paths,
         vec![
+            "audio/tone.wav",
             "card.json",
             "images/cover.png",
             "scripts/helper.js",

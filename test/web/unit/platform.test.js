@@ -23,7 +23,8 @@ describe('platform contracts', () => {
     expect(Object.isFrozen(web.capabilities)).toBe(true);
   });
 
-  const services = { ...web.rendererServices, ...web.gameCardPlatform, network: { modelFetch: web.modelFetch } };
+  const services = { ...web.rendererServices, scriptExecutor: web.gameCardPlatform.scriptExecutor,
+    network: { modelFetch: web.modelFetch } };
   Object.entries(services).forEach(([group, methods]) => {
     Object.entries(methods).forEach(([name, method]) => {
       test(`${group}.${name} fails explicitly instead of pretending success`, () => {
@@ -35,6 +36,11 @@ describe('platform contracts', () => {
       });
     });
   });
+});
+
+test('Web resources require an active prepared card and repository starts empty', async () => {
+  await expect(web.gameCardPlatform.repository.getActiveCard()).resolves.toBeNull();
+  Object.values(web.gameCardPlatform.resources).forEach(method => expect(() => method('demo', 'file.txt')).toThrow('尚未就绪'));
 });
 
 test('Web startup never subscribes to native close, starts trace, or saves', () => {

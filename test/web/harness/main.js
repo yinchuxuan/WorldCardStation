@@ -1,5 +1,6 @@
 import { capabilities, savePolicy, rendererServices } from '../../../src/renderer/platform/index.js';
 import { modelFetch } from '../../../src/renderer/platform/modelFetch.js';
+import './cacheHarness.js';
 
 // A separate browser entry exercises real production module resolution.
 const operations = [rendererServices.window.onCloseRequested, rendererServices.trace.start,

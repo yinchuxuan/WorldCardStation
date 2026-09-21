@@ -30,8 +30,13 @@ export const config = {
     server = await startStaticServer(port);
     modelServer = await startModelServer(port + 1);
   },
-  async afterTest(_test, _context, { passed }) {
+  async afterTest(test, _context, { passed, error }) {
     if (passed) return;
+    // Make the failure available on the public run summary, not only in archived logs.
+    if (process.env.GITHUB_ACTIONS) {
+      const message = `${test.fullTitle || test.title}: ${error?.stack || error?.message || 'Test failed'}`;
+      console.error(`::error::${message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}`);
+    }
     const { browser } = await import('@wdio/globals');
     await browser.saveScreenshot(`${output}/failure-${Date.now()}.png`);
     const errors = await browser.execute(() => window.__startupErrors);

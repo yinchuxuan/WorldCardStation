@@ -22,20 +22,20 @@
 
 ## 每张卡，都是一个世界
 
-World Card Station（世界站）是一个用于游玩和创作 AI 角色扮演游戏的桌面平台。
+World Card Station（世界站）是一个用于游玩和创作 AI 角色扮演游戏的平台。你可以在浏览器中直接游玩，也可以通过桌面客户端导入游戏卡、创作自己的世界。
 
 一张游戏卡承载世界设定、人物、规则和视听内容。你可以走进别人写下的世界，也可以亲手搭建一个，让 AI 随着玩家的行动，续写其中的故事。
 
 ## 当世界运转起来
 
-- **集中分发，开箱即玩**：将所有复杂度留在游戏卡和平台内，玩家无需进行配置复杂预设，无需安装多个插件，配置好模型后导入游戏卡即可开始游玩。
+- **集中分发，开箱即玩**：将所有复杂度留在游戏卡和平台内，玩家无需配置复杂预设，无需安装多个插件，配置好模型后，导入游戏卡即可开始游玩。
 - **更接近游戏的AIRP体验**：原生支持背景设置、立绘设置、bgm设置(后续还会陆续支持tts/live2d/3d演出)，通过演出配合文字塑造游戏体验，真正让AI Rolplay在演出上接近传统游戏，而不止是文字和图片的割裂交互。
 - **原生跨平台应用支持**：基于 Tauri 构建桌面应用，支持 Windows、macOS 和 Linux，让不同平台的玩家都能走进同一个世界。移动端适配也在后续计划中。
 - **Agent Native 的开发体验**：使用你熟悉的本地 Agent 工具，复制一行命令就可以让Agent帮你开发游戏卡，并且可以使用其它开发者集成的lib库进行成熟游戏机制的快速开发。
 
 ## 从酒馆带来的故事
 
-如果你已经有喜欢的酒馆角色卡，可以通过“导入卡片”将它带到这里。
+如果你已经有喜欢的酒馆角色卡，可以通过桌面客户端的“导入卡片”将它带到这里。网页端仅提供主站托管游戏，暂不支持本地卡或酒馆卡导入。
 
 目前支持 **V2 / V3** 酒馆卡，接受 **JSON、PNG / APNG 和 CHARX** 格式。导入时会转换为平台原生游戏卡，支持角色设定、开场白、示例对话、世界书、常见宏和部分正则规则。
 
@@ -43,25 +43,29 @@ World Card Station（世界站）是一个用于游玩和创作 AI 角色扮演�
 
 ## 接下来，去哪里？
 
-### A. [选一个世界出发 → 下载客户端](https://github.com/yinchuxuan/WorldCardStation/releases)
+### A. [选一个世界出发 → 下载客户端](https://github.com/yinchuxuan/WorldCardStation/releases/latest)
 
 支持 Windows、macOS 和 Linux。下载安装后，配置模型服务地址、API Key 和模型名称，再导入一张游戏卡，即可开始游玩。
 
-### B. [看看旅行指南 → 阅读文档](https://yinchuxuan.github.io/WorldCardStation/)
+### B. [打开车窗，直接出发 → 在线游玩](https://world-card-station.pages.dev/play/)
+
+无需安装客户端，在网页中选择游戏，下载完整资源后即可游玩。请自行配置允许浏览器跨域访问的模型服务；进度需手动存档，仅保存在当前浏览器中。
+
+### C. [看看旅行指南 → 阅读文档](https://world-card-station.pages.dev/)
 
 从第一次游玩到第一张游戏卡，使用说明与开发教程都在这里。
 
-### C. [先去一个已有的世界 → 白色相簿 2](https://github.com/yinchuxuan/white_album_2/releases/latest)
+### D. [先去一个已有的世界 → 白色相簿 2](https://github.com/yinchuxuan/white_album_2/releases/latest)
 
 从峰城大附属中学开始，走进一张结合世界书、剧情时间线与视听演出的原生游戏卡。
 
-在发布页的 Assets 中下载 PNG 游戏卡，在世界站中点击“导入卡片”，选择下载的原始 PNG 即可，无需解压或克隆仓库。图片内含完整游戏资源，请勿截图或压缩后导入。想了解它如何运转，也可以[查看游戏卡源码](https://github.com/yinchuxuan/white_album_2)。
+在[网页端](https://world-card-station.pages.dev/play/)选择“白色相簿 2”即可下载资源并开始游玩。使用客户端时，在发布页的 Assets 中下载 PNG 游戏卡，点击“导入卡片”并选择原始 PNG 即可，无需解压或克隆仓库。图片内含完整游戏资源，请勿截图或压缩后导入。想了解它如何运转，也可以[查看游戏卡源码](https://github.com/yinchuxuan/white_album_2)。
 
 ## 安装 FAQ
 
 ### 安装包在哪里下载？
 
-在 [Releases](https://github.com/yinchuxuan/WorldCardStation/releases) 中选择 World Card Station `1.0.0`，展开 Assets 下载。不要下载 Source code 作为安装包。
+打开 World Card Station 的[最新正式版](https://github.com/yinchuxuan/WorldCardStation/releases/latest)，展开 Assets 下载对应系统的安装包。不要下载 Source code 作为安装包。
 
 ### 我的电脑应该选哪个安装包？
 

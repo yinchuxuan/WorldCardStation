@@ -54,7 +54,7 @@ Tauri is the only desktop target.
 
 The Web target provides hosted cards, full caching, model fetch, shared rules/Worker/UI and media gameplay; see [Web design](../architecture/web.md). Sessions use explicit IndexedDB saving with complete snapshots and revision conflict checks. Resource removal preserves sessions and coordinates tabs via Web Locks; session deletion preserves resources. Unavailable services throw `PLATFORM_UNAVAILABLE`. Desktop retains automatic saving.
 
-`web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. Publish only `dist/web/`; no route fallback or native application is needed. Each target cleans only its own output directory.
+`web:build` uses relative URLs by default. Set `WEB_BASE=/play/` or run `npm run web:build -- --base /play/` for a fixed subpath. For standalone hosting, deploy `dist/web/` and supply the published `cards/` directory; no route fallback or native application is needed. The official website assembles the player with the website and card artifacts before deployment (see below). Each target cleans only its own output directory.
 
 `web:dev` serves the publisher's `dist/web-cards/` at `<base>/cards/`; `WEB_CARDS_DIR` overrides the local directory. Missing files return 404 instead of the SPA HTML fallback. Publish a card, then refresh the catalog; no dev-server restart is needed. This development mount is not included in production builds. `test:web:build` also starts real Vite servers at root and subpath to verify serving, updates, missing files and path isolation.
 
@@ -126,6 +126,14 @@ The current version is `1.0.0`. Builds create a draft stable release; publish it
 
 ## Web formal releases
 
+The production site is [world-card-station.pages.dev](https://world-card-station.pages.dev/): `/` hosts the website and documentation, `/play/` the Web player, and `/play/cards/` the hosted cards, with the catalog at `/play/cards/index.json`. The website repository assembles all three into one Cloudflare Pages deployment; this repository only produces the player artifact.
+
 `.github/workflows/web-release.yml` listens to published non-prerelease GitHub Releases (not ordinary pushes). It builds `/play/` assets, uploads `wcs-web.zip` and its SHA-256 checksum to the same Release, then notifies `yinchuxuan/WorldCardStation_website`. Existing desktop tag-to-draft releases remain unchanged.
 
-Configure `SITE_DISPATCH_TOKEN` with Contents write access only to the website repository; Cloudflare secrets stay in that repository. The website owns source allowlists, version reconciliation, immutable release records, historical card retention and deployment. See its `RELEASING.md` for setup and recovery. The manual workflow accepts an existing formal Release tag for retries; uploaded assets cannot be overwritten. New tags must contain the Web implementation and workflow.
+WA2 is published independently by `yinchuxuan/white_album_2` as `wcs-card-web.zip` plus its SHA-256 checksum. Both source repositories notify the website only after their artifacts are complete. Ordinary commits or tag pushes do not publish the production site: a formal Release must be published and its Web artifacts generated. The website also supports manual deployment and its own formal Release trigger; its homepage is built from the current default branch.
+
+Configure `SITE_DISPATCH_TOKEN` with Contents write access only to the website repository; Cloudflare secrets stay in that repository. The website owns source allowlists, version reconciliation, immutable release identities and deployment. Its [RELEASING.md](https://github.com/yinchuxuan/WorldCardStation_website/blob/main/RELEASING.md) is the authoritative setup and recovery guide. The manual source workflow accepts an existing formal Release tag for retries; uploaded assets cannot be overwritten. New tags must contain the Web implementation and workflow.
+
+The website selects the latest complete formal release of the player and each card by publication order, validates checksums and platform/Schema compatibility, then deploys the assembled site. Only the selected latest card resources are deployed; historical artifacts remain on GitHub Releases and identities in the lock file, not at old production resource URLs. A committed lock file records the desired deployment, not proof of successful deployment. See [Web design](../architecture/web.md) for the impact on cached games and old sessions.
+
+Deployment acceptance checks `/`, `/play/`, `/play/cards/index.json`, missing-resource 404s, complete card download, model CORS, manual saving and refresh recovery. Model services must allow the production Origin `https://world-card-station.pages.dev`; hosting cards on the same site does not proxy model requests. Browser data from localhost or the old GitHub Pages origin is not automatically migrated.

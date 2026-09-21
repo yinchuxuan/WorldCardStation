@@ -43,7 +43,7 @@ describe('Tauri background settings', () => {
     await browser.waitUntil(async () => (
       (await $('.app-container').getAttribute('class')).includes('has-background-image')
     ));
-    expect(await $('.app-background-layer-current').getAttribute('style')).toContain('url');
+    expect(await $('[data-gc-part="base-background"]').getAttribute('style')).toContain('url');
 
     await invoke('save_background_config', { config: {
       backgroundImageUrl: '', backgroundOpacity: 0.5
@@ -51,6 +51,7 @@ describe('Tauri background settings', () => {
     await browser.waitUntil(async () => (
       !(await $('.app-container').getAttribute('class')).includes('has-background-image')
     ));
+    expect(await $('[data-gc-part="base-background"]').getAttribute('style')).toContain('none');
   });
 
   it('should persist a user background across application restart', async () => {

@@ -33,7 +33,9 @@ async function editField(field, value) {
   await input.click();
   const modifier = await browser.execute(() => /Mac/.test(navigator.platform) ? 'Meta' : 'Control');
   await browser.keys([modifier, 'a']);
-  await browser.keys(value || 'Backspace');
+  await browser.keys('Backspace');
+  if (value) await input.addValue(value);
+  await expect(input).toHaveValue(value);
   await browser.keys('Enter');
   await input.waitForExist({ reverse: true });
 }
@@ -47,7 +49,8 @@ async function configure(mode = '') {
   await browser.action('pointer').move({ x: 100, y: 300 }).perform();
   await browser.waitUntil(() => browser.execute(() => {
     const panel = document.querySelector('.settings-panel');
-    return !panel.classList.contains('visible') && panel.getBoundingClientRect().left >= innerWidth;
+    return !panel.classList.contains('visible')
+      && panel.getAnimations().every(animation => animation.playState === 'finished');
   }), { timeoutMsg: 'Settings drawer did not close after configuring the model' });
 }
 async function keyValue() {

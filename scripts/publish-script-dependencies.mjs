@@ -4,7 +4,9 @@ import path from 'node:path';
 import { resolveExecSource } from '../src/renderer/gameCard/execSource.js';
 
 const { root, scripts } = JSON.parse(readFileSync(0, 'utf8'));
-const base = realpathSync(root);
+// Rust canonicalization returns namespaced Windows paths (\\?\...).
+// The native resolver handles these without walking the bare drive as a file.
+const base = realpathSync.native(root);
 const paths = new Set();
 function readFile(relative) {
   if (relative.split('/').some(part => !part || part === '.' || part === '..')

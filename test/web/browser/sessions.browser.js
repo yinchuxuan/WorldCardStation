@@ -1,5 +1,6 @@
 const { browser, $, expect } = require('@wdio/globals');
 const { openCards, archive: save } = require('./ui.js');
+const { openTab } = require('./window.js');
 
 async function send(content) {
   await $('[data-gc-part="chat-input-trigger"]').moveTo();
@@ -49,9 +50,8 @@ describe('explicit browser sessions', () => {
   });
   it('two tabs create separate archives without overwriting each other', async () => {
     const first = await browser.getWindowHandle();
-    await browser.newWindow(await browser.getUrl());
+    const second = await openTab();
     await $('button[aria-label="管理聊天会话"]').waitForEnabled();
-    const second = await browser.getWindowHandle();
     await browser.switchToWindow(first);
     await send('标签一的存档'); await save();
     const firstArchive = await snapshot();

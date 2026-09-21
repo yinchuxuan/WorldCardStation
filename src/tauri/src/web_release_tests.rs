@@ -41,6 +41,7 @@ fn web_release_is_deterministic_complete_and_private_by_default() {
             "audio/tone.wav",
             "card.json",
             "images/cover.png",
+            "images/outside.png",
             "scripts/helper.js",
             "scripts/main.js",
             "state.json",

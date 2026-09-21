@@ -44,7 +44,11 @@ async function configure(mode = '') {
   await editField('apiKey', 'test-only-secret');
   await editField('modelName', 'test');
   await expect($('[data-model-field="modelName"] .settings-field-value')).toHaveText('test');
-  await $('.chat-history').moveTo();
+  await browser.action('pointer').move({ x: 100, y: 300 }).perform();
+  await browser.waitUntil(() => browser.execute(() => {
+    const panel = document.querySelector('.settings-panel');
+    return !panel.classList.contains('visible') && panel.getBoundingClientRect().left >= innerWidth;
+  }), { timeoutMsg: 'Settings drawer did not close after configuring the model' });
 }
 async function keyValue() {
   await openSettings();

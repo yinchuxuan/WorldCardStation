@@ -27,6 +27,11 @@ impl Fixture {
             source.join("images/cover.png"),
         )
         .unwrap();
+        fs::copy(
+            repo.join("src/tauri/icons/32x32.png"),
+            source.join("images/outside.png"),
+        )
+        .unwrap();
         Self {
             output: root.join("output"),
             root,

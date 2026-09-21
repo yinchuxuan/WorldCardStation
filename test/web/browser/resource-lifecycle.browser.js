@@ -1,6 +1,7 @@
 /* global after */
 const { browser, $, $$, expect } = require('@wdio/globals');
 const { openCards, selectCard, openSessions, archive } = require('./ui.js');
+const { openTab } = require('./window.js');
 let otherTab;
 
 async function data(store) {
@@ -58,7 +59,6 @@ describe('resource removal and session deletion', () => {
         await browser.switchToWindow(handle);
         await browser.url('about:blank');
         if (promptError) throw promptError;
-        if (handle !== handles[0]) await browser.closeWindow();
       }
       if (handles.length) await browser.switchToWindow(handles[0]);
     } finally {
@@ -75,11 +75,10 @@ describe('resource removal and session deletion', () => {
     await archive();
     const before = await data('sessions');
     const first = await browser.getWindowHandle();
-    await browser.newWindow(await browser.getUrl());
+    const second = await openTab();
     // A new independent tab may not inherit sessionStorage.
     if (!await $('#test-state').isExisting()) await selectCard('静态发布测试卡');
     await $('#test-state').waitForExist();
-    const second = await browser.getWindowHandle();
     otherTab = second;
     await browser.switchToWindow(first);
     await removeCard(false);

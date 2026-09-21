@@ -1,6 +1,7 @@
 const { browser, $, expect } = require('@wdio/globals');
 
 const { configure, selectCard, keyValue, editField } = require('./ui.js');
+const { retryTurn } = require('./retry.js');
 
 async function send(content) {
   await $('[data-gc-part="chat-input-trigger"]').moveTo();
@@ -45,11 +46,7 @@ describe('production Web playable loop', () => {
     await send('失败后重试');
     await expect($('body')).toHaveText(expect.stringContaining('测试限流'));
     await configure();
-    const retry = $('button[title="重新生成"]');
-    await $('[data-role="user"]').moveTo();
-    await retry.moveTo();
-    await retry.waitForClickable();
-    await retry.click();
+    await retryTurn();
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('新的旅程开始了'));
   });
   it('key survives refresh by default and clearing the field persists', async () => {

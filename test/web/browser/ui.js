@@ -46,7 +46,10 @@ async function configure(mode = '') {
   await editField('apiKey', 'test-only-secret');
   await editField('modelName', 'test');
   await expect($('[data-model-field="modelName"] .settings-field-value')).toHaveText('test');
-  await browser.action('pointer').move({ x: 100, y: 300 }).perform();
+  // Establish a pointer position inside the drawer before leaving it. Safari's
+  // element clicks and pointer actions do not always share the same position.
+  await $('.settings-panel .settings-header').moveTo();
+  await $('[data-gc-part="chat-header-trigger"]').moveTo({ xOffset: -100 });
   await browser.waitUntil(() => browser.execute(() => {
     const panel = document.querySelector('.settings-panel');
     return !panel.classList.contains('visible')

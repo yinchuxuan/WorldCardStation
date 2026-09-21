@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { startStaticServer } from './test/web/static-server.mjs';
 import { startModelServer } from './test/web/model-server.mjs';
 
@@ -32,17 +32,21 @@ export const config = {
   },
   async afterTest(test, _context, { passed, error }) {
     if (passed) return;
-    // Make the failure available on the public run summary, not only in archived logs.
-    if (process.env.GITHUB_ACTIONS) {
-      const message = `${test.fullTitle || test.title}: ${error?.stack || error?.message || 'Test failed'}`;
-      console.error(`::error::${message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}`);
-    }
+    const message = `${test.fullTitle || test.title}: ${error?.stack || error?.message || 'Test failed'}`;
+    await writeFile(`${output}/failed-test-${Date.now()}.json`, JSON.stringify({ message }));
     const { browser } = await import('@wdio/globals');
     await browser.saveScreenshot(`${output}/failure-${Date.now()}.png`);
     const errors = await browser.execute(() => window.__startupErrors);
     await writeFile(`${output}/browser-errors.json`, JSON.stringify(errors ?? []));
   },
   async onComplete() {
+    // Emit in the launcher: worker output gets a prefix that hides workflow commands.
+    if (process.env.GITHUB_ACTIONS) {
+      for (const file of (await readdir(output)).filter(name => name.startsWith('failed-test-'))) {
+        const { message } = JSON.parse(await readFile(`${output}/${file}`, 'utf8'));
+        console.error(`::error::${message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}`);
+      }
+    }
     if (!server) return;
     await writeFile(`${output}/requests-${Date.now()}.json`, JSON.stringify(server.requests, null, 2));
     await server.close();

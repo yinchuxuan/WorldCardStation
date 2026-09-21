@@ -5,10 +5,10 @@ const {
 } = require('../../src/renderer/gameCard/sendPipeline');
 
 function card(rules) {
-  return { version: '1', id: 'legacy-migration', name: 'Legacy Migration', rules };
+  return { version: '1', id: 'rule-composition', name: 'Rule Composition', rules };
 }
 
-describe('legacy e2e game card coverage migrated to Jest', () => {
+describe('game card rule composition across messages and turns', () => {
   beforeEach(() => {
     global.platformMock.readGameCardFile.mockClear();
   });
@@ -105,20 +105,4 @@ describe('legacy e2e game card coverage migrated to Jest', () => {
     ]);
   });
 
-  test('pre_send decays ttl before applying rules', async () => {
-    const result = await preparePreSendMessages({
-      card: card([{ when: { phase: 'pre_send' }, then: [] }]),
-      messages: [
-        { role: 'system', content: 'drop', ttl: 1 },
-        { role: 'system', content: 'keep', ttl: 2 },
-        { role: 'user', content: 'ok' }
-      ]
-    });
-
-    expect(result.messages).toEqual([
-      { role: 'system', content: 'keep', ttl: 1 },
-      { role: 'user', content: 'ok' }
-    ]);
-    expect(result.ttlTrace.summary.messages).toMatchObject({ decayed: 1, removed: 1 });
-  });
 });

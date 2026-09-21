@@ -38,7 +38,9 @@ describe('Retry Button - Visibility', () => {
     });
     render(React.createElement(ChatPanel));
     await act(async () => { await Promise.resolve(); jest.advanceTimersByTime(100); });
-    expect(screen.queryByRole('button', { name: '重新生成回复' })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: '重新生成回复' });
+    expect(button).toHaveAttribute('title', '重新生成');
+    expect(button.querySelector('.material-icons')).toHaveTextContent('refresh');
   });
 
   test('should show retry button on last user message only', async () => {
@@ -139,9 +141,10 @@ describe('Retry Button - Click Behavior', () => {
     await act(async () => { await Promise.resolve(); jest.advanceTimersByTime(100); });
 
     const retryBtn = screen.queryByRole('button', { name: '重新生成回复' });
-    // When isLoading is true, the retry button should NOT be rendered
-    // (it's rendered conditionally: isLast && !isLoading)
-    // After initial load, isLoading should be false
     expect(retryBtn).toBeInTheDocument();
+    global.fetch.mockImplementation(() => new Promise(() => {}));
+    await act(async () => { fireEvent.click(retryBtn); });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: '重新生成回复' })).not.toBeInTheDocument();
   });
 });

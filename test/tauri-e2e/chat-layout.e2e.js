@@ -1,4 +1,4 @@
-/* global browser, $, $$ */
+/* global browser, $ */
 
 const {
   resetNoCard, revealHeader, toggleHistory
@@ -9,14 +9,6 @@ describe('Tauri chat panel UI', () => {
     await resetNoCard();
   });
 
-  it('should expose the chat header, history and input structure', async () => {
-    await expect($('.chat-header')).toExist();
-    await expect($('.chat-header-clickable')).toExist();
-    await expect($('.chat-history')).toExist();
-    await expect($('.chat-input-textarea')).toExist();
-    await expect($('.chat-input-area button[type="submit"]')).toExist();
-  });
-
   it('should toggle to message history and back through the header', async () => {
     await toggleHistory();
     await expect($('.header-title')).toHaveText('msg历史记录');
@@ -25,24 +17,8 @@ describe('Tauri chat panel UI', () => {
     await expect($('.game-card-title-name')).toHaveText('普通聊天');
   });
 
-  it('should keep native scrolling without custom scrollbar components', async () => {
+  it('should enable native vertical scrolling for chat history', async () => {
     expect(await $('.chat-history').getCSSProperty('overflow-y')).toMatchObject({ value: 'auto' });
-    expect((await $$('[class*="scrollbar"], [class*="scroll-bar"], [class*="custom-scroll"]')).length)
-      .toBe(0);
-  });
-
-  it('should not expose legacy clear or separate toggle buttons', async () => {
-    await revealHeader();
-    expect((await $$('.chat-header-clear-btn')).length).toBe(0);
-    const count = await browser.execute(() => {
-      const panel = document.querySelector('.chat-panel');
-      const header = panel?.querySelector('.chat-header');
-      return [...(panel?.querySelectorAll('button') || [])].filter(button => (
-        button.closest('.chat-header') !== header
-        && /toggle|切换|api request/i.test(button.textContent || '')
-      )).length;
-    });
-    expect(count).toBe(0);
   });
 
   it('should keep session, game card and BGM controls in the title control', async () => {

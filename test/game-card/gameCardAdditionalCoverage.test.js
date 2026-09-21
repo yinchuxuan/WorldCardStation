@@ -33,7 +33,7 @@ describe('game card additional unit coverage', () => {
       expect(result.trace.matched).toBe(3);
     });
 
-    test('all true with length check does not match empty', () => {
+    test('all predicate is vacuously true for empty messages', () => {
       expect(matchesWhen({ phase: 'pre_send', all: { role: 'user' } }, 'pre_send', [])).toBe(true);
     });
   });

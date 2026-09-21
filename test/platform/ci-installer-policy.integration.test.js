@@ -106,4 +106,15 @@ test('workflow keeps every test and only gates installer build/upload', () => {
   expect(steps.find(step => step.run === 'npm run test:tauri').if).toBe("runner.os != 'Linux'");
   expect(steps.find(step => step.name === 'Tauri E2E on Linux').if).toBe("runner.os == 'Linux'");
   expect(ci.jobs.web.strategy.matrix.include.map(item => item.browser)).toEqual(['chrome', 'firefox', 'safari']);
+  expect(ci.jobs.desktop.strategy.matrix.platform).toEqual(['macos-latest', 'ubuntu-22.04', 'windows-latest']);
+});
+
+test('CI runs shared Jest coverage once and real browser tests in each browser job', () => {
+  const ci = yaml.load(readFileSync(path.resolve(__dirname, '../../.github/workflows/tauri-ci.yml'), 'utf8'));
+  const { scripts } = JSON.parse(readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8'));
+  expect(ci.jobs.javascript.steps.filter(step => step.run === 'npm run test:js')).toHaveLength(1);
+  expect(ci.jobs.web.steps.filter(step => step.run === 'npm run test:web:browser')).toHaveLength(1);
+  expect(ci.jobs.web.steps.some(step => /npm run test:(web|web:unit|js)$/.test(step.run || ''))).toBe(false);
+  expect(scripts['test:web:browser']).toBe('npm run test:web:integration && wdio run wdio.web.conf.mjs');
+  expect(scripts['test:web']).toBe('npm run test:web:unit && npm run test:web:browser');
 });

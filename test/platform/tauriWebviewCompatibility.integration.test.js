@@ -14,6 +14,7 @@ describe('Tauri WebView compatibility policy', () => {
     expect(csp['style-src']).toContain("'unsafe-inline'");
     expect(csp['img-src']).toContain('local:');
     expect(csp['media-src']).toContain('http://local.localhost');
+    expect(csp['media-src']).toContain('local:');
     expect(csp['connect-src']).toBe("'self' ipc: http://ipc.localhost");
     expect(csp['object-src']).toBe("'none'");
   });

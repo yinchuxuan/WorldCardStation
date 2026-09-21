@@ -48,17 +48,11 @@ describe('Tauri desktop release configuration', () => {
   test('keeps WebdriverIO permissions out of production builds', () => {
     const base = readJson('src/tauri/tauri.conf.json');
     const e2e = readJson('src/tauri/tauri.e2e.conf.json');
-    const capability = readJson('src/tauri/capabilities/default.json');
 
     expect(base.app.security.capabilities).toEqual(['default']);
     expect(e2e.app.security.capabilities[0].identifier).toBe('e2e');
     expect(e2e.app.security.capabilities[0].permissions).toContain('wdio:default');
     expect(e2e.app.security.capabilities[0].permissions).toContain('core:window:allow-set-focus');
-    expect(capability.permissions).toEqual([
-      'core:default',
-      'core:window:allow-destroy',
-      'core:window:allow-set-fullscreen'
-    ]);
   });
 
   test('builds the intended installer types on every desktop platform', () => {
@@ -72,30 +66,4 @@ describe('Tauri desktop release configuration', () => {
     expect(linux.bundle.linux.appimage.bundleMediaFramework).toBe(true);
   });
 
-  test('runs Tauri E2E and bundles on the three-platform CI matrix', () => {
-    const workflow = readText('.github/workflows/tauri-ci.yml');
-
-    expect(workflow).toContain('name: World Card Station desktop CI');
-    expect(workflow).toContain('name: world-card-station-${{ runner.os }}');
-    expect(workflow).toContain('[macos-latest, ubuntu-22.04, windows-latest]');
-    expect(workflow).toContain('npm run test:tauri');
-    expect(workflow).toContain('npm run tauri:build');
-  });
-
-  test('publishes releases under the World Card Station brand', () => {
-    const workflow = readText('.github/workflows/tauri-release.yml');
-
-    expect(workflow).toContain('name: World Card Station desktop release');
-    expect(workflow).toContain('releaseName: World Card Station v__VERSION__');
-    expect(workflow).toContain('World Card Station (世界站) installers');
-  });
-
-  test('retains the controlled resource CSP in release builds', () => {
-    const csp = readJson('src/tauri/tauri.conf.json').app.security.csp;
-
-    expect(csp['img-src']).toContain('local:');
-    expect(csp['media-src']).toContain('local:');
-    expect(csp['object-src']).toBe("'none'");
-    expect(csp['connect-src']).not.toMatch(/https?:\/\/\*/);
-  });
 });

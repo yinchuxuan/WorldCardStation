@@ -24,6 +24,7 @@ Tauri is the only desktop target.
 | `npm run test:web:integration` | Verify dual-build isolation and run real-browser platform contract tests |
 | `npm run test:web:e2e` | Build and test production catalog/gameplay, including root and `/play/` startup |
 | `npm run test:web` | Run Web unit, build-isolation, browser integration and gameplay tests |
+| `npm run test:web:browser` | Run build-isolation and real-browser tests without repeating Jest |
 | `npm run game-card:export -- <card-dir> --format gamecard` | Validate and export a game card package to `dist/game-cards/` |
 | `npm run game-card:publish -- <card-dir> [--cover <relative-path>]` | Publish immutable static releases and catalog to `dist/web-cards/`; see [Web design](../architecture/web.md) |
 | `npm run game-card:export -- <card-dir> --format png --cover <path>` | Export a renderable PNG containing the complete game card |
@@ -68,7 +69,7 @@ Linux Web CI starts PulseAudio with a default null sink so headless Firefox can 
 
 The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides it); a real cross-origin model SSE server uses the next port. Test servers record requests without credentials, browser errors and screenshots in `test-results/web/`. Cache fault tests cover 404, bad bytes, truncation and cancellation; quota/marker failures are injected at storage boundaries. Runtime tests exercise actual Worker, CORS, SSE, default key persistence/clearing and background Blobs. Production E2E covers downloads, multi-turn state/UI/media and retry. A shared scenario compares browser Worker results with a Node VM desktop-pipeline baseline, not a native WebView. No real model credentials are used.
 
-`test:web:unit` is a focused fast run without standalone global coverage collection; all new production files remain included in the unchanged `test:js` coverage gate. `npm run test:web` tests one selected browser; CI runs it for each browser in the matrix. Desktop regression gates remain independent.
+`test:web:unit` is a focused fast run without standalone global coverage collection; all new production files remain included in the unchanged `test:js` coverage gate. `npm run test:web` tests one selected browser. CI runs Jest once in the JavaScript job and `test:web:browser` for each browser in the matrix. Desktop regression gates remain independent.
 
 ## Jest
 
@@ -77,6 +78,8 @@ The static test server binds `127.0.0.1:1430` (`WEB_TEST_PORT` overrides it); a 
 `test/libs/` contains reusable library tests and their helpers; `test/game-card/` tests the platform DSL/runtime with minimal fixtures, and `test/tavern-import/` tests Tavern conversion. WA2 is maintained separately; platform tests do not read its project directory or verify its content. Run library tests with `npx jest --runInBand --coverage=false test/libs`. The default Jest suite discovers them automatically.
 
 Coverage thresholds remain 70% branches, 80% functions, 85% lines and 82% statements.
+
+Test business rules and UI states in Jest; reserve browser/Desktop E2E for real rendering, platform boundaries and complete workflows. Avoid duplicating component assertions in E2E or freezing incidental CSS values/source layout. Security and release contracts remain explicit checks even when they inspect configuration.
 
 `jest.integration.config.js` runs the remaining platform-independent filesystem and schema integration tests without mocks.
 

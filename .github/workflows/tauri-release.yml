@@ -8,6 +8,8 @@ on:
 jobs:
   validate:
     uses: ./.github/workflows/tauri-ci.yml
+    with:
+      skip_installer_check: true
 
   publish:
     needs: validate

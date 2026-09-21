@@ -112,9 +112,11 @@ E2E refreshes explicitly focus the test window so background WebViews do not sus
 
 ## CI And Release
 
-`.github/workflows/tauri-ci.yml` runs JavaScript checks plus a macOS, Windows and Linux Rust/build matrix. Tauri E2E runs on all three systems, with `xvfb` on Linux.
+`.github/workflows/tauri-ci.yml` always runs JavaScript checks, Chrome/Firefox/Safari tests, and Rust plus desktop E2E on macOS, Windows and Linux (`xvfb` on Linux). Ordinary code/test changes do not build or upload Release installers; the isolated Debug E2E app is still built.
 
-CI listens to pushes on `master`/`main`, pull requests and manual dispatch. It is also a reusable workflow: releases must pass the same checks on the release commit before packaging. Both the default desktop suite and the separate Tavern import suite run on all three platforms.
+CI listens to pushes on `master`/`main`, pull requests and manual dispatch. Both the default desktop suite and the separate Tavern import suite always run on all three platforms. `scripts/ci-installer-policy.mjs` enables additional installer verification for dependency/lockfile, build/toolchain configuration, packaging scripts, Tauri metadata/icons/capabilities and bundled resource changes (including devkit source documents and libraries). Deletions and renames are included; unavailable comparison history conservatively enables packaging. Checkout fetches only the comparison commit when needed, not the full history. Manual dispatch can enable `build_installers` explicitly.
+
+The release workflow reuses all CI tests with `skip_installer_check: true`, then its dependent `publish` job builds the formal installers once, including both macOS architectures. This avoids packaging once in validation and again in publishing; test failures still block release packaging. CI installer verification only uploads workflow artifacts, never publishes a Release.
 
 `.github/workflows/tauri-release.yml` creates draft installers for:
 

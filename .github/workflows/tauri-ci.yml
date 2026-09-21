@@ -3,11 +3,34 @@ name: World Card Station desktop CI
 on:
   pull_request:
   workflow_call:
+    inputs:
+      skip_installer_check:
+        description: Release workflow builds installers after validation
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      build_installers:
+        description: Also build and upload desktop installers
+        type: boolean
+        default: false
   push:
     branches: [master, main]
 
 jobs:
+  packaging:
+    name: Decide installer verification
+    runs-on: ubuntu-22.04
+    outputs:
+      required: ${{ steps.policy.outputs.required }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: policy
+        run: node scripts/ci-installer-policy.mjs
+        env:
+          SKIP_INSTALLER_CHECK: ${{ inputs.skip_installer_check }}
+          BUILD_INSTALLERS: ${{ inputs.build_installers }}
+
   javascript:
     runs-on: ubuntu-22.04
     steps:
@@ -74,6 +97,7 @@ jobs:
           if-no-files-found: warn
 
   desktop:
+    needs: packaging
     strategy:
       fail-fast: false
       matrix:
@@ -120,6 +144,7 @@ jobs:
           WEBKIT_DISABLE_COMPOSITING_MODE: '1'
         run: dbus-run-session -- xvfb-run -a npx wdio run wdio.tavern.conf.mjs
       - name: Build desktop installer
+        if: needs.packaging.outputs.required == 'true'
         run: npm run tauri:build
       - name: Upload desktop test diagnostics
         if: failure()
@@ -131,6 +156,7 @@ jobs:
             test-results/**
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
+        if: needs.packaging.outputs.required == 'true'
         with:
           name: world-card-station-${{ runner.os }}
           path: src/tauri/target/release/bundle/**

@@ -27,9 +27,7 @@ fn project_init_creates_unique_portable_minimal_cards_without_runtime_data() {
     let card = crate::game_card_imports::read_card(&root).unwrap();
     crate::game_card_schema::validate_card(&card, &root).unwrap();
     assert!(PathBuf::from(first.guide_path).is_file());
-    assert!(root
-        .join(".wcs/spec/game_card/rules/actions.md")
-        .is_file());
+    assert!(root.join(".wcs/spec/game_card/rules/actions.md").is_file());
     for name in [
         "lib",
         "worldbook",

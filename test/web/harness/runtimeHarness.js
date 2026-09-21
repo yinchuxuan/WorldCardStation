@@ -14,7 +14,10 @@ async function model(protocol, mode = '') {
     await sendChatRequest({ protocol, apiUrl: `${endpoint}/${mode}`, apiKey: 'test-only', modelName: 'test',
       messages: [{ role: 'user', content: 'hi' }] }, { onToken: value => { content += value; } });
     return { content };
-  } catch (error) { return { error: error.message }; }
+  } catch (error) {
+    // Classic WebDriver interprets a top-level `error` as a protocol failure.
+    return { errorMessage: error.message };
+  }
 }
 async function worker() {
   const context = { messages: [], state: { count: 2 }, config: {}, event: {}, args: {} };

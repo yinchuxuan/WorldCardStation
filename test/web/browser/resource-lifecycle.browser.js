@@ -1,3 +1,4 @@
+/* global after */
 const { browser, $, $$, expect } = require('@wdio/globals');
 const { openCards, selectCard, openSessions, archive } = require('./ui.js');
 let otherTab;
@@ -42,6 +43,28 @@ async function confirmClick(button, accept = true) {
   return answer;
 }
 describe('resource removal and session deletion', () => {
+  after(async () => {
+    // The conflict tab intentionally retains unsaved state. Resolve its leave prompt
+    // before Firefox deletes the WebDriver session; otherwise shutdown can hang.
+    const handles = await browser.getWindowHandles();
+    let promptError;
+    const acceptLeave = dialog => dialog.accept().catch(error => {
+      // Firefox may already accept beforeunload as part of the navigation command.
+      if (!/no such alert/i.test(error.message)) promptError = error;
+    });
+    if (browser.isBidi) browser.on('dialog', acceptLeave);
+    try {
+      for (const handle of handles) {
+        await browser.switchToWindow(handle);
+        await browser.url('about:blank');
+        if (promptError) throw promptError;
+        if (handle !== handles[0]) await browser.closeWindow();
+      }
+      if (handles.length) await browser.switchToWindow(handles[0]);
+    } finally {
+      if (browser.isBidi) browser.off('dialog', acceptLeave);
+    }
+  });
   it('cancel is harmless; unload exits both tabs, preserves saves, and re-download restores them', async () => {
     await browser.url('/'); await selectCard('静态发布测试卡');
     await $('#test-increment').click(); await expect($('#test-state')).toHaveText('count=2;score=0');

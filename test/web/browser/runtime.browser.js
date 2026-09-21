@@ -5,12 +5,12 @@ describe('real Web runtime boundaries', () => {
   for (const protocol of ['openai', 'anthropic']) {
     it(`${protocol} uses real cross-origin preflight and split SSE`, async () => {
       const result = await browser.execute(protocol => window.runtimeHarness.model(protocol), protocol);
-      expect(result.content).toContain('你好，旅人。'); expect(result.error).toBeUndefined();
+      expect(result.content).toContain('你好，旅人。'); expect(result.errorMessage).toBeUndefined();
     });
   }
   it('reports denied CORS and provider HTTP errors', async () => {
-    expect((await browser.execute(() => window.runtimeHarness.model('openai', 'deny'))).error).toContain('网络或跨域');
-    expect((await browser.execute(() => window.runtimeHarness.model('openai', 'http-error'))).error).toContain('测试限流');
+    expect((await browser.execute(() => window.runtimeHarness.model('openai', 'deny'))).errorMessage).toContain('网络或跨域');
+    expect((await browser.execute(() => window.runtimeHarness.model('openai', 'http-error'))).errorMessage).toContain('测试限流');
   });
   it('runs actual Worker and terminates an infinite loop', async () => {
     const result = await browser.execute(() => window.runtimeHarness.worker());

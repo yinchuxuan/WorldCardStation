@@ -43,7 +43,15 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf pulseaudio pulseaudio-utils
+      - name: Prepare virtual audio output
+        if: runner.os == 'Linux'
+        run: |
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=wcs_test_audio
+          pactl set-default-sink wcs_test_audio
+          pactl info
+          pactl list short sinks
       - uses: actions/setup-node@v4
         with:
           node-version: 22

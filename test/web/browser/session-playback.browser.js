@@ -35,9 +35,20 @@ describe('saved reading and retry checkpoints', () => {
     await browser.refresh();
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('第二页的内容'));
     await expect($('[data-gc-part="chat-history"]')).not.toHaveText(expect.stringContaining('第一页的内容'));
-    await $('[data-role="user"]').moveTo();
+    // Refresh can leave the pointer over the floating header; move away before hovering the message.
+    await $('[data-gc-part="chat-history"]').moveTo();
+    await browser.waitUntil(() => browser.execute(() => {
+      const header = document.querySelector('.chat-header');
+      return header && getComputedStyle(header).visibility === 'hidden';
+    }), { timeoutMsg: 'Floating header did not hide before retry' });
+    const source = $('[data-role="user"]');
+    await source.scrollIntoView({ block: 'center', inline: 'nearest' });
+    await source.moveTo();
     const retry = $('button[title="重新生成"]');
-    await retry.moveTo(); await retry.click();
+    await retry.waitForDisplayed();
+    await retry.moveTo();
+    await retry.waitForClickable();
+    await retry.click();
     await $('button[aria-label="管理聊天会话"]').waitForEnabled();
     await expect($('#test-state')).toHaveText('count=2;score=0');
     expect((await gameSnapshot()).revision).toBe(snapshot.revision);

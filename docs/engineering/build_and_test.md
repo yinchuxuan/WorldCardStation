@@ -108,6 +108,8 @@ Real provider calls are excluded from the default suite. Set `E2E_OPENAI_URL`, `
 
 Production builds do not contain WebDriver commands or E2E permissions.
 
+Desktop E2E uses the embedded driver, not an external `tauri-driver` executable. `npm install`/`npm ci` applies `scripts/patch-tauri-diagnostics.mjs` to the pinned lockfile's `@wdio/tauri-service` 1.2.0: propagate the actual provider into diagnostics and skip only the external-driver lookup in embedded mode. Other environment diagnostics and initialization failures remain visible. Dependency version/source changes fail the patch explicitly and require review; remove it once the upstream diagnostic is corrected. After installing with `--ignore-scripts`, run `npm run postinstall` before desktop E2E.
+
 E2E refreshes explicitly focus the test window so background WebViews do not suspend entrance animations. This permission is test-only. Linux CI installs `webkit2gtk-driver`, runs E2E under a private D-Bus session and Xvfb, and disables WebKit compositing only in that GPU-less test environment. Failed desktop jobs upload backend logs and test fixtures/screenshots for diagnosis.
 
 ## CI And Release

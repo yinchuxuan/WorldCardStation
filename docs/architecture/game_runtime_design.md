@@ -1,39 +1,41 @@
 # 游戏运行时重构设计
 
-状态：目标架构草案，尚未实现。本文中的清单字段、脚本入口及 API 均为设计示意，不构成当前可用语法。
+状态：目标设计草案，尚未实现。清单字段、脚本入口和 API 均为示意，不是当前可用语法。
 
-适用任务：评审游戏主程序、多 Agent、变量驱动和卡内前端的架构边界。
-前置文档：[当前架构](./overview.md)。现有卡片字段仍以 [Schema 契约](../game_card/schema.md)为准。
+适用任务：评审 main.js 编排多 Agent 的最小重构。
+前置文档：[当前架构](./overview.md)。当前字段仍以 [Schema 契约](../game_card/schema.md)为准。
 
-## 1. 目标与原则
+## 1. 本轮目标
 
-从“平台执行聊天，游戏卡修改聊天”转向“平台托管游戏，游戏卡主程序控制游戏”。
+让游戏卡通过 main.js 顺序调用多个 Agent，并在调用之间执行 JS 游戏逻辑。
+每个 Agent 拥有独立上下文，通过共享 State 协作；继续使用平台现有界面和演出系统。
 
-- 游戏卡是完整的游戏程序，包含主程序、Agent 定义、变量定义、前端和资源。
-- Agent = Messages + Rules + 模型配置引用；不同 Agent 维护独立上下文。
-- Agent 和 JS 通过共享 State 协作，不额外要求业务 input/output 容器。
-- Rules 将变量投影为 prompt；模型通过受控变量修改影响游戏。
-- 正文也是普通变量，例如 `state.text`；assistant 消息不自动展示给玩家。
-- 游戏卡自行解释变量、安排交互与演出；平台不预设背景、立绘、音乐等业务字段。
-- 平台接口保持精简，但主程序可以承载复杂游戏逻辑，不要求它只是轻量调度器。
+- Agent = Messages + Rules + 模型配置引用。
+- main.js 决定调用顺序、业务分支，以及展示原始 response 还是后处理后的 msg。
+- Rules 将变量注入 prompt，模型和 JS 通过受控接口修改变量。
+- 正文直接流式展示，不要求先完整写入 state.text。
+- 平台继续负责输入、聊天记录、分段阅读、背景、立绘、音乐和已有自定义 UI 能力。
 
-## 2. 职责划分
+最小链路：玩家输入 → main.js → Judge 写变量 → Narrator 读取变量 → 平台展示回复和演出。
 
-| 模块 | 职责 |
+## 2. 职责边界
+
+| 模块 | 本轮职责 |
 | --- | --- |
-| 游戏卡主程序 | 游戏事件、业务逻辑、Agent 调度、世界推进和演出控制 |
-| Agent Runtime | 独立 Messages、规则阶段、模型请求、响应校验和变量修改 |
-| State Store | 默认值、权限、校验、变更提交、订阅及版本管理 |
-| 卡内前端 | 输入、布局、文字、媒体、动画及其他游戏表现 |
-| Game Runtime | 托管主程序、任务生命周期、Session、取消及 trace |
-| 平台适配层 | 桌面/Web 的模型传输、存储、资源加载与能力边界 |
+| main.js | 处理一轮输入、顺序调用 Agent、读写变量、执行游戏逻辑、选择展示回复 |
+| Agent 执行层 | 独立 Messages、初始化、Rules、模型请求、响应校验和变量更新 |
+| 共享 State | 复用现有默认值、schema、写入限制和 patch 能力 |
+| 现有界面与演出 | 展示选定回复、处理阅读交互、根据变量调度已有资源 |
+| 平台运行层 | 托管脚本、取消、错误处理、Session 和 trace |
+| 平台适配层 | 复用双端模型传输、资源及持久化接口 |
 
-典型链路：玩家操作 → 主程序 → JS / Agent → State → 主程序与卡内前端 → 玩家。
-流程可以不调用 LLM；界面也不必采用聊天形式。
+必要的拆分是让模型调用不自动产生可见消息；不要求先建设独立前端体系。
+Agent 处理普通变量提交，reader 处理阅读位置相关的提交；两者不得重复执行同一类 patch。
 
-## 3. card.json：清单与入口
+## 3. 游戏卡定义
 
-只声明平台启动游戏需要的信息，不承载全部业务规则和演出配置：
+在现有 State、内容授权、资源和显示配置基础上，增加主程序入口与 Agent 定义。
+以下仅展示新增结构，正式字段由 Schema 定稿：
 
 ```json
 {
@@ -41,11 +43,7 @@
   "id": "my-game",
   "name": "我的游戏",
   "version": "1.0.0",
-  "description": "AI 驱动的互动小说",
-  "author": "作者",
   "main": "main.js",
-  "ui": { "entry": "ui/index.html" },
-  "stateSchema": "state/schema.json",
   "agents": {
     "judge": "agents/judge.json",
     "narrator": "agents/narrator.json"
@@ -53,25 +51,24 @@
 }
 ```
 
-`formatVersion` 为拟议协议选择字段，取值尚未定稿；`version` 继续代表卡片内容版本。
-Agent 文件声明其 Rules、模型配置引用、回复校验以及所需内容引用，不保存运行中的 Messages。
-模型引用由平台解析；API 密钥不进入游戏卡或卡内脚本。
+formatVersion 选择运行协议，取值待定；version 是卡片内容版本。
+Agent 文件声明规则、内容引用、模型配置引用及回复校验，不保存运行中的 Messages。
+密钥仍由平台持有，不进入卡片脚本。
 
-推荐目录为 `main.js`、`agents/`、`state/`、`ui/`、`assets/` 和 `lib/`。
-普通库随卡分发，通过卡内模块引用，不要求全局安装或额外的库注册表。
-调用顺序写在 JS 中；媒体映射由前端或演出库维护；发布资源清单由工具生成。
-内容读取授权仍需明确，不能因为清单简化而允许任意文件或网络访问。
+沿用现有资源目录和卡内 lib 使用方式，不新增 ui.entry、前端宿主或包管理体系。
+main.js 及其模块遵循卡内路径授权，不获得任意文件、网络或宿主访问权。
 
-## 4. Agent 与规则
+## 4. Agent 与共享变量
 
-- `messages`、消息 CRUD、`find` 和消息条件只作用于当前 Agent。
-- `state` 指向同一个 Session 的共享游戏状态；实际读写通过平台接口完成。
-- TTL 按所属 Agent 的调用轮次衰减，不随其他 Agent 的调用衰减。
-- 初始化由独立标记控制，不能仅以 Messages 是否为空判断是否执行过。
-- 当前 `exec` 继续是规则内的受控短时脚本，不直接承担长期模型请求。
-- 主程序通过平台托管的调用接口触发 Agent；Agent 不自动互相调用或广播消息。
+- Messages CRUD 默认作用于当前 Agent；查询可显式指定其他 Agent，只读取得执行时的快照。
+- 跨 Agent 引用插入为副本，不共享可变对象；TTL 按所属 Agent 的调用轮次推进。
+- 初始化标记按 Agent 保存，不能以 Messages 是否为空推断是否初始化。
+- 所有 Agent 和 main.js 访问同一个 Session 的 State，复用现有校验与模型写入限制。
+- pre_send 在该 Agent 请求前执行，post_response 在完整响应通过校验后执行。
+- 规则内 exec 继续承担短时逻辑，不从规则内递归调用 Agent。
+- 变量变化不自动触发其他 Agent，依赖顺序由 main.js 显式安排。
 
-Judge 写入 `turn.judgment` 后，Narrator 的 `pre_send` 可以沿用现有操作：
+Judge 写入 turn.judgment 后，Narrator 可以用现有模板语法读取：
 
 ```json
 {
@@ -79,110 +76,121 @@ Judge 写入 `turn.judgment` 后，Narrator 的 `pre_send` 可以沿用现有操
   "then": [{
     "type": "insert",
     "role": "system",
-    "content": "依据裁定生成正文并更新 text 变量：\n{{state_json:turn.judgment}}",
+    "content": "依据本轮裁定继续叙述：\n{{state_json:turn.judgment}}",
     "ttl": 1
   }]
 }
 ```
 
-Agent 的 Messages 保存模型上下文；业务结果直接写入约定变量。
-成功等待一次调用，意味着响应校验、变量提交和该调用的后处理均已完成。
-新模式下规则提交不等待玩家阅读，也不直接发布背景、音乐或正文。
+共享变量传递业务结果，不新增强制的 Agent input/output 容器。
+玩家输入由 main.js 接收，可写入变量并通过规则注入各 Agent，不自动广播到所有 Messages。
+Narrator 也可在 pre_send 查询 Judge 的消息并注入自身上下文，复用消息筛选语义，不必经 State 搬运文本。
+main.js 保证前置调用完成；“最后一条 assistant”可能是旧消息，精确关联应使用本次调用的 messageId。
 
-## 5. 主程序与共享变量
+## 5. 调用、原始 response 与最终 msg
 
-主程序响应启动、恢复、玩家操作及任务完成等事件，组织确定性逻辑和模型调用。
-以下接口只用于说明职责，事件导出方式和具体命名尚未定稿：
+以下示例用于明确职责；方法名称和具体完成边界在实现前定稿：
 
 ```js
-async function onPlayerAction(ctx, action) {
-  ctx.state.set("turn.action", action);
+export async function onInput(ctx, input) {
+  ctx.state.set("turn.input", input);
   ctx.state.delete("turn.judgment");
-  await ctx.agents.call("judge");
+
+  const judgment = ctx.agents.call("judge");
+  await judgment.done(); // 平台完成生成及后处理，不需要展示才能完成
   if (!ctx.state.has("turn.judgment")) throw new Error("缺少本轮裁定");
-  resolveGameRules(ctx);
-  ctx.state.delete("text");
-  await ctx.agents.call("narrator");
-  const text = ctx.state.get("text");
-  if (typeof text !== "string") throw new Error("缺少本轮正文");
-  await playText(ctx, text); // 卡内函数：分段、显示和等待玩家推进
+
+  // 此处可以执行卡内 JS 结算或分支逻辑。
+  const call = ctx.agents.call("narrator");
+  const reader = ctx.createReader({ source: call.response, mode: "segmented" });
+  await ctx.present(reader); // 平台界面驱动 reader.next()，等待阅读结束
+  await call.done(); // 同时确保生成、校验和后处理成功
 }
 ```
 
-`text`、`turn.judgment` 只是卡内约定，不是平台保留字段。
-暂时计算可以使用 JS 局部变量；需要恢复的世界事实、流程位置和展示进度必须保存为数据。
-清空本轮结果并检查有效性，避免调用失败后误用旧值。
-变量变更本身不自动触发 Agent；依赖顺序由主程序显式安排。
+agents.call 返回调用句柄，含原始 response 文本流、messageId 和 done()；不是第二份可变消息。
+response 是完整模型输出，包括控制标签，不随 post_response 修改；Messages 保存可被规则处理的消息。
+done() 等待生成、校验、普通 patch 提交及 post_response 完成；不等待 reader 或玩家阅读。
+pre_send 准备上下文；post_response 可改写本次 assistant msg，但不回头修改原始流及已展示内容。
+静态展示先等待 done()，再按 messageId 取得处理后的 msg.content 快照作为 reader.source。
+规则若删除目标消息，查询返回缺失，由主程序选择跳过或报错，不能退回原始 response 冒充最终消息。
+辅助 Agent 消息不自动展示；模型输出作为数据处理，不作为 JS 或未经净化的 HTML 执行。
 
-State 的所有写入需经过统一提交边界，支持 schema 校验、权限检查、diff 和订阅。
-LLM 只允许写授权路径；不同 Agent 可拥有不同写入范围。
-JS 的写入权限与模型权限分别定义，但均不能绕过状态校验和记录。
-Rules 显式控制哪些变量进入 prompt；这不等同于对所有卡内代码建立私有变量隔离。
+## 6. Reader：输入、输出与提交时机
 
-## 6. 异步、并行和后台调用
+reader 统一消费原始 response 或静态 msg，不负责模型调用，也不修改 Messages。
+输入为 source（字符串或 AsyncIterable<string>）、mode（segmented/continuous）和受控 applyPatch 回调。
+ctx.createReader 默认绑定当前 Session 的受控 State 提交接口，卡片不能借回调绕过校验。
+静态文本先固定快照；网络 chunk 仅是传输边界，不是阅读段落。
 
-- `await agents.call(id)`：等待调用完成；用于有数据依赖的流程。
-- `Promise.all([...])`：不同 Agent 并行；依赖方等待所需结果提交。
-- `agents.start(id)`：由平台托管后台任务并返回任务句柄，不等同于遗漏 `await`。
-- 同一个 Agent 默认排队，防止并行修改同一 Messages 历史。
-- 调用执行前读取明确的 State 快照；本次请求上下文不随外部变量变化而改变。
-- 推荐将新模式调用的变量变更暂存，在响应被接受后统一提交；失败或校验重试丢弃暂存结果。
-- 后台写入按变更集合提交，不用旧的完整 State 覆盖其他任务的修改。
-- 检测并发写冲突，首版建议拒绝冲突提交并报告，由主程序决定是否重算；不静默后写覆盖。
-- 对没有写冲突但已不适用的结果，主程序可设置回合或业务前置条件，在提交边界检查。
+| 模式 | 输出 | 标签处理 |
+| --- | --- | --- |
+| segmented | 完整段落及对应 patches | 过滤两种标签；推进时提交 state_patch_stream |
+| continuous | 可显示的增量文本，patches 为空 | 过滤两种标签，均不提交 |
 
-任务绑定 cardId、sessionId、运行代次和 callId；回滚、停止或切换后拒绝旧任务迟到写入。
-平台提供取消、超时、调用预算和错误事件。模型等待时限与脚本 CPU 执行预算应分开。
-第一版不承诺跨应用关闭恢复正在进行的请求，也不引入自动依赖图或自主循环调度。
+reader.next() 返回 { done, value: { text, patches } }；patches 是本次已提交的记录，调用方不得再次 apply。
+分段模式内部可提前解析和缓存，但只有 next() 推进到该段时才按顺序提交 patch，提交成功后返回正文。
+UI 显示正文并等待玩家操作后再调用 next()；非分段模式持续消费增量即可。
+标签前正文先形成一段，state_patch_stream 作用于后续段落，在后段显示前提交。
+连续标签保持顺序；末尾仅有 patch 时返回空正文更新单元，无需额外展示空白页。
+正文分段沿用平台阅读配置；增量解析必须处理跨 chunk 标签，不泄漏控制文本，不因预读提前提交。
 
-## 7. 卡内前端与演出
+普通 <state_patch> 始终由 Agent 在完整响应通过校验后、post_response 前提交一次，reader 只过滤。
+<state_patch_stream> 只由分段 reader 提交；隐藏调用及非分段展示不会执行它。
+两种文本来源均支持两种阅读模式；静态模式按后处理后的文本重新解析，不能沿用原始流的位置索引。
+因此模型完成和演出完成是不同边界；后续 Agent 依赖阅读变量时，main.js 必须等待 reader 消费结束。
+普通 patch 与阅读 patch 不保证跨通道顺序；卡片应避免依赖同一路径的时序，确需排序时显式等待。
+取消、解析或提交失败使 reader 终止，交给整轮失败处理；已产生副作用的阅读流不允许透明重播重试。
+本轮同一展示源只进行一次带副作用的阅读；历史回看使用已保存展示记录，不重新执行 patch。
 
-卡内前端拥有显示和交互实现，主程序可调用卡内模块或通过受控桥发送前端事件。
-状态绑定与程序控制可以共存：背包随变量刷新，正文由主程序决定何时分段播放。
+## 7. 一轮交互、错误和取消
 
-`state.text` 更新只表示数据改变，不自动显示；`state.scene` 也没有平台内置的切场景含义。
-播放前固定正文副本，避免后台覆盖影响当前播放；需要恢复时将副本和播放位置纳入存档。
-不强制额外定义 Agent 结果容器或演出指令 DSL，卡片可用普通字符串、JSON 和 JS 实现。
+首版每个 Session 同时只运行一轮输入，一轮内只允许一个未完成的 Agent 调用。
+不支持并行模型请求、后台任务或跨输入继续运行的脚本；违规调用明确报错。
+主程序结束前必须完成调用及已启动的阅读；异常退出时平台取消请求和 reader。
 
-现有背景、立绘、BGM、分段阅读可整理为官方可选库，与卡内自定义 UI 使用同样的基础接口。
-模型输出只能作为数据消费，不直接作为 JS、未净化 HTML 或任意资源 URL 执行。
-平台仍托管资源路径校验、缓存、生命周期清理及前端隔离；卡片不获得宿主 DOM、密钥或跨卡访问权。
-卡内前端采用何种隔离容器需单独验证，不能直接把独立 HTML 注入平台主页面。
+一轮输入前保存内存重试基准，覆盖共享 State、全部 Agent 上下文及初始化标记、可见记录和必要视图数据。
+一轮成功后才成为新的可保存结果；失败或取消恢复本轮基准，并清理临时显示和演出。
+首版重试重新执行整轮 main.js，不提供单 Agent 独立检查点。
+切换 Session、卸载或停止后，旧脚本和请求不得继续写回。
 
-## 8. Session、恢复与重试
+脚本在可终止的受控宿主执行；模型等待与脚本 CPU 限制分开。
+trace 增加 agentId、callId 和主程序来源，定位一轮内的调用、变量修改和失败。
+不为顺序执行建设并发冲突检测、写入版本历史或后台调度框架。
 
-Session 保存共享 State、全部 Agent Messages、初始化标记及必要的流程与展示数据。
-存档记录卡片版本和存档格式版本；这些数据应形成一致快照，不能只保存正在显示的 Agent。
-桌面与 Web 继续复用运行语义，同时保留各自自动/显式保存策略。
+## 8. Session 与版本边界
 
-不持久化 Promise、JS 调用栈、DOM 或渲染对象。游戏卡必须提供恢复逻辑，根据数据重建前端。
-可在明确的业务检查点保存；若支持播放中保存，应保存对应播放位置，不能靠恢复异步函数实现。
-存档包含已提交状态；未完成调用不伪装成已完成，载入后由主程序决定重发或放弃。
+扩展现有 Session，保存共享 State、全部 Agent Messages/初始化标记、可见记录和平台阅读状态。
+可见记录保存实际展示内容，不能由后处理后的 Messages 重建原始流展示，也不能在读档时重新 apply patch。
+保存以完整轮次为边界；生成或阅读提交未结束时不保存半轮数据。
+桌面仍自动保存，Web 仍显式创建新存档；运行中显式保存禁用。
+载入后恢复数据并等待下一次输入，不恢复 Promise、JS 调用栈或进行中的模型请求。
 
-区分单次模型请求重试与玩家重做游戏步骤。后者由主程序选择检查点，平台恢复完整状态及 Agent 上下文。
-回滚同时使检查点之后的任务失效，前端依恢复后的数据重建，避免旧演出继续推进。
+本轮不做旧游戏卡运行时兼容，也不迁移旧卡存档。
+通过明确协议标识拒绝旧版或未知版卡片并提示迁移，不按新语义静默加载。
+提示词、资源和仍成立的规则可迁移复用，不保留第二套长期执行器。
+普通聊天继续可用；酒馆转换工具若仍输出旧协议，应明确提示暂不支持。
 
-## 9. 对现有架构的调整
+## 9. Agent 消息历史查看
 
-| 当前部分 | 调整方向 |
-| --- | --- |
-| `src/renderer/chat/` | 抽出不依赖聊天 UI 的生成与 Session 协调逻辑 |
-| `src/shared/game-card/` | 复用规则、模板、State 和 schema，加入 Agent 执行上下文 |
-| `src/renderer/gameCard/` | 拆开响应解析、变量提交和自动演出绑定 |
-| 平台适配层 | 继续提供双端模型、存储与资源能力，不另建一套传输体系 |
-| 内置聊天与演出 UI | 保留旧卡支持，逐步抽为新卡可选的前端库 |
-| 导入、发布与检查工具 | 校验新入口、Agent 引用及路径；协议仍使用唯一共享 schema |
+复用平台现有 msg 历史展示页面，在该页面标题栏增加 Agent 切换按钮，不新建独立调试页面。
+按钮按卡片声明的 Agent 列出；选中后展示当前 Session 内该 Agent 的完整 Messages，沿用现有消息展示格式。
+辅助 Agent 同样可查看；尚未产生消息时显示空状态，不混入其他 Agent 或玩家可见记录。
+页面读取实际 Messages，因此显示 post_response 等规则修改后的内容，不是原始 response 的副本。
+切换 Agent 只改变查看对象，不触发调用、初始化、规则或 reader，也不修改游戏状态。
+切换游戏卡或 Session 后重新绑定数据；选中 Agent 不存在时回到首个 Agent，无 Agent 时显示空状态。
+桌面与 Web 复用同一页面和切换控件，保留现有历史查看入口，不以新增开发者模式为前提。
 
-新增 Game Runtime、主程序执行宿主和卡内前端宿主；具体目录在实现时按依赖方向确定。
-旧卡通过默认主程序、单个 main Agent 和旧演出适配保持行为，不直接改变原有流式 patch/阅读提交语义。
-新模式与旧模式通过明确协议选择区分，不能根据字段猜测或让旧卡静默切换。
+## 10. 实施与验收范围
 
-## 10. 验证边界与待定项
+复用 src/renderer/chat/ 的生成、输入和 Session 管线，以及 src/shared/game-card/ 的规则与 State 能力。
+src/renderer/gameCard/ 的演出接入 reader，支持原始 response 和最终 msg 两种来源。
+导入、发布、静态检查和开发参考同步更新新清单，继续使用唯一共享 Schema。
 
-验证应覆盖 Agent 上下文隔离、变量传递、TTL、调用校验、并发冲突、取消和迟到结果隔离。
-集成测试覆盖多 Agent 与 JS 混合流程、完整快照及恢复；双端 E2E 覆盖卡内 UI、资源播放和 Session 切换。
-旧卡用现有回归用例验证兼容性。trace 沿用 Session 归属，并增加 agentId、callId、任务状态和提交版本。
+先用最小 Judge/Narrator fixture 验证，再迁移 WA2 验证真实提示词和现有演出体验。
+测试覆盖上下文/TTL 隔离、变量传递、隐藏调用、流式显示、整轮重试、取消、保存恢复和双端运行。
+仍成立的底层契约测试保留；绑定旧语义的测试按明确的新契约替换，不能删除来规避失败。
 
-实施前需明确：主程序事件/API 契约、前端隔离技术、模块加载与文件授权、每 Agent 写入权限格式。
-流式写入正文、并行读取依赖校验、检查点 API 属于后续细化项，不由本草案预设完整实现。
-当前最小闭环是：Judge 写变量 → Narrator 的 Rules 读取变量并生成 `text` → 卡内主程序/前端分步展示 → 保存并恢复。
+暂不纳入：卡内独立前端、资源桥、演出库提取、并行/后台 Agent、通用 State 事务框架、
+检查点 API、脚本中途恢复、3D 和存档转移；本轮包含上述 reader 与两种 patch 的职责划分。
+这些能力不作为 main.js 多 Agent 首版的前置条件。

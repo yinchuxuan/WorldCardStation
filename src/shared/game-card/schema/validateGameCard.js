@@ -40,6 +40,10 @@ function formatSchemaErrors(errors = []) {
 }
 
 function validateGameCardDiagnostics(card) {
+  if (card && Object.hasOwn(card, 'formatVersion')) return [{
+    code: 'unsupported_runtime', pointer: '/formatVersion',
+    message: 'formatVersion: this runtime protocol is not available in the current player'
+  }];
   const valid = validateSchema(card);
   if (!valid) return validateSchema.errors.filter(error => error.keyword !== 'if').map(error => ({
     code: 'runtime_schema', pointer: error.instancePath || '', message: `${errorPath(error)}: ${errorMessage(error)}`

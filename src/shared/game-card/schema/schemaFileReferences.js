@@ -13,21 +13,24 @@ function childPath(parent, key) {
   return parent ? `${parent}.${key}` : key;
 }
 
-function walk(value, schema, path, files) {
+function walk(value, schema, path, files, root) {
   if (!schema || typeof schema !== 'object') return;
-  if (schema.$ref) walk(value, resolvePointer(gameCardSchema, schema.$ref), path, files);
+  if (schema.$ref) walk(value, resolvePointer(root, schema.$ref), path, files, root);
   if (schema['x-file'] === true && typeof value === 'string') {
     files.push({ field: path, file: value });
   }
+  if (schema['x-directory'] === true && typeof value === 'string') {
+    files.push({ field: path, file: value, directory: true });
+  }
 
   ['allOf', 'anyOf', 'oneOf'].forEach(keyword => {
-    schema[keyword]?.forEach(branch => walk(value, branch, path, files));
+    schema[keyword]?.forEach(branch => walk(value, branch, path, files, root));
   });
-  if (schema.then) walk(value, schema.then, path, files);
-  if (schema.else) walk(value, schema.else, path, files);
+  if (schema.then) walk(value, schema.then, path, files, root);
+  if (schema.else) walk(value, schema.else, path, files, root);
 
   if (Array.isArray(value) && schema.items) {
-    value.forEach((item, index) => walk(item, schema.items, childPath(path, index), files));
+    value.forEach((item, index) => walk(item, schema.items, childPath(path, index), files, root));
     return;
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return;
@@ -35,21 +38,22 @@ function walk(value, schema, path, files) {
   const properties = schema.properties || {};
   Object.entries(properties).forEach(([key, childSchema]) => {
     if (Object.prototype.hasOwnProperty.call(value, key)) {
-      walk(value[key], childSchema, childPath(path, key), files);
+      walk(value[key], childSchema, childPath(path, key), files, root);
     }
   });
   if (!schema.additionalProperties || typeof schema.additionalProperties !== 'object') return;
   Object.entries(value).forEach(([key, child]) => {
     if (!Object.prototype.hasOwnProperty.call(properties, key)) {
-      walk(child, schema.additionalProperties, childPath(path, key), files);
+      walk(child, schema.additionalProperties, childPath(path, key), files, root);
     }
   });
 }
 
-function collectSchemaFileReferences(card) {
+function collectSchemaFileReferences(card, schema = gameCardSchema) {
   const files = [];
-  walk(card, gameCardSchema, '', files);
-  return [...new Map(files.map(item => [`${item.field}\0${item.file}`, item])).values()];
+  walk(card, schema, '', files, schema);
+  return [...new Map(files.filter(item => schema !== gameCardSchema || !item.directory)
+    .map(item => [`${item.field}\0${item.file}`, item])).values()];
 }
 
 export { collectSchemaFileReferences };

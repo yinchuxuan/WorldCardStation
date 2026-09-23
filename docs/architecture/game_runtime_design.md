@@ -1,8 +1,9 @@
 # 游戏运行时重构设计
 
-状态：目标设计草案，尚未实现。清单字段、脚本入口和 API 均为示意，不是当前可用语法。
+状态：目标设计；清单与 API 已在下级契约定稿，运行闭环尚未实现，不是当前玩家可用语法。
 
 适用任务：评审 main.js 编排多 Agent 的最小重构。
+相关代码：`src/shared/game-card/`、`src/renderer/chat/`。
 前置文档：[当前架构](./overview.md)。当前字段仍以 [Schema 契约](../game_card/schema.md)为准。
 
 ## 1. 本轮目标
@@ -35,7 +36,7 @@ Agent 处理普通变量提交，reader 处理阅读位置相关的提交；两�
 ## 3. 游戏卡定义
 
 在现有 State、内容授权、资源和显示配置基础上，增加主程序入口与 Agent 定义。
-以下仅展示新增结构，正式字段由 Schema 定稿：
+以下展示新增结构；正式字段见 [清单与加载契约](./game_runtime_manifest.md)，结构约束由唯一 Schema 定义：
 
 ```json
 {
@@ -51,7 +52,7 @@ Agent 处理普通变量提交，reader 处理阅读位置相关的提交；两�
 }
 ```
 
-formatVersion 选择运行协议，取值待定；version 是卡片内容版本。
+formatVersion 固定为字符串 "2"；version 是卡片内容版本。
 Agent 文件声明规则、内容引用、模型配置引用及回复校验，不保存运行中的 Messages。
 密钥仍由平台持有，不进入卡片脚本。
 
@@ -89,7 +90,7 @@ main.js 保证前置调用完成；“最后一条 assistant”可能是旧消�
 
 ## 5. 调用、原始 response 与最终 msg
 
-以下示例用于明确职责；方法名称和具体完成边界在实现前定稿：
+方法名称和完成边界以 [最小执行契约](./game_runtime_api.md) 为准：
 
 ```js
 export async function onInput(ctx, input) {

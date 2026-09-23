@@ -6,10 +6,8 @@ use crate::game_card_state_schema::validate_state_schema;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
-
 const SCHEMA_TEXT: &str = include_str!("../../shared/game-card/schema/game-card.schema.json");
-
-fn without_data_keywords(value: &mut Value) {
+pub(crate) fn without_data_keywords(value: &mut Value) {
     match value {
         Value::Array(items) => items.iter_mut().for_each(without_data_keywords),
         Value::Object(object) => {
@@ -24,7 +22,7 @@ fn without_data_keywords(value: &mut Value) {
     }
 }
 
-fn normalize_ecmascript_patterns(schema: &mut Value) {
+pub(crate) fn normalize_ecmascript_patterns(schema: &mut Value) {
     let matches = schema
         .pointer("/definitions/statePath/pattern")
         .and_then(Value::as_str)
@@ -36,6 +34,11 @@ fn normalize_ecmascript_patterns(schema: &mut Value) {
 }
 
 fn validate_structure(card: &Value) -> CardResult<()> {
+    if card.get("formatVersion").is_some() {
+        return Err(GameCardError::new(
+            "card.json: formatVersion: runtime protocol is not available in the current player",
+        ));
+    }
     let mut schema: Value = serde_json::from_str(SCHEMA_TEXT).map_err(|error| {
         GameCardError::new(format!("Embedded game card schema is invalid: {error}"))
     })?;
@@ -91,7 +94,7 @@ fn collect_random_range_errors(value: &Value, path: &str, errors: &mut Vec<Valid
     }
 }
 
-fn validate_data_constraints(card: &Value) -> CardResult<()> {
+pub(crate) fn validate_data_constraints(card: &Value) -> CardResult<()> {
     let mut details = Vec::new();
     if let Some(rules) = card.get("rules") {
         collect_random_range_errors(rules, "/rules", &mut details);

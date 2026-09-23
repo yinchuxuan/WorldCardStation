@@ -1,6 +1,8 @@
 # 游戏运行时重构实施步骤
 
 状态：缩小范围后的实施计划，不记录进度，不表示新协议已可用。
+适用任务：分阶段实施游戏运行时重构。
+相关代码：`src/shared/game-card/`、`src/renderer/chat/`、`test/game-card/`。
 前置文档：[目标设计](./game_runtime_design.md)、[构建与测试](../engineering/build_and_test.md)。
 
 ## 执行约束

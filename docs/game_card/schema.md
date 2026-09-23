@@ -31,6 +31,11 @@ JSON Schema 不负责读取文件。schema 中带 `x-file: true` 的定义会由
 
 ## 版本
 
+<!-- devkit:omit:start -->
+新多 Agent 协议的内部定义与加载规则见 [新运行时清单](../architecture/game_runtime_manifest.md)。
+其 Schema 视图仍来自同一 JSON Schema 的 definitions；顶层旧播放器暂不接受新卡，不静默回退。
+<!-- devkit:omit:end -->
+
 协议版本位于 schema 顶层 `x-schema-version`，当前为 `1.10.0`。它与游戏卡顶层 `version` 无关：后者由卡作者标记内容版本，不参与平台协议选择。
 
 协议版本遵循 SemVer：

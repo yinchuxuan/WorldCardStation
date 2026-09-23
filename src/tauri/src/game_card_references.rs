@@ -120,9 +120,13 @@ fn walk(
 
 pub fn collect_file_references(card: &Value) -> Result<Vec<FileReference>, String> {
     let schema: Value = serde_json::from_str(SCHEMA_TEXT).map_err(|error| error.to_string())?;
+    Ok(collect_schema_references(card, &schema))
+}
+
+pub(crate) fn collect_schema_references(card: &Value, schema: &Value) -> Vec<FileReference> {
     let mut files = Vec::new();
-    walk(card, &schema, &schema, "", "", &mut files);
+    walk(card, schema, schema, "", "", &mut files);
     let mut seen = HashSet::new();
     files.retain(|item| seen.insert(item.clone()));
-    Ok(files)
+    files
 }

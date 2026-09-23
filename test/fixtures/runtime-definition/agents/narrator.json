@@ -1,0 +1,11 @@
+{
+  "model": "narration-model",
+  "rules": [
+    {
+      "when": { "phase": "pre_send" },
+      "find": [{ "name": "judgment", "agentId": "judge", "from": { "role": "assistant", "index": "last" } }],
+      "then": [{ "type": "insert", "role": "system", "content": "{{state:temp.find.judgment}}" }]
+    },
+    { "when": { "phase": "post_response" }, "then": [{ "type": "state.set", "path": "turn.narrated", "value": true }] }
+  ]
+}

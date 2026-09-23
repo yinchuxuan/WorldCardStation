@@ -1,0 +1,7 @@
+{
+  "model": "default",
+  "rules": [
+    { "when": { "phase": "init" }, "then": [{ "type": "insert", "role": "system", "content": "{{file:intro}}" }] },
+    { "when": { "phase": "pre_send" }, "then": [{ "type": "insert", "role": "user", "content": "{{state:turn.input}}" }] }
+  ]
+}

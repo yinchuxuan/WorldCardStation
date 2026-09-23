@@ -32,7 +32,10 @@ function resolveFindSpec(spec, messages, observer) {
 
 function resolveFind(find, messages = [], options = {}) {
   return normalizeFind(find).reduce((result, spec, index) => {
-    if (spec?.name) result[spec.name] = resolveFindSpec(spec, messages, conditionObserver(options, `find/${index}/from`));
+    const source = spec.agentId === undefined || spec.agentId === options.agentId
+      ? messages : options.agentMessages?.(spec.agentId);
+    if (!source) throw new Error(`unknown Agent: ${spec.agentId}`);
+    if (spec?.name) result[spec.name] = resolveFindSpec(spec, source, conditionObserver(options, `find/${index}/from`));
     return result;
   }, {});
 }

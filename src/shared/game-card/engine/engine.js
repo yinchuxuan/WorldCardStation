@@ -85,11 +85,17 @@ function applyGameCard(input = {}) {
 async function applyGameCardAsync(input = {}) {
   const { validation, initial, options } = prepare(input);
   if (!validation.valid) return initial;
+  return applyRulesAsync(initial, options);
+}
+
+// Internal execution for definitions already validated at their loading boundary.
+async function applyRulesAsync(initial, options) {
   let result = initial;
   for (const [index, rule] of options.card.rules.entries()) {
     result = await applyRule(result, rule, index, options, applyActionsAsync);
+    if (options.strict && result.trace.errors.length) throw new Error(result.trace.errors.join('; '));
   }
   return result;
 }
 
-export { applyGameCard, applyGameCardAsync, cloneMessages };
+export { applyGameCard, applyGameCardAsync, applyRulesAsync, cloneMessages };

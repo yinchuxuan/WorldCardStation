@@ -1,10 +1,23 @@
 # 最小执行契约
 
 适用任务：按已定稿 API 实现后续主程序、Agent 调用和 reader。
-相关代码：`src/shared/game-card/`、`src/renderer/chat/`；本页 API 的执行实现尚未交付。
+相关代码：`src/shared/game-card/runtime/agentRuntime.js`、`src/renderer/chat/agentTransport.js`。
 前置文档：[运行时设计](./game_runtime_design.md)、[清单与加载](./game_runtime_manifest.md)。
 以下名称及完成边界是后续实现的正式契约，不表示当前播放器已经提供这些 API。
 本轮不提供并发、后台调用、独立前端或脚本恢复。
+
+## 内部调用边界
+
+`createAgentRuntime({ definition, generate, dependencies })` 接收加载器返回的定义，提供 agents、state、cancel() 和 stop()。
+这是宿主内部的无显示实例；不执行 main.js，不产生可见消息、不持久化，也未向播放器开放新协议。
+generate 接收 `{ agentId, model, messages, signal }` 和 `{ onToken, onThinkingToken }`，返回传输完成的 Promise。
+模型配置只由宿主的 createAgentTransport 解析；内容文件和 rules.exec 通过显式依赖复用现有受控执行器。
+每次调用失败或取消恢复本次调用前的上下文、初始化标记和 State；跨多个调用的整轮恢复由主程序宿主负责。
+取消会终止等待并拦截迟到结果；stop 永久停用该实例。未完成调用期间，宿主 state.set/delete 暂不开放。
+共享 State 只在实例创建时补默认值，后续删除不会因规则阶段自动补回；读值和消息历史均返回独立副本。
+模型 patch 只可写已声明的 State 路径及其子路径；llmWrite:false 同时阻止祖先覆盖和子路径绕过。
+子路径写入也校验受影响的父对象，规则和 exec 不受 llmWrite 限制，但仍需通过值约束。
+不增加动态通配 schema 语法；完整协议迁移前不以旧文档中的扩展声明代替实际 Schema 能力。
 
 ## 主程序与共享 State
 
@@ -43,6 +56,8 @@ if (msg) await ctx.present(ctx.createReader({ source: msg.content, mode: 'contin
 - response 仅允许一个消费者，从本次输出起点消费；较晚订阅仍可消费已缓存前缀，不丢已生成内容。
 - response 的迭代结束表示原始文本流结束，不代表后处理、阅读或整轮完成；任何路径都必须等待 done()。
 - done() 可重复等待同一个完成结果；边界为生成 → 回复校验 → 普通 patch 提交 → post_response。
+- 校验使用普通 patch 的候选 State，不提前提交；不执行 state_patch_stream。content 正则过滤两类标签，raw 保留。
+- retry 违规使 done() 拒绝，由上层整轮重试，不执行 maxRetries 透明重生成或耗尽降级；warn 接受并记录消息元数据。
 - init 按 Agent 标记仅执行一次；每次请求前推进该 Agent TTL 并执行 pre_send。
 - post_response 修改 Messages，不修改 response 或已展示记录。若删除本次 msg，按 ID 查询返回缺失。
 - messages(agentId) 返回调用时的副本；必须在 done() 后重新查询才能拿到后处理结果。

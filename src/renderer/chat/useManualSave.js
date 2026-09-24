@@ -1,12 +1,14 @@
 import React from 'react';
 import { savePolicy } from '../platform/index.js';
 
-export default function useManualSave({ snapshot, loadedRef, repository, isLoading }) {
+export default function useManualSave({ snapshot, loadedRef, repository, isLoading, enabled = true }) {
   const state = React.useRef({ baseline: '', target: null, saving: false, error: null,
     savedAt: null, conflict: false, operations: 0 });
   const [, render] = React.useReducer(value => value + 1, 0);
   const loading = React.useRef(isLoading);
   loading.current = isLoading;
+  const enabledRef = React.useRef(enabled);
+  enabledRef.current = enabled;
   const fingerprint = () => JSON.stringify(snapshot());
   const dirty = () => loadedRef.current && state.current.baseline !== fingerprint();
   const busy = () => loading.current || state.current.saving || state.current.operations > 0 || state.current.transition;
@@ -29,7 +31,7 @@ export default function useManualSave({ snapshot, loadedRef, repository, isLoadi
       let ended = false;
       return () => { if (!ended) { ended = true; state.current.operations -= 1; render(); } };
     },
-    get blocked() { return savePolicy === 'manual' && (!loadedRef.current || busy() || state.current.conflict); },
+    get blocked() { return !enabledRef.current || (savePolicy === 'manual' && (!loadedRef.current || busy() || state.current.conflict)); },
     get dirty() { return dirty(); },
     get saving() { return state.current.saving; },
     get error() { return state.current.error; },

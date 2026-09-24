@@ -1,7 +1,10 @@
+import { settle } from './logic.js';
+
 export async function onInput(ctx, input) {
   ctx.state.set('turn.input', input);
-  await ctx.agents.call('judge').done();
-  const call = ctx.agents.call('narrator');
-  await ctx.present(ctx.createReader({ source: call.response, mode: 'segmented' }));
-  await call.done();
+  const judge = ctx.agents.call('judge');
+  await judge.done();
+  const message = ctx.agents.messages('judge').find(item => item.id === judge.messageId);
+  ctx.state.set('turn.judgment', settle(message.content));
+  await ctx.agents.call('narrator').done();
 }

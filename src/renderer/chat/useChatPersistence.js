@@ -8,7 +8,7 @@ function normalizedViewState(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
 }
 
-function useChatPersistence({ messages, gameState, isLoading, repository = rendererServices.sessions }) {
+function useChatPersistence({ messages, gameState, isLoading, enabled = true, repository = rendererServices.sessions }) {
   const retryBaseRef = React.useRef(null);
   const retryBaseStateRef = React.useRef(null);
   const viewStateRef = React.useRef({});
@@ -56,17 +56,18 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
       viewState: viewStateRef.current
     }
   }), []);
-  const manual = useManualSave({ snapshot, loadedRef, repository, isLoading });
+  const manual = useManualSave({ snapshot, loadedRef, repository, isLoading, enabled });
   const manualRef = React.useRef(manual);
   manualRef.current = manual;
   const save = React.useCallback((nextMessages, nextState) => {
+    if (!enabled) return Promise.reject(new Error('此运行时尚未接入存档，不能保存'));
     if (!loadedRef.current) return Promise.reject(new Error('会话尚未成功加载，不能保存'));
     if (savePolicy === 'manual') return manual.save();
     return saveQueue.flush(snapshot(nextMessages, nextState));
-  }, [manual, saveQueue, snapshot]);
+  }, [enabled, manual, saveQueue, snapshot]);
   const flush = React.useCallback(() => (
-    loadedRef.current ? (savePolicy === 'manual' ? manual.save() : saveQueue.flush(snapshot())) : saveQueue.waitForIdle()
-  ), [manual, saveQueue, snapshot]);
+    enabled && loadedRef.current ? (savePolicy === 'manual' ? manual.save() : saveQueue.flush(snapshot())) : saveQueue.waitForIdle()
+  ), [enabled, manual, saveQueue, snapshot]);
 
   const setReadingPosition = React.useCallback((position) => {
     const messageId = String(position?.messageId || '');
@@ -81,9 +82,9 @@ function useChatPersistence({ messages, gameState, isLoading, repository = rende
   }, []);
 
   React.useEffect(() => {
-    if (savePolicy === 'manual' || !loadedRef.current || isLoading) return;
+    if (!enabled || savePolicy === 'manual' || !loadedRef.current || isLoading) return;
     void saveQueue.enqueue(snapshot()).catch(() => {});
-  }, [gameState, isLoading, messages, saveQueue, snapshot, viewState]);
+  }, [enabled, gameState, isLoading, messages, saveQueue, snapshot, viewState]);
 
   const markLoaded = React.useCallback(() => { loadedRef.current = true; manual.changed(); }, [manual]);
 

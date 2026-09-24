@@ -6,7 +6,7 @@ import { invalidateGameCardRuntimeCache } from '../gameCard/gameCardRuntimeCache
 
 const GameCardRuntimeContext = React.createContext(null);
 
-function GameCardRuntimeProvider({ children, platform = gameCardPlatform }) {
+function GameCardRuntimeProvider({ children, platform = gameCardPlatform, mainSession }) {
   const [activeCard, setActiveCard] = React.useState(null);
   const [gameState, setGameState] = React.useState({});
   const [runtimeError, setRuntimeError] = React.useState(null);
@@ -32,6 +32,7 @@ function GameCardRuntimeProvider({ children, platform = gameCardPlatform }) {
   }, []);
 
   const value = React.useMemo(() => ({
+    mainSession,
     activeCard,
     changeActiveCard,
     gameState,
@@ -39,12 +40,13 @@ function GameCardRuntimeProvider({ children, platform = gameCardPlatform }) {
     runtimeError,
     setGameState,
     setRuntimeError
-  }), [activeCard, changeActiveCard, gameState, reloadActiveCard, runtimeError]);
+  }), [activeCard, changeActiveCard, gameState, reloadActiveCard, runtimeError, mainSession]);
 
   return <GameCardRuntimeContext.Provider value={value}>{children}</GameCardRuntimeContext.Provider>;
 }
 
 GameCardRuntimeProvider.propTypes = {
+  mainSession: PropTypes.object,
   children: PropTypes.node,
   platform: PropTypes.shape({
     repository: PropTypes.shape({ getActiveCard: PropTypes.func.isRequired }).isRequired

@@ -5,6 +5,7 @@
 前置文档：[运行时设计](./game_runtime_design.md)、[清单与加载](./game_runtime_manifest.md)。
 以下名称及完成边界是后续实现的正式契约，不表示当前播放器已经提供这些 API。
 本轮不提供并发、后台调用、独立前端或脚本恢复。
+main.js 的内部宿主、模块子集和输入边界见 [受控主程序与输入轮](./game_runtime_main.md)。
 
 ## 内部调用边界
 

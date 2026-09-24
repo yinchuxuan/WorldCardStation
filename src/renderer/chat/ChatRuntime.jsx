@@ -51,9 +51,10 @@ function ChatRuntime({
   const modelConfig = useModelConfig();
   const typewriter = useTypewriter();
   const presentation = useGameCardPresentation();
-  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading });
+  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, enabled: !runtime.mainSession });
   const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
   const generation = useChatGeneration({
+    mainSession: runtime.mainSession,
     messages, setMessages, gameState: runtime.gameState, setGameState: runtime.setGameState,
     modelConfig, typewriter,
     persistence, isLoading,

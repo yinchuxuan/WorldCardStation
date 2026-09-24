@@ -7,7 +7,7 @@ import { runAgentRules } from './agentRules.js';
 import { completeResponse } from './completeResponse.js';
 
 // Host-only API. No main.js, display, storage or platform dependency.
-function createAgentRuntime({ definition, generate, dependencies = {} }) {
+function createAgentRuntime({ definition, generate, dependencies = {}, snapshot, idPrefix = '' }) {
   const card = mergeRuntimeStateSchema({ ...definition.card,
     state: { ...definition.card.state, schema: definition.stateSchema } });
   const store = createSharedState(card.state.schema, card.state.initial || {});
@@ -15,7 +15,14 @@ function createAgentRuntime({ definition, generate, dependencies = {} }) {
   let sequence = 0;
   let active;
   let stopped = false;
-  const nextId = () => `msg-${++sequence}`;
+  const nextId = () => `msg-${idPrefix}${++sequence}`;
+  if (snapshot) {
+    store.replace(snapshot.state);
+    for (const id of Object.keys(contexts)) {
+      if (!snapshot.contexts?.[id]) throw new Error(`missing Agent snapshot: ${id}`);
+      contexts[id] = cloneJson(snapshot.contexts[id]);
+    }
+  }
   function requireContext(id) {
     if (!Object.hasOwn(contexts, id)) throw new Error(`unknown Agent: ${id}`);
     return contexts[id];
@@ -82,6 +89,10 @@ function createAgentRuntime({ definition, generate, dependencies = {} }) {
     return Object.freeze({ messageId, response: stream.response, done: () => done });
   }
   return Object.freeze({
+    snapshot() {
+      if (active) throw new Error('cannot snapshot an unfinished Agent call');
+      return cloneJson({ state: store.snapshot(), contexts });
+    },
     agents: Object.freeze({ call, messages }),
     state: Object.freeze(Object.fromEntries(Object.entries(store.api).map(([name, operation]) => [name, (...args) => {
       if (stopped) throw new Error('Agent runtime stopped');

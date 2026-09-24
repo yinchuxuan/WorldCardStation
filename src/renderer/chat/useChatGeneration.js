@@ -3,8 +3,10 @@ import * as chatGeneration from './chatGeneration.js';
 import useGenerationAbort from './useGenerationAbort.js';
 import { createChatMessage } from './messageIds.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
+import useMainGeneration from './useMainGeneration.js';
 
 function useChatGeneration({
+  mainSession,
   messages,
   setMessages,
   gameState,
@@ -27,6 +29,7 @@ function useChatGeneration({
   onPresentationEffects
 }) {
   const generationControl = useGenerationAbort();
+  const mainGeneration = useMainGeneration({ mainSession, setMessages, setGameState, setIsLoading, setRequestError });
 
   const run = React.useCallback((nextMessages, nextState, appendAssistantWithUpdater = false) => (
     generationControl.trackGeneration(chatGeneration.runChatGeneration({
@@ -96,12 +99,13 @@ function useChatGeneration({
   }, [gameState, generationControl, messages, modelConfig, onAudioSubmit, onResponseValidationWarning,
     onRetryStateRestore, persistence, run, setGameState]);
 
-  return React.useMemo(() => ({
+  const legacyGeneration = React.useMemo(() => ({
     isLoading,
     retry,
     send,
     stop: generationControl.stopGeneration
   }), [generationControl.stopGeneration, isLoading, retry, send]);
+  return mainSession ? { ...mainGeneration, isLoading } : legacyGeneration;
 }
 
 export default useChatGeneration;

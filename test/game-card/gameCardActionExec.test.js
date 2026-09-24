@@ -80,11 +80,11 @@ describe('game card action execution edge cases', () => {
         ]
       }]
     };
-    const result = applyGameCard({
-      card, phase: 'pre_send',
-      messages: [{ role: 'user', content: 'hello' }]
-    });
+    const messages = [{ role: 'user', content: 'hello' }];
+    const result = applyGameCard({ card, phase: 'pre_send', messages });
     expect(result.messages.map((m) => m.content)).toEqual(['second', 'first', 'modified']);
+    expect(result.trace.rules[0].actions.map(action => action.type)).toEqual(['insert', 'insert', 'replace']);
+    expect(messages).toEqual([{ role: 'user', content: 'hello' }]);
   });
 
   test('multiple matched rules execute in config order', () => {
@@ -112,11 +112,10 @@ describe('game card action execution edge cases', () => {
     expect(result.messages.length).toBe(2);
   });
 
-  test('applyAction returns not_implemented for unknown action type', () => {
+  test.each([undefined, { type: 'unknown_type' }])('applyAction reports unsupported action %p', action => {
     const messages = [{ role: 'user', content: 'hello' }];
-    const result = applyAction(messages, { type: 'unknown_type' });
-    expect(result.trace.type).toBe('unknown_type');
-    expect(result.trace.applied).toBe(false);
-    expect(result.trace.reason).toBe('not_implemented');
+    const result = applyAction(messages, action);
+    expect(result.messages).toEqual(messages);
+    expect(result.trace).toMatchObject({ type: action?.type ?? 'unknown', applied: false, reason: 'not_implemented' });
   });
 });

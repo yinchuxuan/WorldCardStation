@@ -185,6 +185,7 @@ emit -> 平台受控事件 -> 输入框/发送管线 -> 保存 session -> 重新
 `chat.retry` 可带可选字符串 `content` 修改最后一条用户消息；平台停止 BGM 和当前生成，恢复 session retry snapshot，并在默认演出模式下回退背景、立绘后重新生成。可点击选项默认填入输入框并聚焦。
 
 启用分段阅读时，`ui.reading` 暴露当前阅读游标及 `canPrevious`、`canNext`、`atLatest`；三个 `reading.*` 事件只移动临时显示游标，不修改聊天历史、游戏状态或视听演出。
+新运行时的 `ui.pendingInput` 是本轮等待首次 present 非空正文的玩家输入字符串；开场、读档、正文出现或整轮结束/失败/取消时为 null。它不受旧正文影响，不写入 State 或存档；可用于显示“用户输入……”，不能等同于 `ui.isLoading`。
 
 ## 边界
 

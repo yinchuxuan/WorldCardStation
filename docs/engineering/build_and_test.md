@@ -37,7 +37,7 @@ Tauri is the only desktop target.
 
 `tauri:dev`、`tauri:build` 和 `test:e2e` 是对应默认命令的兼容别名。
 
-酒馆导入专用桌面测试：先运行 `npm run tauri:e2e:build`，再运行 `npx wdio run wdio.tavern.conf.mjs`。它使用独立文件选择 fixture，验证自动导入、兼容差异取消、单独覆盖确认、实际 Worker 编译、世界书及重启恢复；不纳入使用原生卡 fixture 的默认桌面 suite。编译器用 `npx jest --runInBand --coverage=false test/tavern-import` 测试，压缩构建回归位于 integration suite。
+酒馆转换器的单元测试使用 `npx jest --runInBand --coverage=false test/tavern-import`，压缩构建回归位于 integration suite。旧 `wdio.tavern.conf.mjs` 游玩流程尚未迁移到新协议，不属于当前交付验收；播放器拒绝旧卡及酒馆产物的边界由 Rust `player_card_import` 测试验证。
 
 项目 `card.json` 导入：`cargo test --manifest-path src/tauri/Cargo.toml project_file_import --lib` 覆盖格式识别、目录资源、存档保留和失败安全。E2E 构建后运行 `npx wdio run wdio.tauri.conf.mjs --spec test/tauri-e2e/project-file-import.e2e.js` 验证单按钮导入整个项目、实际规则执行与更新；默认文件选择 fixture 指向项目的 `card.json`。
 

@@ -34,11 +34,6 @@ pub(crate) fn normalize_ecmascript_patterns(schema: &mut Value) {
 }
 
 fn validate_structure(card: &Value) -> CardResult<()> {
-    if card.get("formatVersion").is_some() {
-        return Err(GameCardError::new(
-            "card.json: formatVersion: runtime protocol is not available in the current player",
-        ));
-    }
     let mut schema: Value = serde_json::from_str(SCHEMA_TEXT).map_err(|error| {
         GameCardError::new(format!("Embedded game card schema is invalid: {error}"))
     })?;
@@ -193,6 +188,11 @@ fn validate_external_state(card: &Value, root: &Path) -> CardResult<()> {
 }
 
 pub fn validate_card(card: &Value, root: &Path) -> CardResult<()> {
+    if card.get("formatVersion").is_some() {
+        return crate::game_runtime_definition::load_card_definition(root, card, &[])
+            .map(|_| ())
+            .map_err(GameCardError::new);
+    }
     validate_structure(card)?;
     validate_data_constraints(card)?;
     validate_files(card, root)?;

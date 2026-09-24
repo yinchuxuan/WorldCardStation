@@ -1,5 +1,5 @@
 import { sendChatRequest } from './apiClient.js';
-import { adaptMessagesToProtocol } from '../../shared/game-card/protocol/protocolAdapter.js';
+import { buildModelRequest } from './modelRequest.js';
 
 // Only the host resolves credentials. Shared runtime and scripts see a model reference.
 function createAgentTransport(resolveModel, send = sendChatRequest) {
@@ -9,8 +9,7 @@ function createAgentTransport(resolveModel, send = sendChatRequest) {
       throw new Error(`model configuration is incomplete: ${model}`);
     }
     if (signal.aborted) throw new Error('Agent call cancelled');
-    return send({ ...config, signal,
-      messages: adaptMessagesToProtocol(messages, 'openai').messages }, callbacks);
+    return send(buildModelRequest(config, messages, signal), callbacks);
   };
 }
 

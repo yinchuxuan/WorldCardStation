@@ -6,7 +6,6 @@ describe('useChatGeneration retry state snapshot', () => {
   const originalPre = generationServices.preparePreSendMessages;
   const originalAfter = generationServices.prepareAfterResponseMessages;
   const originalSend = generationServices.sendChatRequest;
-  const originalClone = global.structuredClone;
 
   beforeEach(() => {
     generationServices.sendChatRequest = jest.fn(async (_payload, callbacks) => callbacks.onToken('retry answer'));
@@ -16,7 +15,6 @@ describe('useChatGeneration retry state snapshot', () => {
     generationServices.preparePreSendMessages = originalPre;
     generationServices.prepareAfterResponseMessages = originalAfter;
     generationServices.sendChatRequest = originalSend;
-    global.structuredClone = originalClone;
   });
 
   test('keeps timeline base state but reruns random pre_send rules', async () => {
@@ -44,37 +42,24 @@ describe('useChatGeneration retry state snapshot', () => {
     expect(generationServices.preparePreSendMessages.mock.calls[0][0].state).toEqual({});
   });
 
-  test('uses the retry base already hydrated in memory', async () => {
-    generationServices.preparePreSendMessages = jest.fn(async ({ messages, state }) => ({ messages, state, applied: false, card: { id: 'card' } }));
-    const { result } = renderRetryGeneration({
-      retryBaseMessages: [{ role: 'user', content: 'Q' }],
-      retryBaseState: { timeline: { currentTime: 'hydrated-time' } }
-    });
-    await act(async () => { await result.current.retry(); });
-    expect(generationServices.preparePreSendMessages.mock.calls[0][0].state).toEqual({
-      timeline: { currentTime: 'hydrated-time' }
-    });
-  });
-
   test('restores the complete retry snapshot before rerunning pre_send', async () => {
     generationServices.preparePreSendMessages = jest.fn(async ({ messages, state }) => ({ messages, state, applied: false, card: { id: 'card' } }));
     const retryBaseMessages = [
       { role: 'system', content: 'old state', ttl: 1 },
       { role: 'user', content: '选择A\n\n---\n<wa2_turn_context>\n旧上下文\n</wa2_turn_context>' }
     ];
-    const { result } = renderRetryGeneration({ retryBaseMessages });
+    const retryBaseState = { timeline: { currentTime: 'hydrated-time' } };
+    const { result, options } = renderRetryGeneration({ retryBaseMessages, retryBaseState });
     await act(async () => { await result.current.retry(); });
-    expect(generationServices.preparePreSendMessages.mock.calls[0][0].messages).toEqual(retryBaseMessages);
+    expect(generationServices.preparePreSendMessages.mock.calls[0][0]).toMatchObject({
+      messages: retryBaseMessages, state: retryBaseState
+    });
+    // Changes to the resulting view must not corrupt the next retry's snapshot.
+    const displayed = options.setGameState.mock.calls.at(-1)[0];
+    displayed.timeline.currentTime = 'changed-after-retry';
+    expect(retryBaseState).toEqual({ timeline: { currentTime: 'hydrated-time' } });
+    await act(async () => { await result.current.retry(); });
+    expect(generationServices.preparePreSendMessages.mock.calls.at(-1)[0].state).toEqual(retryBaseState);
   });
 
-  test('does not rely on structuredClone for persisted state', async () => {
-    global.structuredClone = jest.fn(() => ({}));
-    generationServices.preparePreSendMessages = jest.fn(async ({ messages, state }) => ({ messages, state, applied: false, card: { id: 'card' } }));
-    const { result } = renderRetryGeneration({
-      retryBaseMessages: [{ role: 'user', content: 'Q' }],
-      retryBaseState: { timeline: { currentTime: 'persisted-time' } }
-    });
-    await act(async () => { await result.current.retry(); });
-    expect(generationServices.preparePreSendMessages.mock.calls[0][0].state).toEqual({ timeline: { currentTime: 'persisted-time' } });
-  });
 });

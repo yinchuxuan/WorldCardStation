@@ -3,6 +3,7 @@ import { isDirectoryScope, requireSafeRelativePath } from '../../../shared/game-
 import { createCheckContext, pointer } from './context.js';
 import { checkTemplate } from './content.js';
 import { checkExec, checkUiRoot } from './scripts.js';
+import { checkRuntimeCard } from './runtimeCard.js';
 
 async function regex(pattern, flags, path, ctx) {
   await ctx.check('regex_syntax', { pointer: path }, () => new RegExp(pattern, flags || ''));
@@ -74,9 +75,9 @@ async function checkDisplay(card, ctx) {
   }
 }
 
-async function checkCard(card, readText) {
+async function checkContent(card, readText, validated = false) {
   const ctx = createCheckContext(card, readText);
-  const diagnostics = validateGameCardDiagnostics(card);
+  const diagnostics = validated ? [] : validateGameCardDiagnostics(card);
   if (diagnostics.length) {
     return { diagnostics, warnings: [], checked: ['runtime_schema'] };
   }
@@ -107,3 +108,7 @@ async function checkCard(card, readText) {
 }
 
 export { checkCard };
+
+function checkCard(card, readText) {
+  return card?.formatVersion !== undefined ? checkRuntimeCard(readText, checkContent) : checkContent(card, readText);
+}

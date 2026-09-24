@@ -15,6 +15,7 @@ pub fn validate(history: &Value) -> AppResult<()> {
     };
     let retry = &saved["retryBase"];
     if saved["version"].as_u64() != Some(1)
+        || saved["started"].as_bool() != Some(true)
         || !saved["cardId"].is_string()
         || !saved["cardVersion"].is_string()
         || saved["sequence"].as_u64().is_none()
@@ -50,7 +51,7 @@ mod tests {
         load_history(&storage).await.unwrap();
         let root = sessions::session_root(&storage.game_cards_dir()).unwrap();
         let context = sessions::active_context(&root).unwrap();
-        let saved = json!({"version":1,"cardId":"test","cardVersion":"1.0.0","sequence":1,
+        let saved = json!({"version":1,"started":true,"cardId":"test","cardVersion":"1.0.0","sequence":1,
             "current":{"state":{"score":1},"contexts":{"judge":{"initialized":true,"messages":[
                 {"id":"msg-round-1-1","role":"assistant","content":"final","ttl":-1,"thinking":"reason"}]}},
                 "messages":[{"id":"visible-round-1-1","role":"assistant","content":"raw","mode":"segmented",

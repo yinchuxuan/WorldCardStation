@@ -6,12 +6,10 @@ import { renderRetryGeneration } from './useChatGenerationTestHarness.js';
 describe('useChatGeneration retry pipeline', () => {
   const originalPre = generationServices.preparePreSendMessages;
   const originalAfter = generationServices.prepareAfterResponseMessages;
-  const originalApi = generationServices.toGameCardApiMessages;
   const originalSend = generationServices.sendChatRequest;
   afterEach(() => {
     generationServices.preparePreSendMessages = originalPre;
     generationServices.prepareAfterResponseMessages = originalAfter;
-    generationServices.toGameCardApiMessages = originalApi;
     generationServices.sendChatRequest = originalSend;
   });
 
@@ -20,7 +18,6 @@ describe('useChatGeneration retry pipeline', () => {
       applied: true, card: { id: 'card' },
       messages: [{ role: 'system', content: 'new rules', _meta: { visibility: 'llm_only' } }, ...messages]
     }));
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages.map(({ role, content }) => ({ role, content })));
     generationServices.sendChatRequest = jest.fn(async (_payload, callbacks) => callbacks.onToken('New answer'));
     generationServices.prepareAfterResponseMessages = jest.fn(async ({ messages }) => ({
       applied: true,
@@ -79,7 +76,6 @@ describe('useChatGeneration retry pipeline', () => {
     generationServices.prepareAfterResponseMessages = jest.fn(async ({ messages, state }) => ({
       messages, state, applied: false
     }));
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages);
     generationServices.sendChatRequest = jest.fn()
       .mockImplementationOnce((request, callbacks) => new Promise((resolve, reject) => {
         events.push('active-started');

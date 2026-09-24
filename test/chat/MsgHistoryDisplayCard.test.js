@@ -1,157 +1,69 @@
-/**
- * Integration tests for Msg History Display Card
- * Tests the full toggle flow and card rendering through ChatPanel
- */
-
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-
 import ChatPanel from '../../src/renderer/ChatPanel.jsx';
 
-const platformMock = global.platformMock;
+async function openHistory(messages) {
+  global.platformMock.getChatHistory.mockResolvedValue({ success: true, messages });
+  await act(async () => { render(React.createElement(ChatPanel)); });
+  fireEvent.mouseEnter(document.querySelector('.chat-header-hover-trigger'));
+  await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
+  expect(screen.getByText('msg历史记录')).toBeInTheDocument();
+}
 
-describe('Msg History Display Card - Integration', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-    platformMock.getModelConfig.mockResolvedValue({
-      success: true,
-      config: { apiUrl: 'http://api.example.com/v1', apiKey: 'test-api-key', modelName: 'gpt-4' }
-    });
-    global.fetch = jest.fn().mockResolvedValue(global.createStreamingMock('Test response'));
-  });
+test('history preserves roles, content, thinking, TTL and metadata', async () => {
+  const messages = [
+    { role: 'system', content: 'temporary rules', ttl: 1, _meta: { visibility: 'llm_only' } },
+    { role: 'user', content: 'Hello' },
+    { role: 'assistant', content: 'Hi there!', _thinking: 'How to respond...' }
+  ];
+  await openHistory(messages);
+  const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
+  // History exposes the public `thinking` field, normalizing stored `_thinking`.
+  expect(Object.values(msgs)).toEqual([
+    messages[0], messages[1],
+    { role: 'assistant', content: 'Hi there!', thinking: 'How to respond...' }
+  ]);
+});
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+test('empty history shows the empty state instead of a JSON card', async () => {
+  await openHistory([]);
+  expect(screen.getByText('暂无消息历史记录')).toBeInTheDocument();
+  expect(document.querySelector('[data-gc-part="message-history-content"]')).toBeNull();
+});
 
-  test('should show msg history card with messages after toggle', async () => {
-    const sampleMessages = [
-      { role: 'user', content: 'Hello' },
-      { role: 'assistant', content: 'Hi there!' }
-    ];
-    platformMock.getChatHistory.mockResolvedValue({
-      success: true,
-      messages: sampleMessages
-    });
+test('opening history reads storage again rather than showing the current response', async () => {
+  const platform = global.platformMock;
+  platform.getModelConfig.mockResolvedValue({ success: true,
+    config: { apiUrl: 'https://api.example.com/v1', apiKey: 'key', modelName: 'model' } });
+  platform.getChatHistory.mockResolvedValue({ success: true, messages: [] });
+  global.fetch.mockResolvedValue(global.createStreamingMock('Current response'));
+  await act(async () => { render(React.createElement(ChatPanel)); });
+  fireEvent.change(screen.getByPlaceholderText('输入您的回答...'), { target: { value: 'Question' } });
+  fireEvent.click(document.querySelector('button[type="submit"]'));
+  await screen.findByText('Current response');
 
-    render(React.createElement(ChatPanel));
+  const stored = [{ role: 'assistant', content: 'Stored response' }];
+  platform.getChatHistory.mockResolvedValue({ success: true, messages: stored });
+  fireEvent.mouseEnter(document.querySelector('.chat-header-hover-trigger'));
+  await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
+  const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
+  expect(msgs).toEqual(stored);
+});
 
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
+test('a failed reread reports the error and preserves the last successful history', async () => {
+  await openHistory([{ role: 'assistant', content: 'Previous history' }]);
+  await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
+  global.platformMock.getChatHistory.mockResolvedValue({ success: false, error: 'Read error', messages: [] });
+  await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
+  expect(screen.getByRole('alert')).toHaveTextContent('Read error');
+  const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
+  expect(msgs).toEqual([{ role: 'assistant', content: 'Previous history' }]);
+});
 
-    // Toggle to msg history view
-    const chatHeader = screen.getByText('普通聊天').closest('.chat-header');
-    fireEvent.click(chatHeader);
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    // Should show the card
-    const card = document.querySelector('.msg-history-card');
-    expect(card).toBeTruthy();
-
-    // Should contain msgs JSON structure
-    const jsonPre = document.querySelector('.msg-history-json');
-    expect(jsonPre).toBeTruthy();
-    const parsed = JSON.parse(jsonPre.textContent);
-    expect(parsed).toHaveProperty('msgs');
-    expect(parsed.msgs['0'].content).toBe('Hello');
-    expect(parsed.msgs['1'].content).toBe('Hi there!');
-  });
-
-  test('should show empty state when no messages in history', async () => {
-    platformMock.getChatHistory.mockResolvedValue({
-      success: true,
-      messages: []
-    });
-
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const chatHeader = screen.getByText('普通聊天').closest('.chat-header');
-    fireEvent.click(chatHeader);
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    expect(screen.getByText('暂无消息历史记录')).toBeInTheDocument();
-  });
-
-  test('msg history card should have consistent styling classes', async () => {
-    platformMock.getChatHistory.mockResolvedValue({
-      success: true,
-      messages: [{ role: 'user', content: 'test' }]
-    });
-
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const chatHeader = screen.getByText('普通聊天').closest('.chat-header');
-    fireEvent.click(chatHeader);
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const card = document.querySelector('.msg-history-card');
-    expect(card).toBeTruthy();
-
-    // Verify the card uses the same CSS variables as assistant cards
-    // by checking the class is present (CSS vars applied via stylesheet)
-    const pre = card.querySelector('.msg-history-json');
-    expect(pre).toBeTruthy();
-  });
-
-  test('should show ttl and metadata fields in msg history JSON', async () => {
-    platformMock.getChatHistory.mockResolvedValue({
-      success: true,
-      messages: [
-        {
-          role: 'system',
-          content: 'temporary rules',
-          ttl: 1,
-          _meta: { visibility: 'llm_only' }
-        }
-      ]
-    });
-
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const chatHeader = screen.getByText('普通聊天').closest('.chat-header');
-    fireEvent.click(chatHeader);
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const parsed = JSON.parse(document.querySelector('.msg-history-json').textContent);
-    expect(parsed.msgs[0]).toEqual({
-      role: 'system',
-      content: 'temporary rules',
-      _meta: { visibility: 'llm_only' },
-      ttl: 1
-    });
-  });
+test('an initial failed read leaves history empty and reports the error', async () => {
+  global.platformMock.getChatHistory.mockResolvedValue({ success: false, error: 'Read error', messages: [] });
+  await act(async () => { render(React.createElement(ChatPanel)); });
+  await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
+  expect(screen.getByText('暂无消息历史记录')).toBeInTheDocument();
+  expect(screen.getAllByRole('alert').some(alert => alert.textContent.includes('Read error'))).toBe(true);
 });

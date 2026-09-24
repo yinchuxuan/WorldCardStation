@@ -2,7 +2,7 @@ import { createAgentRuntime } from './agentRuntime.js';
 import { createMainReaders } from './mainReaders.js';
 
 // Lives inside the disposable script realm. Only a completed round exports data.
-async function executeMainRound({ onInput, input, display = async () => { throw new Error('presentation host unavailable'); },
+async function executeMainRound({ onInput, onStart, startup = false, input, display = async () => { throw new Error('presentation host unavailable'); },
   onUpdate = () => {}, ...options }) {
   let readers;
   const runtime = createAgentRuntime({ ...options, onUpdate: (_, detail) => onUpdate(readers.view(), detail) });
@@ -16,8 +16,8 @@ async function executeMainRound({ onInput, input, display = async () => { throw 
     state: Object.freeze(Object.fromEntries(Object.entries(runtime.state).map(([key, fn]) =>
       [key, (...args) => { check(); return fn(...args); }]))),
     createReader: readers.createReader,
-    present(reader) {
-      const work = readers.present(reader);
+    present(reader, options) {
+      const work = readers.present(reader, options);
       work.catch(rejectFailure);
       return work;
     },
@@ -34,8 +34,9 @@ async function executeMainRound({ onInput, input, display = async () => { throw 
     })
   });
   try {
-    await Promise.race([Promise.resolve().then(() => onInput(ctx, input)), failed]);
-    if (pending.size) throw new Error('onInput returned with an unfinished Agent call; await call.done()');
+    await runtime.initialize();
+    await Promise.race([Promise.resolve().then(() => startup ? onStart?.(ctx) : onInput(ctx, input)), failed]);
+    if (pending.size) throw new Error(`${startup ? 'onStart' : 'onInput'} returned with an unfinished Agent call; await call.done()`);
     readers.assertFinished();
     return readers.view();
   } finally {

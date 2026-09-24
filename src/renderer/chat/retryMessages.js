@@ -1,10 +1,8 @@
 import { cloneJson } from '../../shared/game-card/utils/jsonValue.js';
+import { findLastRoleIndex } from './messageSelection.js';
 
 function findLastUserIndex(messages = []) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'user') return index;
-  }
-  return -1;
+  return findLastRoleIndex(messages, 'user');
 }
 
 function retryUserContent(messages, retryBaseMessages) {

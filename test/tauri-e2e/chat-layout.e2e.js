@@ -37,26 +37,24 @@ describe('Tauri chat panel UI', () => {
       const header = document.querySelector('.chat-header');
       if (!title || !bgm || !session || !switchButton || !header) return null;
       return {
-        bgmIcon: bgm.textContent.trim(),
-        vertical: [bgm, session, switchButton].map(button => {
+        controls: [switchButton, bgm, session].map(button => {
           const rect = button.getBoundingClientRect();
-          return { height: rect.height, center: rect.top + rect.height / 2 };
+          return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+            width: rect.width, height: rect.height };
         }),
-        gap: Math.round(session.getBoundingClientRect().left - bgm.getBoundingClientRect().right),
-        paddingRight: getComputedStyle(title).paddingRight,
-        rightGap: Math.round(header.getBoundingClientRect().right
-          - session.getBoundingClientRect().right)
+        header: { left: header.getBoundingClientRect().left, right: header.getBoundingClientRect().right }
       };
     });
     expect(result).not.toBeNull();
-    expect(result.bgmIcon).toBe('music_note');
-    expect(result.gap).toBeGreaterThanOrEqual(0);
-    expect(result.gap).toBeLessThanOrEqual(12);
-    expect(result.paddingRight).toBe('54px');
-    expect(result.rightGap).toBeGreaterThanOrEqual(70);
-    // The split card-name button has a 44px hit area; the two icon controls are 40px.
-    expect(result.vertical.map(item => item.height)).toEqual([40, 40, 44]);
-    expect(Math.max(...result.vertical.map(item => item.center))
-      - Math.min(...result.vertical.map(item => item.center))).toBeLessThanOrEqual(0.5);
+    for (const [index, control] of result.controls.entries()) {
+      expect(control.width).toBeGreaterThan(0);
+      expect(control.height).toBeGreaterThan(0);
+      expect(control.left).toBeGreaterThanOrEqual(result.header.left);
+      expect(control.right).toBeLessThanOrEqual(result.header.right);
+      if (index) expect(control.left).toBeGreaterThanOrEqual(result.controls[index - 1].right);
+    }
+    // Controls share a row without fixing icon sizes, gaps or theme padding.
+    expect(Math.max(...result.controls.map(item => item.top)))
+      .toBeLessThan(Math.min(...result.controls.map(item => item.bottom)));
   });
 });

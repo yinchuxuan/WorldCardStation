@@ -14,12 +14,11 @@ function useGameCardSwitching({
   loading.current = isLoading;
   const finishSwitch = React.useCallback(async (card) => {
     runtime.setRuntimeError(null);
-    runtime.changeActiveCard(card || null);
+    await runtime.changeActiveCard(card || null);
     presentation.stopBgm();
     presentation.updateAll(null, {});
-    await session.reload();
     return card || null;
-  }, [presentation, runtime, session]);
+  }, [presentation, runtime]);
 
   const activate = React.useCallback(async (card, options) => {
     if (isLoading) return null;

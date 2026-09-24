@@ -59,9 +59,10 @@ test('complete real Worker → repository → new instance restores actual recor
   await play(restored, 'next');
   expect(seen[0].messages.filter(msg => msg.content === 'init-once')).toHaveLength(1);
   expect(seen[0].messages.at(-1).content).toBe('hidden');
-  expect(restored.snapshot().contexts.unused).toEqual({ initialized: false, messages: [] });
+  expect(restored.snapshot().contexts.unused).toEqual({ initialized: true,
+    messages: [{ id: 'msg-round-1-3', role: 'system', content: 'init-once', ttl: -1 }] });
   expect(restored.snapshot().state.count).toBe(2);
-  expect(restored.snapshot().contexts.judge.messages.map(msg => msg.id)).toEqual(['msg-round-1-2', 'msg-round-1-1', 'msg-round-2-1']);
+  expect(restored.snapshot().contexts.judge.messages.map(msg => msg.id)).toEqual(['msg-round-1-1', 'msg-round-2-1', 'msg-round-3-1']);
   await restored.dispose();
 });
 test('persisted whole-round retry restores both Agents, variables and user/display records without duplication', async () => {

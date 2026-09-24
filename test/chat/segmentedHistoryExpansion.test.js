@@ -1,18 +1,7 @@
 const React = require('react');
 const { act, fireEvent, render, screen } = require('@testing-library/react');
-
-function activeCard(segmentedReading) {
-  return {
-    success: true,
-    card: {
-      version: '1',
-      id: segmentedReading ? 'segmented-card' : 'normal-card',
-      name: 'History Card',
-      display: { segmentedReading },
-      rules: []
-    }
-  };
-}
+const { GameCardRuntimeProvider } = require('../../src/renderer/chat/GameCardRuntimeProvider.jsx');
+const ChatRuntime = require('../../src/renderer/chat/ChatRuntime.jsx').default;
 
 const messages = [
   { id: 'old', role: 'assistant', content: '旧回复。' },
@@ -21,8 +10,19 @@ const messages = [
 ];
 
 async function renderHistory(segmentedReading) {
-  global.platformMock.getActiveGameCard.mockResolvedValue(activeCard(segmentedReading));
+  global.platformMock.getActiveGameCard.mockResolvedValue({ success: true, card: null });
   global.platformMock.getChatHistory.mockResolvedValue({ success: true, messages, gameState: {} });
+  if (segmentedReading) {
+    const records = messages.filter(msg => msg.role === 'assistant').map(msg => ({ ...msg,
+      mode: 'segmented', units: [{ text: msg.content, patches: [] }] }));
+    const view = { state: {}, contexts: {}, records, messages, reading: null };
+    const session = { view: () => view, snapshot: () => view, subscribe: () => () => {},
+      dispose: jest.fn(), cancel: jest.fn(), advance: jest.fn(), running: false };
+    const result = render(<GameCardRuntimeProvider mainSession={session}><ChatRuntime /></GameCardRuntimeProvider>);
+    await screen.findByText('最新回复。');
+    expect(result.container.querySelector('.collapsed-message-view')).toBeNull();
+    return result.container.querySelector('[data-gc-part="message-surface"]');
+  }
   const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
   const result = render(React.createElement(ChatPanel));
   await screen.findByText('最新回复。');

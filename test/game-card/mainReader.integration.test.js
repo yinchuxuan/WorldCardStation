@@ -16,10 +16,37 @@ function waitFor(session, predicate) {
     const stop = session.subscribe(view => { if (predicate(view)) { stop(); resolve(view); } });
   });
 }
+test('validation warnings cross the Worker bridge before present finishes, independently of post_response deletion', async () => {
+  const warned = barrier(), events = [];
+  const session = testMainSession(factory, `export async function onInput(ctx) {
+    const call = ctx.agents.call('narrator');
+    await ctx.present(ctx.createReader({source:call.response,mode:'segmented'}));
+    await call.done();
+  }`, async (_, cb) => cb.onToken('body'), { definition: { agents: {
+    narrator: { definition: { model: 'default', responseValidation: { onFailure: 'warn', rules: [
+      { id: 'choices', type: 'content.regex', pattern: '<choices>', matches: { eq: 1 }, message: '缺少选项' }
+    ] }, rules: [{ when: { phase: 'post_response' }, then: [{ type: 'remove', predicate: { role: 'assistant' } }] }] } }
+  } } });
+  const stop = session.subscribe((_, detail) => {
+    if (detail.type === 'agent-response') { events.push(detail); warned.resolve(); }
+  });
+  try {
+    const work = session.send('go');
+    await warned.promise;
+    await waitFor(session, view => view.reading);
+    expect(session.running).toBe(true);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ agentId: 'narrator', warnings: [{ id: 'choices', message: '缺少选项' }] });
+    session.advance();
+    expect((await work).contexts.narrator.messages).toEqual([]);
+    expect(events).toHaveLength(1);
+  } finally { stop(); await session.dispose(); }
+});
 test('hidden Agent, buffered real response, reading State and actual records use separate completion boundaries', async () => {
   const session = testMainSession(factory, source, async ({ agentId }, cb) => {
     cb.onToken(agentId === 'judge' ? 'hidden' : `first${patch}second${patch}`);
   });
+  await session.start();
   const baseline = session.snapshot();
   const work = session.send('go');
   await waitFor(session, view => view.reading && view.contexts.narrator.messages.length);
@@ -62,6 +89,7 @@ test('cancel and validation failure while waiting for the player roll back all r
     if (agentId === 'judge') return;
     cb.onToken(`${patch}first\n\nsecond`); started.resolve(); await gate.promise;
   });
+  await session.start();
   const baseline = session.snapshot();
   const work = session.send('go');
   await started.promise;
@@ -69,7 +97,7 @@ test('cancel and validation failure while waiting for the player roll back all r
   expect(session.view().state.count).toBe(2);
   await session.cancel();
   await expect(work).rejects.toThrow('cancelled');
-  expect(session.view()).toEqual({ ...baseline, reading: null });
+  expect(session.view()).toEqual({ ...baseline, reading: null, pendingInput: null });
   gate.resolve();
   const fail = testMainSession(factory, source, async ({ agentId }, cb) => {
     if (agentId === 'judge') return;
@@ -78,8 +106,12 @@ test('cancel and validation failure while waiting for the player roll back all r
     throw new Error('late model failure');
   });
   await expect(fail.send('go')).rejects.toThrow('late model failure');
-  expect(fail.view().records).toEqual([]);
-  expect(fail.view().state.count).toBe(0);
+  expect(fail.view().records[0].content).toBe('first');
+  expect(fail.view().state.count).toBe(2);
+  expect(fail.view().reading).toBeNull();
+  expect(fail.failed).toBe(true);
+  expect(fail.running).toBe(false);
+  expect(() => fail.exportSession()).toThrow('不能保存');
 });
 test('illegal patches, unconsumed readers and swallowed reader errors fail the whole round', async () => {
   for (const body of [

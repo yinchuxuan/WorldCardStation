@@ -1,0 +1,5 @@
+{
+  "model": "default", "rules": [{ "when": { "phase": "init" }, "then": [
+    { "type": "insert", "role": "assistant", "content": "Startup first {{state:count}}<state_patch_stream>{\"count\":2}</state_patch_stream>Startup second", "_meta": { "source": "opening" } }
+  ] }]
+}

@@ -120,6 +120,37 @@ async fn captures_append_and_deleted_sessions_are_not_recreated() {
 }
 
 #[tokio::test]
+async fn agent_trace_resolves_imports_in_the_agents_own_source_map() {
+    let dir = TestDir::new();
+    let root = dir.card();
+    write_json(
+        &root.join("card.json"),
+        &json!({ "id": "test", "agents": { "judge": "agent.json" } }),
+    )
+    .unwrap();
+    write_json(
+        &root.join("agent.json"),
+        &json!({ "rules": [{ "$import": "rules.json" }] }),
+    )
+    .unwrap();
+    let trace = RuntimeTrace::default();
+    let opened = trace
+        .start(&dir.storage(), scope(), snapshot())
+        .await
+        .unwrap();
+    trace.append(&dir.storage(), opened["token"].as_str().unwrap(), vec![json!({
+        "type": "rule.start", "agentId": "judge", "callId": "one", "pointer": "/rules/0/when",
+        "source": { "file": "forged.json", "pointer": "" }
+    })]).await.unwrap();
+    let events = records(opened["path"].as_str().unwrap());
+    assert_eq!(
+        events[1]["source"],
+        json!({ "file": "rules.json", "pointer": "/0/when" })
+    );
+    assert_eq!(events[1]["callId"], "one");
+}
+
+#[tokio::test]
 async fn concurrent_trace_batches_are_complete_jsonl_records() {
     let dir = TestDir::new();
     dir.card();

@@ -7,6 +7,7 @@ test('retry validation rejects without transparent regeneration or patch/post_re
   const generate = jest.fn(async (_, cb) => cb.onToken('<state_patch>{"count":8}</state_patch>'));
   const app = runtime({ a: { responseValidation: { rules: [contract], maxRetries: 3 },
     rules: [rule('post_response', [{ type: 'state.inc', path: 'count', value: 10 }])] } }, generate);
+  await app.initialize();
   const call = app.agents.call('a');
   await expect(call.done()).rejects.toThrow('missing required');
   expect(generate).toHaveBeenCalledTimes(1);
@@ -22,6 +23,7 @@ test('warn accepts; validation sees ordinary patch candidate but not reading-tim
     cb.onToken('<state_patch_stream>not JSON, required</state_patch_stream>');
     cb.onToken('<state_patch>{"type":"state.inc","path":"count","value":2}</state_patch>');
   });
+  await app.initialize();
   await app.agents.call('a').done();
   expect(app.state.get('count')).toBe(3);
   expect(app.agents.messages('a')[0]._meta.validationWarnings).toMatchObject([{ id: 'required' }]);
@@ -38,6 +40,7 @@ test.each([
   '<state_patch></state_patch_stream>'
 ])('bad control data rejects atomically: %s', async text => {
   const app = runtime({ a: {} }, async (_, cb) => cb.onToken(text));
+  await app.initialize();
   await expect(app.agents.call('a').done()).rejects.toThrow();
   expect(app.state.get('count')).toBe(0);
   expect(app.agents.messages('a')).toEqual([]);

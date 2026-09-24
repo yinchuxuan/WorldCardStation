@@ -1,0 +1,13 @@
+{
+  "model": "default",
+  "rules": [
+    {
+      "when": { "phase": "init" },
+      "then": [{ "type": "insert", "role": "system", "content": "你是互动故事的叙述者。根据玩家行动推进故事。" }]
+    },
+    {
+      "when": { "phase": "pre_send" },
+      "then": [{ "type": "insert", "role": "user", "content": "{{state:turn.input}}" }]
+    }
+  ]
+}

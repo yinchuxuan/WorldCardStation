@@ -57,6 +57,16 @@ pub fn canonical(value: &impl Serialize) -> CardResult<Vec<u8>> {
     serde_json::to_vec(&value).map_err(|e| GameCardError::new(e.to_string()))
 }
 
+// Agent declaration order controls startup; other card keys remain canonical.
+pub fn canonical_card(card: &serde_json::Value) -> CardResult<Vec<u8>> {
+    let mut value = card.clone();
+    value.sort_all_objects();
+    if card["formatVersion"] == "2" {
+        value["agents"] = card["agents"].clone();
+    }
+    serde_json::to_vec(&value).map_err(|e| GameCardError::new(e.to_string()))
+}
+
 pub fn digest(bytes: &[u8]) -> String {
     sha256_hex(&Sha256::digest(bytes).into())
 }

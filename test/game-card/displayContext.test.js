@@ -3,7 +3,6 @@ import { render } from '@testing-library/react';
 import { applyAssistantDisplayRules } from '../../src/renderer/gameCard/displayRules.js';
 import { resolveDisplayState } from '../../src/renderer/gameCard/regexTemplate.js';
 import { messageDepths } from '../../src/renderer/gameCard/messageDepth.js';
-import { buildReadingEntries, resolveReadingSegments } from '../../src/renderer/chat/segmentedReadingModel.js';
 import MessageContent from '../../src/renderer/components/MessageContent.jsx';
 import { validateGameCard } from '../../src/shared/game-card/schema/validateGameCard.js';
 import validFixture from '../fixtures/game-card-import/valid-display-template/card.json';
@@ -45,18 +44,6 @@ test('message rendering invalidates cached HTML on depth and state changes', () 
   view.rerender(<MessageContent content="x" role="assistant" display={resolveDisplayState(display, { name: 'Bob' })} depth={1} {...pipeline} />);
   expect(view.container.textContent).toBe('Bob:x');
   expect(pipeline.markdown.parse).toHaveBeenCalledTimes(3);
-});
-
-test('segmented page counts and patch boundaries use the same depth as rendered content', () => {
-  const config = { assistant: [{ ...rule, minDepth: 2, maxDepth: null, replace: ['old'] }] };
-  const messages = [{ id: 'a', role: 'assistant', content: 'x\n\n<state_patch>{}</state_patch>\n\nx' },
-    { role: 'user', content: 'go' }, { role: 'assistant', content: 'x' }];
-  const entries = buildReadingEntries(messages, false, '', 0, config);
-  expect(entries[0].pageCount).toBe(resolveReadingSegments(messages[0].content, config, true, 2).length);
-  expect(resolveReadingSegments(messages[0].content, config, true, 2)).toEqual(['old', 'x']);
-  expect(entries[0].patches[0].boundary).toBe(1);
-  const streaming = buildReadingEntries(messages, true, 'x', 1, config);
-  expect(streaming.at(-1).pageCount).toBe(1);
 });
 
 test('schema accepts native templates and rejects unsafe shapes without adding any phase', () => {

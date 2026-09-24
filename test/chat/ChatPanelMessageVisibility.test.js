@@ -1,6 +1,7 @@
 const React = require('react');
 const { render } = require('@testing-library/react');
 const ChatPanelMessageRenderers = require('../../src/renderer/components/ChatPanelMessageRenderers').default;
+const { selectVisibleMessages } = require('../../src/renderer/chat/messageSelection.js');
 const MessageCollapseRenderer = require('../../src/renderer/components/MessageCollapseRenderer').default;
 
 function renderMarkdown(text) {
@@ -19,7 +20,7 @@ describe('chat panel message visibility', () => {
         { role: 'assistant', content: 'ok' }
       ],
       isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
-      collapseRenderer: null, isHistoryExpanded: false, handleExpandHistory: jest.fn(),
+      isHistoryExpanded: false, handleExpandHistory: jest.fn(),
       modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const container = render(result);
@@ -35,7 +36,7 @@ describe('chat panel message visibility', () => {
         { role: 'user', content: 'hello' }
       ],
       isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
-      collapseRenderer: null, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      isHistoryExpanded: true, handleExpandHistory: jest.fn(),
       modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const container = render(result);
@@ -45,12 +46,12 @@ describe('chat panel message visibility', () => {
   });
 
   test('collapsed dialogue renderer hides system messages', () => {
-    const result = MessageCollapseRenderer.render({ rawMessages: [
+    const result = MessageCollapseRenderer.render({ messages: selectVisibleMessages([
         { role: 'system', content: 'hidden rules' },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'ok' }
-      ],
-      isLoading: false, typewriter: {}, renderUserMessage: renderMarkdown,
+      ]),
+      isLoading: false, typewriter: {}, renderUserMessage: message => renderMarkdown(message.content),
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: () => null, isExpanded: true,
       onExpand: jest.fn() });
 
@@ -61,12 +62,12 @@ describe('chat panel message visibility', () => {
   });
 
   test('collapsed dialogue renderer shows user visible system messages', () => {
-    const result = MessageCollapseRenderer.render({ rawMessages: [
+    const result = MessageCollapseRenderer.render({ messages: selectVisibleMessages([
         { role: 'system', content: 'visible status', _meta: { visibility: 'user_visible' } },
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'ok' }
-      ],
-      isLoading: false, typewriter: {}, renderUserMessage: renderMarkdown,
+      ]),
+      isLoading: false, typewriter: {}, renderUserMessage: message => renderMarkdown(message.content),
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: () => null, isExpanded: true,
       onExpand: jest.fn() });
 

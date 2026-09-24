@@ -1,6 +1,23 @@
+const definitions = new WeakMap();
 function card(id, name, rules = [], extra = {}) {
-  return { version: '1.0', id, name, rules, ...extra };
+  const manifest = { formatVersion: '2', version: '1.0', id, name,
+    main: 'entry.js', agents: { narrator: 'agents/narrator.json' }, ...extra };
+  definitions.set(manifest, {
+    'entry.js': `export async function onInput(ctx, input) {
+      ctx.state.set('_input', input);
+      const call = ctx.agents.call('narrator');
+      await call.done();
+      const message = ctx.agents.messages('narrator').find(message => message.id === call.messageId);
+      await ctx.present(ctx.createReader({ source: message.content, mode: 'continuous' }));
+    }`,
+    'agents/narrator.json': JSON.stringify({ model: 'default', rules: [
+      { when: { phase: 'pre_send' }, then: [{ type: 'insert', role: 'user', content: '{{state:_input}}' }] },
+      ...rules
+    ] })
+  });
+  return manifest;
 }
+const cardFiles = card => definitions.get(card) || {};
 
 function pipelineCard(id = 'pipeline-card') {
   return card(id, 'Pipeline Quest', [
@@ -19,7 +36,7 @@ function pipelineCard(id = 'pipeline-card') {
       ]
     },
     {
-      when: { phase: 'after_response', last: { role: 'assistant' } },
+      when: { phase: 'post_response', last: { role: 'assistant' } },
       then: [
         {
           type: 'replace', predicate: { index: 'last' },
@@ -35,4 +52,4 @@ function pipelineCard(id = 'pipeline-card') {
   ]);
 }
 
-module.exports = { card, pipelineCard };
+module.exports = { card, pipelineCard, cardFiles };

@@ -1,11 +1,10 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import ChatPanelMessageRenderers from '../components/ChatPanelMessageRenderers.jsx';
-import MessageCollapseRenderer from '../components/MessageCollapseRenderer.jsx';
 import { highlightQuotes } from '../components/highlightQuotes.js';
 import { PropTypes } from '../components/componentPropTypes.js';
 
-function ChatMessages({ display, displayRevision, depths, segmentedReading, segmented, typewriter,
+function ChatMessages({ display, displayRevision, depths, messages, isLoading, typewriter,
   currentThinking, showStreamThinking, setShowStreamThinking, toggleThinking, handleRetry,
   scroll, modelConfig, editUserMessage }) {
   const rendering = { marked, DOMPurify, highlightQuotes, display, displayRevision };
@@ -15,18 +14,14 @@ function ChatMessages({ display, displayRevision, depths, segmentedReading, segm
   const renderAssistant = (msg, index, streaming) => ChatPanelMessageRenderers.renderAssistantMsg({
     ...rendering, msg, idx: index, isStreaming: streaming, tw: typewriter,
     currentThinking, showStreamThinking, setShowStreamThinking, toggleThinkingForMessage: toggleThinking,
-    segmentedReading: {
-      enabled: segmentedReading && (streaming ? segmented.isStreaming : index === segmented.messageIndex),
-      pageIndex: segmented.pageIndex, includeInputActions: !segmented.isHistory
-    },
     depth: streaming ? 0 : depths[index]
   });
   return ChatPanelMessageRenderers.renderMessages({
-    messages: segmented.displayMessages, isLoading: segmented.displayIsLoading, tw: typewriter,
+    messages, isLoading, tw: typewriter,
     renderMarkdown: renderUser, renderAssistantMsg: renderAssistant,
     renderRetryBtn: (isLast, isLoading) => ChatPanelMessageRenderers.renderRetryBtn({ isLast, isLoading, handleRetry }),
-    collapseRenderer: MessageCollapseRenderer, isHistoryExpanded: !segmentedReading && scroll.isHistoryExpanded,
-    handleExpandHistory: segmentedReading ? undefined : scroll.expandHistory, modelConfig, editUserMessage
+    isHistoryExpanded: scroll.isHistoryExpanded,
+    handleExpandHistory: scroll.expandHistory, modelConfig, editUserMessage
   });
 }
 
@@ -34,8 +29,8 @@ ChatMessages.propTypes = {
   display: PropTypes.object,
   displayRevision: PropTypes.string,
   depths: PropTypes.array.isRequired,
-  segmentedReading: PropTypes.bool.isRequired,
-  segmented: PropTypes.object.isRequired,
+  messages: PropTypes.array.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   typewriter: PropTypes.object.isRequired,
   currentThinking: PropTypes.string,
   showStreamThinking: PropTypes.bool.isRequired,

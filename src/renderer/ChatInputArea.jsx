@@ -4,6 +4,7 @@ import { PropTypes } from './components/componentPropTypes.js';
 
 function ChatInputArea({
   isLoading,
+  hidden = false,
   isInputHovered,
   setIsInputHovered,
   isInputTriggerHovered,
@@ -17,22 +18,24 @@ function ChatInputArea({
   const formRef = R.useRef(null), textareaRef = R.useRef(null);
   const isVisible = isLoading || isInputHovered || isFocused || inputValue.length > 0 || isInputTriggerHovered;
   const focusInput = R.useCallback(() => {
+    if (hidden) return;
     setIsInputHovered(true);
     textareaRef.current?.focus();
-  }, [setIsInputHovered]);
+  }, [hidden, setIsInputHovered]);
 
   const submitValue = R.useCallback(async (rawValue, formElement) => {
     const value = String(rawValue || '');
-    if (!value.trim() || isLoading) return;
+    if (!value.trim() || isLoading || hidden) return;
     const accepted = await onSend?.(value);
     if (!accepted) return;
     setInputValue(''); setIsInputHovered(false); setIsInputTriggerHovered(false);
     const textarea = formElement?.querySelector('textarea') || textareaRef.current;
     if (textarea) textarea.blur();
-  }, [isLoading, onSend, setIsInputHovered, setIsInputTriggerHovered]);
+  }, [hidden, isLoading, onSend, setIsInputHovered, setIsInputTriggerHovered]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (hidden) return;
     if (isLoading) { onStop?.(); return; }
     await submitValue(inputValue, e.currentTarget);
   };
@@ -58,6 +61,8 @@ function ChatInputArea({
     return subscribeChatInputCommands(handler);
   }, [focusInput, submitValue]);
 
+  R.useEffect(() => { if (hidden) setIsFocused(false); }, [hidden]);
+  if (hidden) return null;
   return <form className={`chat-input-area${isVisible ? ' chat-input-area-visible' : ''}`}
     data-gc-part="chat-input" ref={formRef} onSubmit={handleSubmit}
     onMouseEnter={() => setIsInputHovered(true)} onMouseLeave={() => setIsInputHovered(false)}>
@@ -81,6 +86,7 @@ function ChatInputArea({
 }
 
 ChatInputArea.propTypes = {
+  hidden: PropTypes.bool,
   isLoading: PropTypes.bool.isRequired,
   isInputHovered: PropTypes.bool.isRequired,
   setIsInputHovered: PropTypes.func.isRequired,

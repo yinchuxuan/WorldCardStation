@@ -56,8 +56,10 @@ fn project_init_worldbook_installs_scripts_docs_config_and_existing_dsl_wiring()
     let card = crate::game_card_imports::read_card(&root).unwrap();
     crate::game_card_schema::validate_card(&card, &root).unwrap();
     assert_eq!(card["files"]["worldbook"]["directory"], "worldbook");
+    let agent: Value =
+        serde_json::from_slice(&fs::read(root.join("agents/narrator.json")).unwrap()).unwrap();
     assert_eq!(
-        card["rules"][1]["then"][0]["args"]["worldbook"],
+        agent["rules"][2]["then"][0]["args"]["worldbook"],
         "worldbook"
     );
     assert_eq!(card["files"].as_object().unwrap().len(), 1);

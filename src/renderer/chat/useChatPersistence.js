@@ -12,9 +12,8 @@ function useChatPersistence({ messages, gameState, isLoading, enabled = true, ma
   const retryBaseRef = React.useRef(null);
   const retryBaseStateRef = React.useRef(null);
   const viewStateRef = React.useRef({});
-  const readingRestoreTokenRef = React.useRef(0);
   const loadedRef = React.useRef(false);
-  const [viewState, setViewState] = React.useState({});
+  const [viewRevision, invalidateView] = React.useReducer(value => value + 1, 0);
   const errorRef = React.useRef(null);
   const [, renderError] = React.useReducer(value => value + 1, 0);
   const setError = React.useCallback(value => {
@@ -37,19 +36,18 @@ function useChatPersistence({ messages, gameState, isLoading, enabled = true, ma
     if (result.retryBaseState !== undefined) retryBaseStateRef.current = result.retryBaseState;
     const nextViewState = normalizedViewState(result.viewState);
     viewStateRef.current = nextViewState;
-    readingRestoreTokenRef.current += 1;
-    setViewState(nextViewState);
+    invalidateView();
     manualRef.current.hydrate(result);
   }, []);
 
   const reset = React.useCallback(() => {
     loadedRef.current = false;
+    manualRef.current.resetInput();
     setError(null);
     retryBaseRef.current = null;
     retryBaseStateRef.current = null;
     viewStateRef.current = {};
-    readingRestoreTokenRef.current += 1;
-    setViewState({});
+    invalidateView();
   }, []);
 
   const setRetryBase = React.useCallback((nextMessages, nextState) => {
@@ -73,36 +71,28 @@ function useChatPersistence({ messages, gameState, isLoading, enabled = true, ma
       }
     };
   }, []);
-  const manual = useManualSave({ snapshot, loadedRef, repository, isLoading, enabled });
+  const manual = useManualSave({ snapshot, loadedRef, repository, isLoading, enabled, incomplete: Boolean(mainSession?.failed) });
   const manualRef = React.useRef(manual);
   manualRef.current = manual;
   const save = React.useCallback((nextMessages, nextState) => {
     if (!enabled) return Promise.reject(new Error('此运行时尚未接入存档，不能保存'));
     if (!loadedRef.current) return Promise.reject(new Error('会话尚未成功加载，不能保存'));
     if (mainRef.current?.running) return Promise.reject(new Error('操作尚未完成，请稍后保存'));
+    if (mainRef.current?.failed) return Promise.reject(new Error('本轮未完成，不能保存失败现场'));
     if (savePolicy === 'manual') return manual.save();
     return saveQueue.flush(snapshot(nextMessages, nextState));
   }, [enabled, manual, saveQueue, snapshot]);
   const flush = React.useCallback(() => (
-    enabled && loadedRef.current ? (savePolicy === 'manual' ? manual.save() : saveQueue.flush(snapshot())) : saveQueue.waitForIdle()
+    enabled && loadedRef.current && !mainRef.current?.failed ? (savePolicy === 'manual' ? manual.save() : saveQueue.flush(snapshot())) : saveQueue.waitForIdle()
   ), [enabled, manual, saveQueue, snapshot]);
 
-  const setReadingPosition = React.useCallback((position) => {
-    const messageId = String(position?.messageId || '');
-    const segmentIndex = Number.isInteger(position?.segmentIndex) ? position.segmentIndex : 0;
-    if (!messageId || segmentIndex < 0) return;
-    const current = viewStateRef.current;
-    if (current.reading?.messageId === messageId
-      && current.reading?.segmentIndex === segmentIndex) return;
-    const next = { ...current, reading: { messageId, segmentIndex } };
-    viewStateRef.current = next;
-    setViewState(next);
-  }, []);
+  // The runtime owns reading positions; this only schedules persistence of its latest view.
+  const notifyViewChanged = React.useCallback(() => { invalidateView(); }, []);
 
   React.useEffect(() => {
-    if (!enabled || savePolicy === 'manual' || !loadedRef.current || isLoading || mainSession?.running) return;
+    if (!enabled || savePolicy === 'manual' || !loadedRef.current || isLoading || mainSession?.running || mainSession?.failed) return;
     void saveQueue.enqueue(snapshot()).catch(() => {});
-  }, [enabled, gameState, isLoading, messages, saveQueue, snapshot, viewState, mainSession]);
+  }, [enabled, gameState, isLoading, messages, saveQueue, snapshot, viewRevision, mainSession]);
 
   const markLoaded = React.useCallback(() => { loadedRef.current = true; manual.changed(); }, [manual]);
 
@@ -115,12 +105,10 @@ function useChatPersistence({ messages, gameState, isLoading, enabled = true, ma
     reset,
     retryBaseRef,
     retryBaseStateRef,
-    get readingPosition() { return viewStateRef.current.reading || null; },
-    get readingRestoreToken() { return readingRestoreTokenRef.current; },
     save,
-    setReadingPosition,
+    notifyViewChanged,
     setRetryBase
-  }), [flush, hydrate, manual, markLoaded, reset, save, setReadingPosition, setRetryBase]);
+  }), [flush, hydrate, manual, markLoaded, reset, save, notifyViewChanged, setRetryBase]);
 }
 
 export default useChatPersistence;

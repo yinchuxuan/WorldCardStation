@@ -23,7 +23,7 @@ game-cards/cards/<card-id>/sessions/<session-id>/trace.jsonl
 
 没有额外调试窗口、断言系统、trace 查询接口或回放服务。dry-run 不初始化此记录器、不执行规则，也不创建 session 或 trace。
 
-中途开启只记录之后的过程，以当时内存 messages/state 为起点，不补造已经发生的步骤。正在进行的阶段不会倒补，之后进入的规则阶段会记录；关闭中的未完成执行明确标为不完整。
+中途开启只记录之后的过程，以当时内存 messages/state 为起点，不补造已经发生的步骤。正在进行的 main 轮次不会倒补，新一轮开始后记录 Agent 调用；关闭中的未完成执行明确标为不完整。
 
 ## agent 定位当前会话
 
@@ -49,8 +49,8 @@ UTF-8 JSONL，每行一个 JSON 对象，按实际接收顺序追加。先按 `c
 | `capture.start` | `formatVersion: 1`、平台/协议版本、卡内容指纹、完整起始 `snapshot.messages/state` |
 | `cardId` / `sessionId` / `captureId` | native 固定的原始归属，后续切换活动卡或 session 不重定向旧写入 |
 | `sequence` / `time` | 同一 capture 的递增序号、事件发生时间；磁盘批量写入不改变事件顺序 |
-| `operation.start` | 操作 ID、`kind`、完整输入快照；init/pre_send/after_stream/after_response/state_patch 各自独立 |
-| `parentOperationId` / `origin` | 生成内阶段关联所属 generation；patch 标明 stream/reading、patchOrdinal，阅读还记录 messageId 和 targetBoundary |
+| `operation.start` | 操作 ID、`kind`、完整输入快照；main.input、agent.call、UI 操作各有独立快照 |
+| `parentOperationId` / `origin` | agent.call 通过 parentOperationId 关联 main.input；agentId/callId 区分 Agent 与每次调用，sourceFile 标明主程序或 Agent 来源 |
 | `pointer` / `source` | 展开 DSL 路径及原文件 `{file, pointer}`，通过正式 `$import` 展开映射定位 |
 | `changes` | 相对此 operation 上一事件的精确 messages/state 变化，无变化是 `messages: null, state: []` |
 | `operation.end` | completed / with_errors / failed / aborted 等实际结果，不代表每个中间状态都持久化 |
@@ -79,15 +79,15 @@ UTF-8 JSONL，每行一个 JSON 对象，按实际接收顺序追加。先按 `c
 - exec 的真实输入 args/config/event、输入输出 messages/state、耗时、effects 和失败。顶层已开始执行但尚未返回的 JS 内部变量不可观察，不伪造超时脚本的输出。
 - 文本/目录 scope 实际读取、读取失败，以及 sourceFile/include 的来源。同步文件预加载不冒充脚本实际调用 `files.read`。
 - `exec.source.lines` 按拼接后脚本的零基数组位置提供原文件和一基行号；包含 include 剥离映射。错误保留原始 Worker stack；引擎包装函数的行号偏移依赖 WebView，不猜测或伪造精确错误行列。
-- 平台 state 默认值、TTL 衰减/删除、实际应用的每个 state_patch action、模型实际输入消息和完整响应、responseValidation 结果/重试回滚、请求失败回滚、用户中止后的部分保留。
-- 分段阅读时只把实际应用的 patch 标为状态变化；用于响应校验的候选 state/updates 在 `model.response.validationCandidate` 中单独记录，不冒充已提交 state。
+- main.input 保存整轮起点及所有 Agent 上下文；agent.call 保存调用内消息/变量变化、完整模型响应和校验结果。失败、取消后的 main.view 记录整轮回滚，不保留半条回复。
+- 分段阅读时只把实际应用的 patch 标为状态变化；用于响应校验的候选 state/updates 在 `model.response.validation` 中单独记录，不冒充已提交 state。
 - UI 的 `game.state.apply` / `game.script.run` 记录 action、exec 输出、拒绝或提交；已卸载 UI 的迟到结果标为 discarded。
 
-生成、规则阶段和 UI 操作有各自输入快照；其差量表示该操作中的数据流。并发的流式接收与阅读推进以各自记录及 `platform.commit` 区分，不能仅靠时间相邻推断因果。
+生成、Agent 调用和 UI 操作有各自输入快照；其差量表示该操作中的数据流。并发的流式接收与阅读推进以各自记录及 `platform.commit` 区分，不能仅靠时间相邻推断因果。
 
 世界书沿用现有 `effects.worldbook` 报告。哪些条目被选中、排除或产生警告看 effects，实际注入后是否被后续规则修改/删除看 messages 变化。不新增专用 lib 日志协议。
 
-`model.request` 保存正式适配链路去除内部字段后的 normalized_messages 和协议类型，不保存 HTTP 请求体。Anthropic 后续将 system 消息移到顶层 system；日志里的消息正文与该输入一致，不冒充原始网络抓包。
+`model.request` 保存 Agent 发给平台传输层的 role/content 数组 normalized_messages，不包含配置或协议密钥，不保存 HTTP 请求体。Anthropic 后续将 system 消息移到顶层 system；日志里的消息正文与该输入一致，不冒充原始网络抓包。
 
 ## 完整性、安全和边界
 

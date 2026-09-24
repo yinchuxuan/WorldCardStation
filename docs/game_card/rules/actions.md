@@ -120,7 +120,7 @@ state 中的 `visual` / `audio` 只描述目标值。以下 action 会把当前�
 - `visual.updatePortrait`：按 `state.visual.portraits` 更新完整人物立绘层
 - `audio.updateBgm`：按 `state.audio.bgm` 更新，并在平台统一延迟后从头播放 BGM；同一 BGM 会复用资源 URL
 
-平台默认在首个正文 token 到达时依次执行三项更新。卡片可以关闭默认行为，完全改由 `pre_send` / `after_response` 规则控制：
+平台默认在首个正文 token 到达时依次执行三项更新。卡片可以关闭默认行为，完全改由 `pre_send` / `post_response` 规则控制：
 
 ```json
 {
@@ -130,7 +130,7 @@ state 中的 `visual` / `audio` 只描述目标值。以下 action 会把当前�
 }
 ```
 
-LLM 响应中的 `state_patch` 是另一条统一发布路径：普通模式在流游标越过 patch 时发布其中变化的展示字段，分段模式先应用正文开始前的 patch，其余在阅读游标进入 patch 后的段落时发布。它不依赖首 token 自动更新开关。
+共享 State 变化由主程序演出桥发布。普通 state_patch 在模型完成校验后提交；state_patch_stream 在分段 reader 推进时提交。不受首 token 自动更新开关控制。
 
 ## exec
 

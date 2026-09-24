@@ -25,12 +25,11 @@ function useChatSession({
     if (!enabled) return null;
     const token = ++loadToken.current;
     persistence.reset();
-    if (savePolicy === 'manual') setIsLoading?.(true);
+    if (mainSession || savePolicy === 'manual') setIsLoading?.(true);
     try {
       if (mainSession) {
         await mainSession.beginLoad();
         if (token !== loadToken.current) return null;
-        setMessages([]); setGameState(mainSession.snapshot().state);
       }
       const result = await repository.loadHistory();
       if (token !== loadToken.current) return null;
@@ -41,8 +40,12 @@ function useChatSession({
       }
       if (mainSession) {
         const restored = mainSession.restoreHistory(result);
+        await runtimeTrace.bind(result.traceScope || null, restored.messages, restored.state);
+        if (token !== loadToken.current) return null;
         persistence.hydrate(result);
-        setMessages(restored.messages); setGameState(restored.state); setRuntimeError(null);
+        setRuntimeError(null);
+        await mainSession.start();
+        if (token !== loadToken.current) return null;
         persistence.markLoaded();
         return result;
       }
@@ -70,7 +73,7 @@ function useChatSession({
     } catch (error) {
       if (token === loadToken.current) setRuntimeError(normalizeGameCardError(error));
       return null;
-    } finally { if (token === loadToken.current && savePolicy === 'manual') setIsLoading?.(false); }
+    } finally { if (token === loadToken.current && (mainSession || savePolicy === 'manual')) setIsLoading?.(Boolean(mainSession?.running)); }
   }, [enabled, mainSession, onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
 
   const load = React.useCallback(() => {
@@ -82,8 +85,10 @@ function useChatSession({
 
   const saveCurrent = React.useCallback(async () => {
     if (isLoading) throw new Error('操作尚未完成，请稍后保存');
+    if (mainSession?.failed) return null;
+    if (mainSession && !mainSession.started) return null;
     return persistence.save();
-  }, [isLoading, persistence]);
+  }, [isLoading, persistence, mainSession]);
   const beforeLeave = React.useCallback(async () => {
     if (savePolicy === 'manual') return persistence.manual.requestLeave();
     await saveCurrent();

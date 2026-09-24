@@ -35,7 +35,6 @@ describe('useChatGeneration state patch cursor', () => {
     generationServices.prepareAfterResponseMessages = jest.fn(async ({ messages }) => ({
       applied: false, messages, state: patchedState
     }));
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages);
     const setGameState = jest.fn(state => {
       if (state === patchedState) events.push('state');
     });
@@ -79,7 +78,6 @@ describe('useChatGeneration state patch cursor', () => {
       error.name = errorName;
       throw error;
     });
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages);
   }
 
   test('keeps the applied patch after the user aborts', async () => {

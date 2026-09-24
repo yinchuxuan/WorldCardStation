@@ -167,13 +167,16 @@ fn expand(
 }
 
 pub fn read_card_with_sources(root: &Path) -> CardResult<ExpandedCard> {
+    read_json_with_sources(root, "card.json")
+}
+
+pub fn read_json_with_sources(root: &Path, file: &str) -> CardResult<ExpandedCard> {
     let source = SourceLocation {
-        file: "card.json".into(),
+        file: file.into(),
         pointer: String::new(),
     };
-    let path =
-        existing_file(root, "card.json").map_err(|error| located(error, "read_json", &source))?;
-    expand(read_json(&path, "card.json")?, root, &[path], source)
+    let path = existing_file(root, file).map_err(|error| located(error, "read_json", &source))?;
+    expand(read_json(&path, file)?, root, &[path], source)
 }
 
 pub fn read_card(root: &Path) -> CardResult<Value> {

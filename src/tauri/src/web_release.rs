@@ -5,7 +5,7 @@ use crate::game_card_paths::require_safe_id;
 use crate::game_card_schema::validate_card;
 use crate::json_store::{read_json, write_json};
 use crate::web_release_files::{collect, public_file};
-use crate::web_release_protocol::{canonical, file, manifest, Catalog, Release};
+use crate::web_release_protocol::{canonical, canonical_card, file, manifest, Catalog, Release};
 use std::fs::{self, OpenOptions};
 use std::path::Path;
 use uuid::Uuid;
@@ -42,7 +42,7 @@ fn build(source: &Path, staging: &Path, cover: Option<&str>) -> CardResult<Relea
             fs::create_dir_all(staging.join(scope))?;
         }
     }
-    fs::write(staging.join("card.json"), canonical(&card)?)?;
+    fs::write(staging.join("card.json"), canonical_card(&card)?)?;
     paths.insert("card.json".into());
     let files = paths
         .iter()

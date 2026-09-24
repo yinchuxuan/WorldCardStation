@@ -7,7 +7,6 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-
 pub fn safe_path(path: &str) -> CardResult<()> {
     assert_safe_relative(path, None)?;
     if path.chars().any(|c| c.is_control() || ":%?#".contains(c))
@@ -19,7 +18,6 @@ pub fn safe_path(path: &str) -> CardResult<()> {
     }
     Ok(())
 }
-
 pub fn private_path(path: &str) -> bool {
     path.split('/').any(|part| {
         let part = part.to_ascii_lowercase();
@@ -145,6 +143,12 @@ pub fn collect(root: &Path, card: &Value) -> CardResult<BTreeSet<String>> {
         public_file(root, &item.file)?;
         paths.insert(item.file);
     }
+    if card["formatVersion"] == "2" {
+        for file in crate::game_runtime_definition::agent_files(root, card)? {
+            public_file(root, &file)?;
+            paths.insert(file);
+        }
+    }
     if let Some(files) = card["files"].as_object() {
         for scope in files.values().filter(|v| v.is_object()) {
             scope_files(
@@ -167,7 +171,7 @@ pub fn collect(root: &Path, card: &Value) -> CardResult<BTreeSet<String>> {
             .stderr(Stdio::piped())
             .spawn()?;
         child.stdin.take().unwrap().write_all(
-            json!({"root": root, "scripts": scripts})
+            json!({"root": root, "scripts": scripts, "main": card.get("main")})
                 .to_string()
                 .as_bytes(),
         )?;
@@ -185,8 +189,8 @@ pub fn collect(root: &Path, card: &Value) -> CardResult<BTreeSet<String>> {
             paths.insert(dependency);
         }
     }
-    paths.insert("card.json".into());
     let mut folded = BTreeSet::new();
+    paths.insert("card.json".into());
     for path in &paths {
         if !folded.insert(path.to_lowercase()) {
             return Err(GameCardError::new("Case-colliding resource paths"));

@@ -112,6 +112,6 @@ describe('Tauri message history JSON view', () => {
     ]);
     await toggleHistory();
     const parsed = JSON.parse(await $('.msg-history-json').getText());
-    expect(parsed.msgs[0]).toEqual({ role: 'system', content: 'temporary rules', ttl: 1 });
+    expect(parsed.msgs[0]).toEqual({ id: expect.any(String), role: 'system', content: 'temporary rules', ttl: 1 });
   });
 });

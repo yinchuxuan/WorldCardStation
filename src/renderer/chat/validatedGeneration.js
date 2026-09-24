@@ -36,7 +36,7 @@ function validateAttempt(preSend, streamResult) {
     config: preSend.card?.responseValidation,
     rawContent: streamResult.rawContent,
     stateBefore: preSend.state,
-    stateAfter: streamResult.validationState || streamResult.state || preSend.state,
+    stateAfter: streamResult.state || preSend.state,
     updates: streamResult.validationUpdates || []
   });
 }
@@ -100,4 +100,4 @@ async function generateValidatedResponse({
   throw Error('response validation attempts exhausted unexpectedly');
 }
 
-export { generateValidatedResponse, validationFeedback, validateAttempt };
+export { generateValidatedResponse };

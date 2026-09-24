@@ -28,6 +28,7 @@ test('loaded Judge/Narrator fixture runs without UI, using shared files and real
     callbacks.onToken(request.model === 'default' ? 'judge raw' : 'narrator raw');
   };
   const app = createAgentRuntime({ definition, generate, dependencies: { readFile, runExecAction } });
+  await app.initialize();
   app.state.set('turn.input', 'start');
   await app.agents.call('judge').done();
   expect(app.state.get('turn.judgment')).toBe('accepted');

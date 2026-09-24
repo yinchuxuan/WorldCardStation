@@ -4,8 +4,7 @@ import {
   prepareAfterResponseMessages,
   prepareAfterStreamMessages,
   prepareInitMessages,
-  preparePreSendMessages,
-  toApiMessages as toGameCardApiMessages
+  preparePreSendMessages
 } from '../gameCard/sendPipeline.js';
 import {
   prepareStatePatchAtCursor
@@ -20,8 +19,7 @@ const generationServices = {
   prepareInitMessages: tracePipeline(prepareInitMessages, 'init', gameCardPlatform),
   preparePreSendMessages: tracePipeline(preparePreSendMessages, 'pre_send', gameCardPlatform),
   prepareStatePatchAtCursor: tracePipeline(prepareStatePatchAtCursor, 'state_patch', gameCardPlatform),
-  sendChatRequest,
-  toGameCardApiMessages
+  sendChatRequest
 };
 
 export default generationServices;

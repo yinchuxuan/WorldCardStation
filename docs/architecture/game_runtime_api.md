@@ -3,14 +3,15 @@
 适用任务：按已定稿 API 实现后续主程序、Agent 调用和 reader。
 相关代码：`src/shared/game-card/runtime/agentRuntime.js`、`src/renderer/chat/agentTransport.js`。
 前置文档：[运行时设计](./game_runtime_design.md)、[清单与加载](./game_runtime_manifest.md)。
-以下名称及完成边界是后续实现的正式契约，不表示当前播放器已经提供这些 API。
+以下名称及完成边界是新协议播放器的正式契约。
 本轮不提供并发、后台调用、独立前端或脚本恢复。
 main.js 的内部宿主、模块子集和输入边界见 [受控主程序与输入轮](./game_runtime_main.md)。
-已实现的内部读取与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)，不代表普通导入入口已开放。
+读取与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)，写卡参考见 [清单与主程序](../game_card/runtime.md)。
 
 ## 内部调用边界
 
-`createAgentRuntime({ definition, generate, dependencies })` 接收加载器返回的定义，提供 agents、state、cancel() 和 stop()。
+`createAgentRuntime({ definition, generate, dependencies })` 接收加载器返回的定义，提供 initialize()、agents、state、cancel() 和 stop()。
+宿主先 await initialize()，按声明顺序完成所有 Agent 的 init；不请求模型。未初始化就 call 会报错。
 这是宿主内部的无显示实例；不执行 main.js，不产生可见消息、不持久化，也未向播放器开放新协议。
 generate 接收 `{ agentId, model, messages, signal }` 和 `{ onToken, onThinkingToken }`，返回传输完成的 Promise。
 模型配置只由宿主的 createAgentTransport 解析；内容文件和 rules.exec 通过显式依赖复用现有受控执行器。
@@ -24,6 +25,8 @@ generate 接收 `{ agentId, model, messages, signal }` 和 `{ onToken, onThinkin
 ## 主程序与共享 State
 
 入口：`export async function onInput(ctx, input)`。input 为本轮玩家输入字符串，不自动广播给 Agent。
+可选 `export async function onStart(ctx)` 在新 Session 的所有 Agent init 完成后执行，使用同一套 ctx。
+初始化及 onStart 作为一次启动操作整体提交或回滚，不生成虚构的玩家消息；读档不重复启动。
 ctx 只在当前输入轮有效；onInput 正常结束且调用、阅读均完成后，整轮才成功。
 
 | 接口 | 返回与语义 |
@@ -35,7 +38,7 @@ ctx 只在当前输入轮有效；onInput 正常结束且调用、阅读均完�
 | ctx.agents.call(agentId) | 同步返回 CallHandle，异步启动该 Agent |
 | ctx.agents.messages(agentId) | 当前 Agent Messages 的只读快照数组，不触发初始化或调用 |
 | ctx.createReader({ source, mode }) | 返回 Reader，绑定本轮共享 State 和卡片阅读配置 |
-| ctx.present(reader) | Promise<void>，平台驱动阅读并保存实际展示记录 |
+| ctx.present(reader, options?) | Promise<void>，驱动阅读并保存展示记录；options.waitForAdvance 默认 true，可为布尔值或同步 text => boolean |
 
 State 使用现有点路径、值校验和默认值，不暴露可原地修改的引用。
 未知 Agent、重入或同时启动第二个未完成调用立即报错；合法调用的运行错误由 done() 拒绝。
@@ -60,7 +63,7 @@ if (msg) await ctx.present(ctx.createReader({ source: msg.content, mode: 'contin
 - done() 可重复等待同一个完成结果；边界为生成 → 回复校验 → 普通 patch 提交 → post_response。
 - 校验使用普通 patch 的候选 State，不提前提交；不执行 state_patch_stream。content 正则过滤两类标签，raw 保留。
 - retry 违规使 done() 拒绝，由上层整轮重试，不执行 maxRetries 透明重生成或耗尽降级；warn 接受并记录消息元数据。
-- init 按 Agent 标记仅执行一次；每次请求前推进该 Agent TTL 并执行 pre_send。
+- init 在新 Session 的 onStart 前执行一次；每次请求只推进该 Agent TTL 并执行 pre_send。
 - post_response 修改 Messages，不修改 response 或已展示记录。若删除本次 msg，按 ID 查询返回缺失。
 - messages(agentId) 返回调用时的副本；必须在 done() 后重新查询才能拿到后处理结果。
 - 规则 find.agentId 同样读取执行时快照，沿用现有 from/select/match/many/default；写入操作只针对当前 Agent。
@@ -103,14 +106,16 @@ reader 不修改 Messages，也不负责启动、重试模型或执行 post_resp
 
 模型完成与阅读完成彼此独立；普通 patch 和阅读 patch 不保证跨通道顺序。
 需要静态最终消息时先 await done()；下一 Agent 依赖阅读变量时先 await present(reader)。
-present 每显示一段后等待玩家推进，再调用 next()；continuous 自动持续消费。
+present 默认每段等待玩家推进；waitForAdvance 为 false 或同步判定返回 false 时，该段展示后继续 next()；continuous 不等待。
+判定输入是过滤控制块后、display 变换前的 text。present 耗尽来源后返回，保留画面；后续 main 操作结束前，新输入只能排队。
 同一 Reader 的单元只提交一次；main 负责不对同一内容重新创建有副作用的 Reader，静态字符串不携带来源身份。
 历史回看读取展示记录，不重新构造可提交 reader。
 原始流已经展示或 reader 已提交副作用后，不得在底层透明重生成；失败统一回到整轮重试基准。
 
 ## 失败与生命周期
 
-JS 异常、调用失败、解析/提交失败、玩家取消都使本轮失败，取消请求和阅读并恢复整轮基准。
+JS 异常、调用失败、解析/提交失败均停止本轮请求和阅读，保留已成功发布的变量、消息及演出；失败 patch 自身不提交。只有 retry 才恢复整轮基准后重跑。
+失败后 running=false、队列暂停，清除等待提示；不接受新输入、不保存失败现场。切换/卸载会清理未完成任务。
 未消费的隐藏 response 不阻止完成；已创建的 reader 必须读完，不能遗留跨轮继续消费。
 call.done() 拒绝必须被宿主捕获；即使卡片尚在 await present，宿主也应终止阅读，不留悬挂任务。
 Session 切换或卸载后，旧 ctx、reader 与迟到回调失效，不得写新 Session。

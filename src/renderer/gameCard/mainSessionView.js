@@ -2,20 +2,23 @@ import { cloneJson, deepFreeze } from '../../shared/game-card/utils/jsonValue.js
 
 // Host-only UI bridge. Reading acknowledgements never execute card code on the renderer.
 function createMainSessionView(initial) {
-  let view = deepFreeze({ ...cloneJson(initial), reading: null });
+  let view = deepFreeze({ ...cloneJson(initial), reading: null, pendingInput: null });
   let advance;
   const listeners = new Set();
   const update = (snapshot, detail = {}) => {
-    view = deepFreeze({ ...cloneJson(snapshot), reading: view.reading });
+    view = deepFreeze({ ...cloneJson(snapshot), reading: view.reading, pendingInput: view.pendingInput });
     listeners.forEach(listener => listener(view, detail));
   };
   const reset = (snapshot, type, extra = {}) => {
-    view = { ...view, reading: null }; advance = undefined;
+    view = { ...view, reading: null, pendingInput: type === 'start' && !extra.startup ? extra.input ?? null : null }; advance = undefined;
     update(snapshot, { type, ...extra });
   };
-  async function display({ view: snapshot, mode, recordId }, signal) {
+  async function display({ view: snapshot, mode, recordId, waitForAdvance = true }, signal) {
     if (signal.aborted) throw new Error('reading cancelled');
-    if (mode === 'continuous') { update(snapshot, { type: 'display', mode }); return; }
+    if (snapshot.records?.some(record => record.id === recordId && record.content?.trim())) {
+      view = { ...view, pendingInput: null };
+    }
+    if (mode === 'continuous' || !waitForAdvance) { update(snapshot, { type: 'display', mode }); return; }
     await new Promise((resolve, reject) => {
       const cleanup = () => { signal.removeEventListener('abort', abort); advance = undefined; view = deepFreeze({ ...view, reading: null }); };
       const abort = () => { cleanup(); reject(new Error('reading cancelled')); };

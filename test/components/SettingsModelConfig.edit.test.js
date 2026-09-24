@@ -1,182 +1,50 @@
-/**
- * Tests for SettingsModelConfig Component - Inline Editing
- */
-
 const React = require('react');
-const { render: _render, screen: _screen, fireEvent: _fireEvent, act } = require('@testing-library/react');
+const { render, screen, fireEvent } = require('@testing-library/react');
+const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
 
-describe('SettingsModelConfig Component - Inline Editing', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+function mount(config, isConfigured = true) {
+  const onChange = jest.fn();
+  render(React.createElement(SettingsModelConfig, {
+    config: { protocol: 'openai', ...config }, isConfigured, onChange,
+    maskApiKey: key => key ? 'masked-key' : ''
+  }));
+  return onChange;
+}
 
-  test('should show inline editable fields when configured', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
+test.each([
+  ['existing URL', { apiUrl: 'https://old.example.com' }, true],
+  ['empty configuration', {}, false]
+])('edits %s and commits only on blur', (_label, config, configured) => {
+  const onChange = mount(config, configured);
+  fireEvent.click(screen.getByText(configured ? config.apiUrl : '点击设置'));
+  const input = screen.getByLabelText('模型 URL');
+  expect(input).toHaveValue(config.apiUrl || '');
+  fireEvent.change(input, { target: { value: 'https://new.example.com/v1' } });
+  expect(onChange).not.toHaveBeenCalled();
+  fireEvent.blur(input);
+  expect(onChange).toHaveBeenCalledWith('apiUrl', 'https://new.example.com/v1');
+  expect(screen.queryByLabelText('模型 URL')).not.toBeInTheDocument();
+});
 
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: 'test-key', modelName: 'gpt-4', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? 'test****key' : '',
-      isConfigured: true
-    };
+test.each(['', 'secret-key'])('edits an API key using a password input (initial: %s)', key => {
+  const onChange = mount({ apiUrl: 'https://api.example.com', apiKey: key });
+  const field = document.querySelector('[data-model-field="apiKey"]');
+  fireEvent.click(field.querySelector('.settings-field-value'));
+  const input = screen.getByLabelText('API Key');
+  expect(input).toHaveAttribute('type', 'password');
+  expect(input).toHaveValue(key);
+  fireEvent.change(input, { target: { value: 'new-key' } });
+  fireEvent.blur(input);
+  expect(onChange).toHaveBeenCalledWith('apiKey', 'new-key');
+});
 
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('模型 URL')).toBeInTheDocument();
-    expect(_screen.getByText('API Key')).toBeInTheDocument();
-    expect(_screen.getByText('协议类型')).toBeInTheDocument();
-    expect(_screen.getByText('模型名称')).toBeInTheDocument();
-  });
-
-  test('should enter edit mode when clicking a field value', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const onChange = jest.fn();
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: 'test-key', modelName: 'gpt-4', protocol: 'openai' },
-      onChange,
-      maskApiKey: (key) => key ? 'test****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    const apiUrlValue = _screen.getByText('http://api.example.com');
-    _fireEvent.click(apiUrlValue);
-
-    // Should show an input with the value
-    const input = _screen.getByDisplayValue('http://api.example.com');
-    expect(input).toBeInTheDocument();
-  });
-
-  test('should call onChange when inline edit blurs', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const onChange = jest.fn();
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: 'test-key', modelName: 'gpt-4', protocol: 'openai' },
-      onChange,
-      maskApiKey: (key) => key ? 'test****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    const apiUrlValue = _screen.getByText('http://api.example.com');
-    _fireEvent.click(apiUrlValue);
-
-    const input = _screen.getByDisplayValue('http://api.example.com');
-    _fireEvent.change(input, { target: { value: 'http://new-api.com' } });
-
-    // Trigger blur to save
-    _fireEvent.blur(input);
-
-    expect(onChange).toHaveBeenCalledWith('apiUrl', 'http://new-api.com');
-  });
-
-  test('should show password input for API Key field', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const onChange = jest.fn();
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: 'secret-key', modelName: 'gpt-4', protocol: 'openai' },
-      onChange,
-      maskApiKey: (key) => key ? 'secr****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    const maskedKey = _screen.getByText('secr****key');
-    _fireEvent.click(maskedKey);
-
-    // Should show password input
-    const passwordInput = document.querySelector('input[type="password"]');
-    expect(passwordInput).toBeInTheDocument();
-  });
-
-  test('should allow entering api url from the empty state', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: '', apiKey: '', modelName: '', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? '****' : '',
-      isConfigured: false
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    _fireEvent.click(_screen.getByText('点击设置'));
-
-    const input = _screen.getByPlaceholderText('https://api.example.com/v1');
-    _fireEvent.change(input, { target: { value: 'https://api.example.com/v1' } });
-    _fireEvent.blur(input);
-
-    expect(props.onChange).toHaveBeenCalledWith('apiUrl', 'https://api.example.com/v1');
-  });
-
-  test('should allow editing an empty api key field', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: '', modelName: 'gpt-4', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? '****' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    _fireEvent.click(_screen.getAllByText('未设置')[0]);
-
-    const input = document.querySelector('input[type="password"]');
-    _fireEvent.change(input, { target: { value: 'new-key' } });
-    _fireEvent.blur(input);
-
-    expect(props.onChange).toHaveBeenCalledWith('apiKey', 'new-key');
-  });
-
-  test('should allow editing numeric generation fields', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: {
-        apiUrl: 'http://api.example.com',
-        apiKey: 'test-key',
-        modelName: 'gpt-4',
-        protocol: 'openai',
-        temperature: '0.7'
-      },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? 'test****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    _fireEvent.click(_screen.getByText('0.7'));
-
-    const input = _screen.getByDisplayValue('0.7');
-    expect(input).toHaveAttribute('type', 'number');
-    expect(input).toHaveAttribute('step', 'any');
-    _fireEvent.change(input, { target: { value: '0.85' } });
-    _fireEvent.blur(input);
-
-    expect(props.onChange).toHaveBeenCalledWith('temperature', '0.85');
-  });
+test('edits fractional generation parameters', () => {
+  const onChange = mount({ apiUrl: 'https://api.example.com', temperature: '0.7' });
+  fireEvent.click(screen.getByText('0.7'));
+  const input = screen.getByLabelText('Temperature');
+  expect(input).toHaveAttribute('type', 'number');
+  expect(input).toHaveAttribute('step', 'any');
+  fireEvent.change(input, { target: { value: '0.85' } });
+  fireEvent.blur(input);
+  expect(onChange).toHaveBeenCalledWith('temperature', '0.85');
 });

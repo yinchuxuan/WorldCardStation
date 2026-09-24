@@ -4,7 +4,7 @@ import { cloneJson } from '../utils/jsonValue.js';
 import { assertJson, assertPath } from './sharedState.js';
 import { collectPresentationEffects } from '../engine/presentationActions.js';
 
-async function runAgentRules({ card, agentId, phase, context, store, dependencies, messages, nextId, check }) {
+async function runAgentRules({ card, agentId, phase, context, store, dependencies, messages, nextId, check, observer }) {
   const finalizeAction = (result, previous, action) => {
     check();
     if (result.trace?.reason && result.trace.reason !== 'when_not_matched' && result.trace.applied === false) {
@@ -27,7 +27,7 @@ async function runAgentRules({ card, agentId, phase, context, store, dependencie
   const result = await applyRulesAsync({
     messages: cloneJson(context.messages), state: store.snapshot(), trace: { phase, rules: [], errors: [] }
   }, {
-    card, agentId, event: { phase, agentId }, strict: true,
+    card, agentId, event: { phase, agentId }, strict: true, observer,
     fileContents: dependencies.fileContents,
     readFile: dependencies.readFile, readText: dependencies.readText,
     runExecAction: dependencies.runExecAction,

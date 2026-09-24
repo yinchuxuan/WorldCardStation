@@ -32,7 +32,6 @@ describe('useChatGeneration presentation effects', () => {
       state: afterState,
       presentationEffects: [portraitEffect]
     }));
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages);
     const onPresentationEffects = jest.fn();
     const { result } = renderRetryGeneration({
       options: { onPresentationEffects }

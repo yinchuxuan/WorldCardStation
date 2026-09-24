@@ -17,15 +17,15 @@ test('shared history page selects actual Agent messages, includes empty agents a
   await act(async () => { rendered = render(tree(first)); });
   fireEvent.click(document.querySelector('.chat-header'));
   expect(screen.getByText(/private judgment/)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'narrator' }));
+  fireEvent.click(screen.getByRole('button', { name: '下一个 Agent' }));
   expect(screen.getByText(/post_response final/)).toBeTruthy();
   expect(screen.queryByText(/private judgment/)).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'unused' }));
+  fireEvent.click(screen.getByRole('button', { name: '下一个 Agent' }));
   expect(screen.getByText('暂无消息历史记录')).toBeTruthy();
   expect(first.send).not.toHaveBeenCalled();
   expect(first.advance).not.toHaveBeenCalled();
   await act(async () => rendered.rerender(tree(second)));
   expect(screen.getByText(/new Session only/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'narrator' })).toBeNull();
-  expect(first.dispose).toHaveBeenCalled();
+  expect(first.dispose).not.toHaveBeenCalled(); // Injected Sessions remain owned by their caller.
 });

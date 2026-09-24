@@ -25,34 +25,6 @@ describe('ChatPanel thinking display', () => {
     generationServices.sendChatRequest = originalSendChatRequest;
     jest.useRealTimers();
   });
-
-  test('should render response content after streaming with thinking tags', async () => {
-    global.fetch.mockResolvedValue(
-      global.createThinkingStreamingMock('Let me think about this...', 'Here is my answer.')
-    );
-
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const input = screen.getByPlaceholderText('输入您的回答...');
-    fireEvent.change(input, { target: { value: 'What is 2+2?' } });
-    fireEvent.click(document.querySelector('button[type="submit"]'));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(200);
-    });
-
-    // After streaming completes, the message should contain the response text
-    await waitFor(() => {
-      expect(screen.getByText('Here is my answer.')).toBeInTheDocument();
-    });
-  });
-
   test('thinking content should be stored in last assistant message', async () => {
     global.fetch.mockResolvedValue(
       global.createThinkingStreamingMock('Thinking process here', 'The final answer.')
@@ -74,40 +46,14 @@ describe('ChatPanel thinking display', () => {
       jest.advanceTimersByTime(200);
     });
 
-    // The committed message should include the thinking content (since it's accumulated)
+    await waitFor(() => expect(screen.getByText('The final answer.')).toBeInTheDocument());
     await waitFor(() => {
-      // The accumulated content includes both thinking and response
-      const bubbles = screen.getAllByText(/The final answer\.|Thinking process here/);
-      expect(bubbles.length).toBeGreaterThan(0);
+      const saved = platformMock.saveChatHistory.mock.calls.at(-1)?.[0];
+      expect(saved?.at(-1)).toMatchObject({
+        role: 'assistant', content: 'The final answer.', thinking: 'Thinking process here'
+      });
     });
   });
-
-  test('bubble without thinking should not be clickable', async () => {
-    global.fetch.mockResolvedValue(
-      global.createSimpleStreamingMock('Just a regular response.')
-    );
-
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const input = screen.getByPlaceholderText('输入您的回答...');
-    fireEvent.change(input, { target: { value: 'hello' } });
-    fireEvent.click(document.querySelector('button[type="submit"]'));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(200);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Just a regular response.')).toBeInTheDocument();
-    });
-  });
-
   test('streaming thinking can be reopened by clicking streamed answer text', async () => {
     let callbacks;
     let finishRequest;

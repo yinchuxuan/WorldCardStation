@@ -15,10 +15,11 @@ function createMainReaders({ runtime, snapshot, idPrefix, separator, check, fail
       return item.reader;
     } catch (error) { fail(error); throw error; }
   }
-  async function present(reader) {
+  async function present(reader, { waitForAdvance = true } = {}) {
     check();
     const item = readers.get(reader);
     if (!item || presenting || item.presented) throw new Error('present requires an unused reader from this input');
+    if (typeof waitForAdvance !== 'boolean' && typeof waitForAdvance !== 'function') throw new Error('waitForAdvance must be a boolean or function');
     presenting = true; item.presented = true;
     const record = { id: `visible-${idPrefix}${++sequence}`, role: 'assistant', content: '', mode: item.mode, units: [] };
     try {
@@ -29,7 +30,9 @@ function createMainReaders({ runtime, snapshot, idPrefix, separator, check, fail
         record.units.push(cloneJson(unit));
         if (unit.text) {
           record.content += `${item.mode === 'segmented' && record.content ? '\n\n' : ''}${unit.text}`;
-          await display({ view: view(), recordId: record.id, mode: item.mode });
+          const wait = typeof waitForAdvance === 'function' ? waitForAdvance(unit.text) : waitForAdvance;
+          if (typeof wait !== 'boolean') throw new Error('waitForAdvance must return a boolean');
+          await display({ view: view(), recordId: record.id, mode: item.mode, waitForAdvance: wait });
           check();
         }
       }

@@ -14,7 +14,7 @@ test('cancel during module loading cannot start a late Worker', async () => {
   options.workerFactory = jest.fn();
   const session = createMainSession(options);
   const result = session.send('go');
-  await expect(session.retry()).rejects.toThrow('another input');
+  await Promise.resolve();
   await session.cancel();
   await expect(result).rejects.toThrow('cancelled');
   gate.resolve('export const x = 1;');
@@ -28,12 +28,18 @@ test('publishes only complete snapshots and retries from the pre-input baseline'
   const workerFactory = () => {
     const worker = { terminate: jest.fn(), postMessage: data => {
       if (data.type === 'start') queueMicrotask(() => worker.onmessage({ data: { type: 'complete', result: {
-        ...data.snapshot, state: { count: data.snapshot.state.count + 1, input: data.input }
+        ...data.snapshot, state: data.startup ? data.snapshot.state : { count: data.snapshot.state.count + 1, input: data.input }
       } } }));
     } };
     return worker;
   };
   const session = createMainSession(sessionOptions({ workerFactory }));
+  const waiting = [];
+  session.subscribe((view, detail) => {
+    if (detail.type === 'start') waiting.push(view.pendingInput);
+    if (detail.type === 'complete') expect(view.pendingInput).toBeNull();
+  });
+  await session.start();
   await expect(session.retry()).rejects.toThrow('no input');
   await expect(session.send({})).rejects.toThrow('string');
   const active = session.send('one');
@@ -45,4 +51,6 @@ test('publishes only complete snapshots and retries from the pre-input baseline'
   expect(session.snapshot().state.count).toBe(2);
   await session.retry('edit');
   expect(session.snapshot().state).toEqual({ count: 2, input: 'edit' });
+  expect(waiting).toEqual([null, 'one', 'two', 'edit']);
+  expect(session.snapshot()).not.toHaveProperty('pendingInput');
 });

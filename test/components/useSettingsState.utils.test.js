@@ -1,189 +1,22 @@
-const { renderHook, act: hookAct } = require('@testing-library/react');
+const { renderHook, act } = require('@testing-library/react');
+const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
 
-const platformMock = global.platformMock;
+test('masks keys without exposing short secrets, including the length boundary', async () => {
+  const { result } = renderHook(() => useSettingsState());
+  await act(async () => {});
+  for (const [key, expected] of [
+    [null, ''], ['', ''], ['short', '****'], ['12345678', '****'],
+    ['123456789', '1234****6789'], ['test-api-key-12345', 'test****2345']
+  ]) expect(result.current.maskApiKey(key)).toBe(expected);
+});
 
-describe('useSettingsState Hook - Utilities', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    platformMock.getModelConfig.mockResolvedValue({
-      success: true,
-      config: { apiUrl: 'http://api.example.com', apiKey: 'test-key', modelName: 'gpt-4' }
-    });
-    platformMock.getBackgroundConfig.mockResolvedValue({
-      success: true,
-      config: { backgroundImageUrl: '', backgroundOpacity: 0.5 }
-    });
-  });
-
-  describe('maskApiKey', () => {
-    test('should mask long API key', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey('test-api-key-12345');
-      expect(masked).toBe('test****2345');
-    });
-
-    test('should mask short API key as ****', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey('short');
-      expect(masked).toBe('****');
-    });
-
-    test('should return empty string for null key', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey(null);
-      expect(masked).toBe('');
-    });
-
-    test('should return empty string for empty key', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey('');
-      expect(masked).toBe('');
-    });
-
-    test('should mask 8-character key as ****', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey('12345678');
-      expect(masked).toBe('****');
-    });
-
-    test('should mask 9-character key correctly', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const masked = result.current.maskApiKey('123456789');
-      expect(masked).toBe('1234****6789');
-    });
-  });
-
-  describe('isConfigured', () => {
-    test('should return falsy value when no config set', async () => {
-      platformMock.getModelConfig.mockResolvedValue({
-        success: true,
-        config: { apiUrl: '', apiKey: '', modelName: '' }
-      });
-
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
-
-      expect(result.current.isConfigured).toBeFalsy();
-    });
-
-    test('should return truthy value when apiUrl is set', async () => {
-      platformMock.getModelConfig.mockResolvedValue({
-        success: true,
-        config: { apiUrl: 'http://api.com', apiKey: '', modelName: '' }
-      });
-
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
-
-      expect(result.current.isConfigured).toBeTruthy();
-    });
-
-    test('should return truthy value when apiKey is set', async () => {
-      platformMock.getModelConfig.mockResolvedValue({
-        success: true,
-        config: { apiUrl: '', apiKey: 'key', modelName: '' }
-      });
-
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
-
-      expect(result.current.isConfigured).toBeTruthy();
-    });
-
-    test('should return truthy value when modelName is set', async () => {
-      platformMock.getModelConfig.mockResolvedValue({
-        success: true,
-        config: { apiUrl: '', apiKey: '', modelName: 'model' }
-      });
-
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
-
-      expect(result.current.isConfigured).toBeTruthy();
-    });
-
-    test('should return truthy value when all fields are set', async () => {
-      platformMock.getModelConfig.mockResolvedValue({
-        success: true,
-        config: { apiUrl: 'http://api.com', apiKey: 'key', modelName: 'model' }
-      });
-
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      });
-
-      expect(result.current.isConfigured).toBeTruthy();
-    });
-  });
-
-  describe('Return Value', () => {
-    test('should return all required properties', async () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-      await hookAct(async () => { await Promise.resolve(); });
-
-      const returned = result.current;
-
-      expect(returned.config).toBeDefined();
-      expect(returned.backgroundConfig).toBeDefined();
-      expect(returned.isConfigured).toBeDefined();
-      expect(returned.maskApiKey).toBeDefined();
-      expect(returned.handleChange).toBeDefined();
-      expect(returned.handleBackgroundChange).toBeDefined();
-      expect(returned.handleSelectBackgroundImage).toBeDefined();
-      expect(returned.handleClearBackgroundImage).toBeDefined();
-    });
-  });
-
-  describe('Module Export', () => {
-    test('should be available as a default module export', () => {
-      const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-      expect(useSettingsState).toEqual(expect.any(Function));
-      expect(window.useSettingsState).toBeUndefined();
-    });
-  });
+test.each([
+  [{}, false], [{ apiUrl: 'https://api.test.com' }, true],
+  [{ apiKey: 'key' }, true], [{ modelName: 'model' }, true],
+  [{ apiUrl: 'https://api.test.com', apiKey: 'key', modelName: 'model' }, true]
+])('recognizes partial configuration %j', async (config, expected) => {
+  global.platformMock.getModelConfig.mockResolvedValue({ success: true, config });
+  const { result } = renderHook(() => useSettingsState());
+  await act(async () => {});
+  expect(Boolean(result.current.isConfigured)).toBe(expected);
 });

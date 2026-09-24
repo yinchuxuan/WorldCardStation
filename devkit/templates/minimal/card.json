@@ -4,13 +4,8 @@
   "name": "我的游戏卡",
   "description": "请填写游戏简介",
   "author": "请填写作者",
-  "rules": [
-    {
-      "id": "opening",
-      "when": { "phase": "init", "length": 0 },
-      "then": [
-        { "type": "insert", "role": "assistant", "content": "故事即将开始。你想做什么？" }
-      ]
-    }
-  ]
+  "formatVersion": "2",
+  "main": "main.js",
+  "agents": { "narrator": "agents/narrator.json" },
+  "state": { "schema": { "turn.input": { "type": "string", "default": "", "llmWrite": false } } }
 }

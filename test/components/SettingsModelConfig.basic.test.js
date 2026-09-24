@@ -1,114 +1,26 @@
-/**
- * Tests for SettingsModelConfig Component - Basic
- */
-
 const React = require('react');
-const { render: _render, screen: _screen, fireEvent: _fireEvent, act } = require('@testing-library/react');
+const { render, screen, fireEvent } = require('@testing-library/react');
+const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
 
-describe('SettingsModelConfig Component - Basic', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('should render model config section', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: '', apiKey: '', modelName: '', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? '****' : '',
-      isConfigured: false
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('模型配置')).toBeInTheDocument();
-  });
-
-  test('should show empty state when not configured', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: '', apiKey: '', modelName: '', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? '****' : '',
-      isConfigured: false
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('尚未配置模型')).toBeInTheDocument();
-    expect(_screen.getByText('点击设置')).toBeInTheDocument();
-  });
-
-  test('should show configured status when model is configured', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: 'http://api.example.com', apiKey: 'test-key', modelName: 'gpt-4', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? 'tes****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('已配置')).toBeInTheDocument();
-  });
-
-  test('should display config summary values when configured', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: { apiUrl: 'http://api.example.com/v1', apiKey: 'test-api-key-12345', modelName: 'gpt-4', protocol: 'openai' },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? key.substring(0, 4) + '****' + key.substring(key.length - 4) : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('http://api.example.com/v1')).toBeInTheDocument();
-    expect(_screen.getByText('test****2345')).toBeInTheDocument();
-    expect(_screen.getByText('gpt-4')).toBeInTheDocument();
-  });
-
-  test('should display generation parameter fields when configured', async () => {
-    const SettingsModelConfig = require('../../src/renderer/components/SettingsModelConfig.jsx').default;
-
-    const props = {
-      config: {
-        apiUrl: 'http://api.example.com',
-        apiKey: 'test-key',
-        modelName: 'gpt-4',
-        protocol: 'openai',
-        maxTokens: '2048',
-        temperature: '0.8',
-        topP: '0.9',
-        frequencyPenalty: '0.2',
-        presencePenalty: '0.4'
-      },
-      onChange: jest.fn(),
-      maskApiKey: (key) => key ? 'tes****key' : '',
-      isConfigured: true
-    };
-
-    _render(React.createElement(SettingsModelConfig, props));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('最大输出')).toBeInTheDocument();
-    expect(_screen.getByText('Temperature')).toBeInTheDocument();
-    expect(_screen.getByText('Top P')).toBeInTheDocument();
-    expect(_screen.getByText('频率惩罚')).toBeInTheDocument();
-    expect(_screen.getByText('存在惩罚')).toBeInTheDocument();
-  });
+test('shows the saved model summary without exposing the API key', () => {
+  const config = {
+    apiUrl: 'https://api.example.com/v1', apiKey: 'secret-key', modelName: 'model-1',
+    protocol: 'openai', maxTokens: '2048', temperature: '0.8', topP: '0.9',
+    frequencyPenalty: '0.2', presencePenalty: '0.4'
+  };
+  render(React.createElement(SettingsModelConfig, {
+    config, onChange: jest.fn(), maskApiKey: () => 'masked-key', isConfigured: true
+  }));
+  for (const text of [config.apiUrl, config.modelName, 'masked-key', '已配置'])
+    expect(screen.getByText(text)).toBeInTheDocument();
+  expect(screen.queryByText(config.apiKey)).not.toBeInTheDocument();
+  // Check field/value associations, not only the presence of their labels.
+  for (const [label, value] of [
+    ['最大输出', '2048'], ['Temperature', '0.8'], ['Top P', '0.9'],
+    ['频率惩罚', '0.2'], ['存在惩罚', '0.4']
+  ]) {
+    fireEvent.click(screen.getByText(value));
+    expect(screen.getByLabelText(label)).toHaveValue(Number(value));
+    fireEvent.blur(screen.getByLabelText(label));
+  }
 });

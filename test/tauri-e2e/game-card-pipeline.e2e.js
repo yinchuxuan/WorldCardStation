@@ -19,19 +19,19 @@ describe('Tauri game card send pipeline', () => {
     } });
   });
 
-  it('should apply pre_send and after_response rules in the real UI flow', async () => {
+  it('should apply pre_send and post_response rules in the real UI flow', async () => {
     await activateCard(pipelineCard('pipeline-openai'));
     server.queueOpenAi('```model says ok```');
     await sendMessage('hello');
-    const history = await waitForHistory(value => value.messages.length === 4);
+    const history = await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.length === 4);
     expect(server.requests[0].messages).toEqual([
       { role: 'system', content: 'SYSTEM RULES' },
       { role: 'user', content: '[player] hello' }
     ]);
-    expect(history.messages.map(item => item.content)).toEqual([
+    expect(history.runtimeSession.current.contexts.narrator.messages.map(item => item.content)).toEqual([
       'SYSTEM RULES', '[player] hello', 'model says ok', 'temporary hint'
     ]);
-    expect(history.messages[3].ttl).toBe(2);
+    expect(history.runtimeSession.current.contexts.narrator.messages[3].ttl).toBe(2);
     await expect($('.chat-history')).not.toHaveText(expect.stringContaining('SYSTEM RULES'));
   });
 
@@ -79,7 +79,7 @@ describe('Tauri game card send pipeline', () => {
       }]
     }]));
     await sendMessage('start');
-    await expect($('.chat-history')).toHaveText(
+    await expect($('body')).toHaveText(
       expect.stringContaining('unsupported content source: unknown_source:rules')
     );
     expect(server.requests).toHaveLength(0);
@@ -95,7 +95,7 @@ describe('Tauri game card send pipeline', () => {
         }]
       },
       {
-        when: { phase: 'after_response' },
+        when: { phase: 'post_response' },
         then: [{
           type: 'exec',
           source: 'messages.push({ role: "system", content: "exec after", ttl: 2, _meta: { visibility: "llm_only" } }); return { messages };'
@@ -104,11 +104,11 @@ describe('Tauri game card send pipeline', () => {
     ]));
     server.queueOpenAi('done');
     await sendMessage('move');
-    const saved = await waitForHistory(value => value.messages.length === 3);
-    expect(saved.messages.map(item => item.content)).toEqual([
+    const saved = await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.length === 3);
+    expect(saved.runtimeSession.current.contexts.narrator.messages.map(item => item.content)).toEqual([
       '[exec] move', 'done', 'exec after'
     ]);
-    expect(saved.messages[2].ttl).toBe(2);
+    expect(saved.runtimeSession.current.contexts.narrator.messages[2].ttl).toBe(2);
   });
 
   it('should terminate a non-returning exec without sending a request', async () => {
@@ -117,8 +117,8 @@ describe('Tauri game card send pipeline', () => {
       then: [{ type: 'exec', source: 'while (true) {}' }]
     }]));
     await sendMessage('start');
-    await expect($('.chat-history')).toHaveText(
-      expect.stringContaining('Script execution timed out')
+    await expect($('body')).toHaveText(
+      expect.stringContaining('main.js computation timed out')
     );
     expect(server.requests).toHaveLength(0);
   });

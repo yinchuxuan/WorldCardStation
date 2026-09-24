@@ -65,8 +65,8 @@ test.each(['Error', 'AbortError'])('logs request failure versus partial acceptan
   }
 });
 
-test('segmented validation candidate is not logged as an applied patch', async () => {
-  global.platformMock.getActiveGameCard.mockResolvedValue({ ...activeCard, display: { segmentedReading: true },
+test('continuous validation logs the applied patch, not a deferred candidate', async () => {
+  global.platformMock.getActiveGameCard.mockResolvedValue({ ...activeCard,
     responseValidation: { rules: [{ id: 'score', type: 'state.update', path: 'score', updates: { eq: 1 }, value: { eq: 2 }, message: 'score' }] } });
   jest.spyOn(generationServices, 'sendChatRequest').mockImplementation(async (_, callbacks) => {
     await callbacks.onToken('body<state_patch>{"score":2}</state_patch>');
@@ -75,7 +75,7 @@ test('segmented validation candidate is not logged as an applied patch', async (
   await act(async () => { await result.current.retry(); });
   await runtimeTrace.flush();
   const output = events();
-  expect(output.some(event => event.kind === 'state_patch')).toBe(false);
-  expect(output.find(event => event.type === 'model.response').validationCandidate.state).toEqual({ score: 2 });
-  expect(options.setGameState).not.toHaveBeenCalledWith({ score: 2 });
+  expect(output.some(event => event.kind === 'state_patch')).toBe(true);
+  expect(output.find(event => event.type === 'model.response').validationCandidate).toBeUndefined();
+  expect(options.setGameState).toHaveBeenCalledWith({ score: 2 });
 });

@@ -42,12 +42,14 @@ macOS 已安装应用的可执行文件为 `.app/Contents/MacOS/world-card-stati
 
 ## 生成与保留
 
-新卡生成唯一 UUID 和最小 `card.json`，复制指南、lib 索引和 spec 到 `.wcs/`。不执行 Git 初始化、提交或发布，不生成 `devkit.json`、本机配置、测试输入、启动脚本或运行日志。
+新卡生成唯一 UUID，复制最小 card.json、main.js 和 agents/narrator.json，复制指南、lib 索引和 spec 到 .wcs/。不执行 Git 初始化、提交或发布，不生成本机配置、测试输入或运行日志。main.js 是卡片主程序，不是启动客户端的脚本。
 
 新卡选择世界书时生成：
 
 ```text
-card.json                         # files 目录 scope + pre_send 普通 exec
+card.json                         # formatVersion 2、main、agents、files 目录 scope
+main.js                           # 一轮输入与显式演出
+agents/narrator.json               # pre_send 普通 exec 调用世界书
 lib/worldbook/*.js
 lib/worldbook/README.md
 lib/worldbook/SEMANTICS.md

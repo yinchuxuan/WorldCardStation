@@ -127,11 +127,11 @@ gameState.visual.scene
 - 切换 session 后按恢复出的 `gameState.visual.scene` 展示背景或 CG。
 - 相同 key 不重复解析资源 URL。
 - 平台默认在首个正文 token 到达时调用两个 update 函数；首 token 前失败或取消不会自动切换画面。
-- `state_patch` 改变视觉字段时，在普通模式的流游标或分段模式的阅读游标越过该 patch 后立即发布变化。
-- 供应商请求失败时重新发布请求开始前的背景和立绘；用户主动取消时保留当前画面。
+- 普通 state_patch 校验后提交视觉字段；state_patch_stream 在分段 reader 推进时提交并发布变化。
+- 供应商请求失败或用户取消都恢复整轮开始前的背景和立绘。
 - scene 属于 `background` 时允许叠加立绘；属于 `cg` 时立即清空当前及退场中的立绘渲染层，但不修改 `gameState.visual.portraits`。
 - scene 变化必须同时刷新基础画面与立绘层，使进入 CG 时立绘消失、返回 background 时保留的立绘重新显示。
-- `presentation.autoUpdateOnFirstToken: false` 可关闭默认调用；卡片可在 `pre_send` / `after_response` 使用 `visual.updateBackground`、`visual.updatePortrait` 手动发布。
+- `presentation.autoUpdateOnFirstToken: false` 可关闭默认调用；卡片可在 `pre_send` / `post_response` 使用 `visual.updateBackground`、`visual.updatePortrait` 手动发布。
 - update 每次读取传入 state 的目标 key；异步资源解析只允许最新的通道请求生效，不维护待发布 visual snapshot。
 - 游戏卡背景只覆盖背景图片，不覆盖用户设置的遮罩透明度；透明度仍使用现有 `backgroundOpacity`。
 

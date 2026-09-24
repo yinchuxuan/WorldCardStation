@@ -24,6 +24,8 @@ async function invokeError(command, args = {}) {
 }
 
 async function setInput(content) {
+  await $('.chat-input-textarea').waitForExist();
+  await $('.chat-input-textarea').waitForEnabled();
   await browser.execute((value) => {
     const input = document.querySelector('.chat-input-textarea');
     const setter = Object.getOwnPropertyDescriptor(
@@ -54,11 +56,15 @@ async function refreshApp() {
 async function revealHeader() {
   // The app shell mounts before the asynchronous chat/session initialization finishes.
   await $('.chat-header-hover-trigger').waitForExist();
-  await browser.execute(() => {
-    const trigger = document.querySelector('.chat-header-hover-trigger');
-    trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    trigger.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-  });
+  await invoke('plugin:window|set_focus', { label: 'main' });
+  // Target the header itself: revealing it covers the trigger and can emit mouseleave on WebKit.
+  await browser.execute(() => document.querySelector('.chat-header').dispatchEvent(
+    new MouseEvent('mouseover', { bubbles: true, relatedTarget: null })
+  ));
+  // Background WebKit can suspend finite entrance animations at opacity: 0.
+  await browser.execute(() => document.getAnimations().forEach(animation => {
+    if (Number.isFinite(animation.effect?.getComputedTiming().endTime)) animation.finish();
+  }));
   await $('.chat-header-visible').waitForDisplayed();
 }
 
@@ -69,9 +75,7 @@ async function toggleHistory() {
 
 async function saveCard(card, files = {}) {
   await invoke('e2e_seed_game_card', { card });
-  if (Object.keys(files).length) {
-    await writeCardFiles(card.id, files);
-  }
+  await writeCardFiles(card.id, { ...require('./cards').cardFiles(card), ...files });
 }
 
 async function writeCardFiles(cardId, files) {
@@ -104,7 +108,10 @@ async function getHistory() {
 
 async function resetNoCard() {
   await invoke('set_active_game_card', { id: null });
-  await saveHistory([]);
+  // Let the old renderer detach before creating the ordinary-chat test session.
+  await refreshApp();
+  const created = await invoke('create_chat_session', { title: 'Isolated ordinary chat' });
+  await invoke('set_active_chat_session', { id: created.id });
   await refreshApp();
 }
 

@@ -2,7 +2,7 @@ import Ajv from 'ajv';
 import schema from './game-card.schema.json' assert { type: 'json' };
 import { formatSchemaErrors } from './validateGameCard.js';
 
-// Select an unpublished protocol from the same source of field constraints.
+// Select the player manifest or Agent view from the same source of field constraints.
 function runtimeDefinitionSchema(kind) {
   if (!['runtimeManifest', 'runtimeAgent'].includes(kind)) throw new Error(`Unknown definition kind: ${kind}`);
   const definitions = JSON.parse(JSON.stringify(schema.definitions));

@@ -23,6 +23,8 @@ client --dry-run .
 
 ## 检查范围
 
+formatVersion 2 会展开各 Agent JSON，检查主程序静态模块图、Agent 规则与公共资源。检查不运行 onInput、模块顶层或 init，也不读取模型配置或密钥。
+
 - JSON 解析、`$import` 展开、路径边界、文件存在、导入循环和深度上限。
 - 唯一游戏卡 Schema、action/predicate 参数、跨字段约束及运行时补充校验。
 - Schema 声明的文本、脚本、样式、图片、音频资源，目录 scope，以及外部 state schema。
@@ -47,7 +49,7 @@ stdout 是单个 JSON 对象，以换行结束；不向项目或 session 写检�
   "operation": "dry-run",
   "status": "invalid",
   "platformVersion": "1.0.8",
-  "schemaVersion": "1.10.0",
+  "schemaVersion": "2.0.0",
   "projectPath": "/absolute/card-project",
   "checked": ["json", "imports", "schema"],
   "diagnostics": [{

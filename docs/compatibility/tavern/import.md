@@ -8,6 +8,9 @@
 
 ## 功能与边界
 
+当前玩家入口要求 formatVersion 2。此处描述的纯转换模块仍生成旧协议产物，尚未迁移到 main.js + Agent。
+客户端导入酒馆源文件会明确提示暂不支持，不运行转换产物；下文保留为转换模块的维护契约，不代表当前可游玩兼容范围。
+
 导入使用游戏卡容器、规则引擎和 [worldbook library](../../../libs/worldbook-library/README.md)。
 
 将 V2/V3 酒馆角色卡转换为当前 schema 下的普通游戏卡。导入时理解酒馆格式和常见宏，运行时只使用现有 rules、Content、state、受控 exec 和随卡分发的世界书库。不新增“酒馆卡”运行类型、特殊 lib 类型、exec args 分区或通用酒馆宏解释器。

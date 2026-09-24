@@ -65,10 +65,23 @@ pub fn create(devkit: &Path, root: &Path, worldbook: bool) -> InitResult<Plan> {
         let mut template: Value =
             serde_json::from_slice(&read(devkit, "templates/minimal/card.json")?)
                 .map_err(|error| InitError::new("invalid_devkit", error.to_string()))?;
-        if !template.is_object() || !template["rules"].is_array() {
+        if template["formatVersion"] != "2" || !template["agents"].is_object() {
             return Err(InitError::new("invalid_devkit", "最小卡模板结构错误"));
         }
         template["id"] = Uuid::new_v4().to_string().into();
+        tree(devkit, "templates/minimal", "", &mut plan.files)?;
+        for path in plan
+            .files
+            .keys()
+            .filter(|path| !path.starts_with(".wcs/") && *path != "card.json")
+        {
+            if check(root, path, false)? {
+                return Err(InitError::new(
+                    "path_conflict",
+                    format!("新卡模板需要未占用的 {path}"),
+                ));
+            }
+        }
         template
     };
     plan.card_id = card["id"].as_str().map(str::to_string);
@@ -95,10 +108,17 @@ pub fn create(devkit: &Path, root: &Path, worldbook: bool) -> InitResult<Plan> {
                 }
             }
             card["files"] = json!({ "worldbook": { "directory": "worldbook", "include": ["config.json", "entries/*.md"] } });
-            card["rules"].as_array_mut().unwrap().push(json!({
+            let mut agent: Value = serde_json::from_slice(&plan.files["agents/narrator.json"])
+                .map_err(|e| InitError::new("invalid_devkit", e.to_string()))?;
+            agent["rules"].as_array_mut().unwrap().push(json!({
                 "id": "worldbook", "when": { "phase": "pre_send" },
                 "then": [{ "type": "exec", "sourceFile": "lib/worldbook/index.js", "args": { "worldbook": "worldbook" } }]
             }));
+            plan.files.insert(
+                "agents/narrator.json".into(),
+                serde_json::to_vec_pretty(&agent)
+                    .map_err(|e| InitError::new("invalid_devkit", e.to_string()))?,
+            );
         } else {
             plan.warnings.push("已有 card.json 未改写；请阅读 lib/worldbook/README.md，确认世界书配置、目录 scope 和 exec 接入。".into());
         }

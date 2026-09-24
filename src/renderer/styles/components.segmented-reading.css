@@ -1,11 +1,3 @@
-.chat-message.assistant .segmented-reading-bubble {
-  cursor: default;
-}
-
-.chat-message.assistant .segmented-reading-bubble.segmented-reading-ready {
-  cursor: pointer;
-}
-
 .segmented-reading-page {
   animation: segmented-reading-enter 280ms var(--md-motion-easing-emphasized-decelerate);
 }

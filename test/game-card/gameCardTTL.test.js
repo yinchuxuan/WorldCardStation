@@ -65,7 +65,7 @@ describe('TTL edge cases', () => {
   test('mixed ttl values in same batch', () => {
     const messages = [
       { role: 'system', content: 'a', ttl: -1 },
-      { role: 'system', content: 'b', ttl: 2 },
+      { role: 'system', content: 'b', ttl: 2, _meta: { source: 'game_card' } },
       { role: 'system', content: 'c', ttl: 1 },
       { role: 'system', content: 'd' },
       { role: 'system', content: 'e', ttl: 0 },
@@ -74,9 +74,14 @@ describe('TTL edge cases', () => {
     const result = decayTTL(messages);
     expect(result.messages.map((m) => m.content)).toEqual(['a', 'b', 'd', 'f']);
     expect(result.messages.find((m) => m.content === 'b').ttl).toBe(1);
-    expect(result.trace.summary.messages.decayed).toBe(1);
-    expect(result.trace.summary.messages.removed).toBe(2);
-    expect(result.trace.errors).toHaveLength(1);
+    expect(result.trace).toEqual({
+      phase: 'ttl_decay',
+      summary: { messages: { before: 6, after: 4, decayed: 1, removed: 2 }, state: { changedKeys: [] } },
+      errors: ['message ttl must be a number']
+    });
+    expect(result.messages[1]._meta).toEqual({ source: 'game_card' });
+    result.messages[1]._meta.source = 'changed';
+    expect(messages[1]).toEqual({ role: 'system', content: 'b', ttl: 2, _meta: { source: 'game_card' } });
   });
 
   test('ttl decay through engine after_response phase', () => {

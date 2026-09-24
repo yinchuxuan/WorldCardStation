@@ -1,0 +1,33 @@
+.agent-history-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 48px;
+  min-width: 0;
+  cursor: default;
+}
+
+.agent-history-arrow {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-shape-corner-small);
+  background: transparent;
+  cursor: pointer;
+}
+
+.agent-history-arrow:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
+}
+
+.agent-history-arrow:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.agent-history-arrow:disabled { opacity: 0.35; cursor: default; }

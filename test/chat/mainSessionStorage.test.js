@@ -2,6 +2,7 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import useChatPersistence from '../../src/renderer/chat/useChatPersistence.js';
 import useChatSession from '../../src/renderer/chat/useChatSession.js';
+import useMainView from '../../src/renderer/chat/useMainView.js';
 import useMainReading from '../../src/renderer/chat/useMainReading.js';
 import { createMainSession } from '../../src/renderer/gameCard/mainSession.js';
 jest.mock('@platform', () => ({ savePolicy: 'automatic', rendererServices: { sessions: {} }, gameCardPlatform: {} }));
@@ -9,7 +10,8 @@ const definition = { card: { id: 'test', version: '1' }, stateSchema: { count: {
   agents: { narrator: { definition: { model: 'default', rules: [] } } } };
 function fixture() {
   const runtime = createMainSession({ definition });
-  const saved = JSON.parse(JSON.stringify(runtime.exportSession()));
+  const saved = { version: 1, cardId: 'test', cardVersion: '1', started: true,
+    current: runtime.snapshot(), viewState: {}, retryBase: null };
   const record = { id: 'visible-round-1-1', role: 'assistant', content: 'first\n\nsecond', mode: 'segmented',
     units: [{ text: 'first', patches: [] }, { text: 'second', patches: ['{"count":1}'] }] };
   saved.sequence = 1;
@@ -19,6 +21,24 @@ function fixture() {
   saved.viewState = { reading: { messageId: record.id, segmentIndex: 0 } };
   return { runtime, saved };
 }
+test.each(['automatic', 'manual'])('%s never saves a stopped failure and does not persist its reading cursor', async policy => {
+  jest.requireMock('@platform').savePolicy = policy;
+  const { saved } = fixture();
+  const runtime = { failed: true, running: false, viewState: saved.viewState,
+    subscribe: () => () => {},
+    exportSession: jest.fn(() => { throw Error('failure cannot save'); }), setViewState: jest.fn() };
+  const repository = { saveHistory: jest.fn() };
+  const { result } = renderHook(() => useChatPersistence({ messages: saved.current.messages,
+    gameState: saved.current.state, isLoading: false, mainSession: runtime, repository }));
+  act(() => result.current.markLoaded());
+  await act(async () => { await result.current.flush(); });
+  await expect(result.current.save()).rejects.toThrow('失败现场');
+  expect(result.current.manual.blocked).toBe(true);
+  expect(repository.saveHistory).not.toHaveBeenCalled();
+  const reading = renderHook(() => useMainReading(runtime, saved.current, { current: null }, false));
+  expect(reading.result.current.page.text).toBe('second');
+  expect(runtime.setViewState).not.toHaveBeenCalled();
+});
 test.each(['automatic', 'manual'])('%s uses existing persistence, restores without init and protects damaged loads', async policy => {
   jest.requireMock('@platform').savePolicy = policy;
   const { runtime, saved } = fixture();
@@ -30,6 +50,7 @@ test.each(['automatic', 'manual'])('%s uses existing persistence, restores witho
   const { result } = renderHook(() => {
     const [messages, setMessages] = React.useState([]), [gameState, setGameState] = React.useState({});
     const [isLoading, setIsLoading] = React.useState(false);
+    useMainView({ mainSession: runtime, setMessages, setGameState, setIsLoading });
     const persistence = useChatPersistence({ messages, gameState, isLoading, mainSession: runtime, repository });
     const session = useChatSession({ mainSession: runtime, setMessages, setGameState, setRuntimeError: runtimeError,
       isLoading, setIsLoading, persistence, repository, typewriter });

@@ -5,6 +5,7 @@ import './sessionHarness.js';
 import './resourceLifecycleHarness.js';
 import './mainProgramHarness.js';
 import './mainReaderHarness.jsx';
+import './visualHarness.jsx';
 
 // A separate browser entry exercises real production module resolution.
 const operations = [rendererServices.window.onCloseRequested, rendererServices.trace.start,

@@ -43,25 +43,30 @@ describe('useChatPersistence', () => {
     ));
   });
 
-  test('hydrates and saves the current segmented reading position', async () => {
+  test('saves the runtime-owned reading position when its view changes', async () => {
     const repository = { saveHistory: jest.fn(async () => ({})) };
+    const saved = { current: { messages: [], state: { score: 2 } },
+      viewState: { reading: { messageId: 'reply', segmentIndex: 2 } } };
+    const mainSession = { exportSession: () => saved };
     const { result } = renderHook(() => useChatPersistence({
       messages: [{ id: 'reply', role: 'assistant', content: 'response' }],
-      gameState: { score: 2 }, isLoading: false, repository
+      gameState: { score: 2 }, isLoading: false, repository, mainSession
     }));
     act(() => result.current.hydrate({
       viewState: { reading: { messageId: 'reply', segmentIndex: 2 } }
     }));
-    expect(result.current.readingPosition).toEqual({ messageId: 'reply', segmentIndex: 2 });
-
-    act(() => result.current.setReadingPosition({ messageId: 'reply', segmentIndex: 3 }));
     act(() => result.current.markLoaded());
     await act(async () => { await result.current.save(); });
     expect(repository.saveHistory).toHaveBeenLastCalledWith(expect.any(Array),
+      expect.objectContaining({ viewState: { reading: { messageId: 'reply', segmentIndex: 2 } } }));
+
+    saved.viewState = { reading: { messageId: 'reply', segmentIndex: 3 } };
+    act(() => result.current.notifyViewChanged());
+    await waitFor(() => expect(repository.saveHistory).toHaveBeenLastCalledWith(expect.any(Array),
       expect.objectContaining({
         gameState: { score: 2 },
         viewState: { reading: { messageId: 'reply', segmentIndex: 3 } }
-      }));
+      })));
   });
 
   test('does not auto-save stale session data while a new session is loading', async () => {

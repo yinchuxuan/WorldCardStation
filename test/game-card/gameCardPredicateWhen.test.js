@@ -1,6 +1,22 @@
-const { matchesPredicate, matchesWhen } = require('../../src/shared/game-card/engine/predicate');
+const { compareNumber, matchesPredicate, matchesWhen } = require('../../src/shared/game-card/engine/predicate');
 
 describe('predicate and when condition edge cases', () => {
+  test('numeric comparisons reject unsupported operators and invalid conditions', () => {
+    expect([
+      compareNumber(2, 2), compareNumber(2, 3),
+      compareNumber(2, { gt: 1, gte: 2, lt: 3, lte: 2, eq: 2 }),
+      compareNumber(2, { gt: 2 }), compareNumber(2, { unknown: 2 }), compareNumber(2, null)
+    ]).toEqual([true, false, true, false, false, false]);
+  });
+
+  test('when requires a matching phase', () => {
+    expect([
+      matchesWhen(null, 'pre_send', []),
+      matchesWhen({ phase: 'after_response' }, 'pre_send', []),
+      matchesWhen({ phase: 'pre_send' }, 'pre_send', [])
+    ]).toEqual([false, false, true]);
+  });
+
   test('when phase AND length AND last uses AND semantic', () => {
     const messages = [{ role: 'user', content: 'hello' }];
     const when = {

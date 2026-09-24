@@ -3,7 +3,6 @@ const { render, fireEvent } = require('@testing-library/react');
 const DOMPurify = require('dompurify')(window);
 const { marked } = require('marked');
 const renderers = require('../../src/renderer/components/ChatPanelMessageRenderers').default;
-const MessageCollapseRenderer = require('../../src/renderer/components/MessageCollapseRenderer').default;
 
 function renderAssistant(msg, toggle = jest.fn()) {
   return render(renderers.renderAssistantMsg({ msg, idx: 0, isStreaming: false, tw: null, currentThinking: '', showStreamThinking: false,
@@ -45,10 +44,15 @@ describe('ChatPanel thinking renderer', () => {
   });
 
   test('keeps normal assistant messages non-clickable', () => {
-    const { container } = renderAssistant({ role: 'assistant', content: 'Plain answer' });
+    const toggle = jest.fn();
+    const { container } = renderAssistant({ role: 'assistant', content: 'Plain answer' }, toggle);
 
     const bubble = container.querySelector('.chat-message-bubble');
     expect(bubble.classList.contains('bubble-clickable')).toBe(false);
+    fireEvent.click(bubble);
+    expect(toggle).not.toHaveBeenCalled();
+    expect(bubble).toHaveTextContent('Plain answer');
+    expect(container.querySelector('.chat-thinking-text')).toBeNull();
   });
 
   test('streaming thinking reopens by clicking streamed content after hidden', () => {
@@ -75,7 +79,7 @@ describe('ChatPanel thinking renderer', () => {
         { role: 'assistant', content: 'answer', _thinking: 'reasoning' }
       ],
       isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
-      collapseRenderer: null, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      isHistoryExpanded: true, handleExpandHistory: jest.fn(),
       modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const { container } = render(result);
@@ -94,7 +98,7 @@ describe('ChatPanel thinking renderer', () => {
         { role: 'assistant', content: 'answer', _thinking: 'reasoning' }
       ],
       isLoading: false, tw: {}, renderMarkdown, renderAssistantMsg, renderRetryBtn: () => null,
-      collapseRenderer: MessageCollapseRenderer, isHistoryExpanded: true, handleExpandHistory: jest.fn(),
+      isHistoryExpanded: false, handleExpandHistory: jest.fn(),
       modelConfig: { apiUrl: 'http://api.example.com' } });
 
     const { container } = render(result);

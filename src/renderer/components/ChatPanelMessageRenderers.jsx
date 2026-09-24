@@ -1,8 +1,7 @@
 import React from 'react';
 import { dispatchChatInputCommand } from '../chat/chatInputCommands.js';
-import { resolveReadingSegments } from '../chat/segmentedReadingModel.js';
-import { findLastRoleIndex, selectVisibleMessages } from '../chat/messageSelection.js';
-import { MessageList } from './MessageList.jsx';
+import { selectVisibleMessages } from '../chat/messageSelection.js';
+import MessageCollapseRenderer from './MessageCollapseRenderer.jsx';
 import MessageContent from './MessageContent.jsx';
 
 const INPUT_ACTION_SELECTOR = [
@@ -94,37 +93,25 @@ const ChatPanelMessageRenderers = {
 
   renderAssistantMsg({ msg, idx, isStreaming, tw, currentThinking, showStreamThinking,
     setShowStreamThinking, toggleThinkingForMessage, marked, DOMPurify, highlightQuotes, display,
-    displayRevision, segmentedReading, depth }) {
+    displayRevision, depth }) {
     const thinking = isStreaming ? currentThinking : msg._thinking;
     const showThinking = isStreaming ? showStreamThinking : msg._thinkingVisible === true;
     const rawContent = isStreaming ? msg.slice(0, tw.displayedCount) : msg.content;
-    const segmented = segmentedReading?.enabled === true;
-    const segments = segmented
-      ? resolveReadingSegments(rawContent, display, segmentedReading.includeInputActions !== false, depth)
-      : [];
-    const pageIndex = Math.min(segmentedReading?.pageIndex || 0, Math.max(segments.length - 1, 0));
-    const hasNext = segmented && pageIndex < segments.length - 1;
-    const bubbleClass = segmented
-      ? `chat-message-bubble segmented-reading-bubble${hasNext ? ' segmented-reading-ready' : ''}`
-      : thinking ? 'chat-message-bubble bubble-clickable' : 'chat-message-bubble';
-    const handleClick = segmented ? undefined : thinking ? () => {
+    const bubbleClass = thinking ? 'chat-message-bubble bubble-clickable' : 'chat-message-bubble';
+    const handleClick = thinking ? () => {
       if (isStreaming) setShowStreamThinking(value => !value);
       else toggleThinkingForMessage(idx);
     } : undefined;
-    const content = segmented ? (segments[pageIndex] || '') : rawContent;
-    const contentNode = <MessageContent content={content} role="assistant" depth={depth}
-      display={segmented ? undefined : display} displayRevision={segmented ? undefined : displayRevision}
+    const contentNode = <MessageContent content={rawContent} role="assistant" depth={depth}
+      display={display} displayRevision={displayRevision}
       markdown={marked} sanitizer={DOMPurify} quoteHighlighter={highlightQuotes}
       onClick={handleInputActionClick} onKeyDown={handleInputActionKeyDown}
       onMouseDown={handleInputActionMouseDown} />;
-    return <div className={bubbleClass} data-gc-part="message-bubble" onClick={handleClick}
-      data-segment-count={segmented ? segments.length : undefined}>
-      {!segmented && thinking && showThinking ? <div className="chat-thinking-text" data-gc-part="message-thinking">
+    return <div className={bubbleClass} data-gc-part="message-bubble" onClick={handleClick}>
+      {thinking && showThinking ? <div className="chat-thinking-text" data-gc-part="message-thinking">
         {thinking}
       </div> : null}
-      {segmented
-        ? <div key={pageIndex} className="segmented-reading-page">{contentNode}</div>
-        : contentNode}
+      {contentNode}
     </div>;
   },
 
@@ -138,7 +125,7 @@ const ChatPanelMessageRenderers = {
   },
 
   renderMessages({ messages, isLoading, tw, renderMarkdown,
-    renderAssistantMsg, renderRetryBtn, collapseRenderer, isHistoryExpanded, handleExpandHistory,
+    renderAssistantMsg, renderRetryBtn, isHistoryExpanded, handleExpandHistory,
     modelConfig, editUserMessage }) {
     const visibleMessages = this.filterDialogueMessages(messages);
     if (visibleMessages.length === 0 && !isLoading) {
@@ -151,25 +138,9 @@ const ChatPanelMessageRenderers = {
     const renderUserMessage = (msg, renderIndex) => (
       this.renderEditableUserMsg({ msg, renderIndex, renderMarkdown, editUserMessage })
     );
-    renderUserMessage.usesMessageObject = true;
-    if (collapseRenderer) {
-      return collapseRenderer.render({ rawMessages: visibleMessages, isLoading, typewriter: tw, renderUserMessage,
-        renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: isHistoryExpanded,
-        onExpand: handleExpandHistory });
-    }
-    const lastUserIndex = findLastRoleIndex(visibleMessages, 'user');
-    const displayMessages = isLoading ? [...visibleMessages, {
-      id: tw.streamMessageId || `streaming-${visibleMessages.length}`,
-      role: 'assistant',
-      content: typeof tw.streamContent === 'string' ? tw.streamContent : '',
-      _renderIndex: visibleMessages.length,
-      _streaming: true
-    }] : visibleMessages;
-    return <div className="chat-messages-layer" data-gc-part="message-surface">
-      <MessageList messages={displayMessages} lastUserIndex={lastUserIndex}
-        renderUser={renderUserMessage} renderAssistant={renderAssistantMsg}
-        renderRetryButton={retrySource => renderRetryBtn(retrySource, isLoading)} />
-    </div>;
+    return MessageCollapseRenderer.render({ messages: visibleMessages, isLoading, typewriter: tw, renderUserMessage,
+      renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: isHistoryExpanded,
+      onExpand: handleExpandHistory });
   }
 };
 

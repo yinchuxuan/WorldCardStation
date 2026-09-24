@@ -12,10 +12,11 @@
 
 协议在两个边界校验：
 
-- Tauri 导入：先展开 `$import`，再使用嵌入的 shared schema 校验完整游戏卡。
-- shared runtime：执行 `init`、`pre_send`、`after_stream` 或 `after_response` 前校验。
+- Tauri 玩家导入：展开清单和 Agent 的 `$import`，校验新协议、文件和模型引用。
+- 双端加载：使用 `runtimeManifest` / `runtimeAgent` 视图校验定义，再读取主程序模块。
 
-两处返回同一组格式化错误。结构不合法时不会继续读取资源或执行规则。
+视图由唯一 Schema 的 definitions 与 x-runtime-overrides 生成，JS/Rust 使用相同约束。
+根部旧卡结构仅供底层格式/迁移检查，不是玩家可用协议。结构不合法时不执行卡片脚本。
 
 ## 跨文件语义
 
@@ -32,11 +33,11 @@ JSON Schema 不负责读取文件。schema 中带 `x-file: true` 的定义会由
 ## 版本
 
 <!-- devkit:omit:start -->
-新多 Agent 协议的内部定义与加载规则见 [新运行时清单](../architecture/game_runtime_manifest.md)。
-其 Schema 视图仍来自同一 JSON Schema 的 definitions；顶层旧播放器暂不接受新卡，不静默回退。
+维护者的加载契约见 [新运行时清单](../architecture/game_runtime_manifest.md)。
 <!-- devkit:omit:end -->
 
-协议版本位于 schema 顶层 `x-schema-version`，当前为 `1.10.0`。它与游戏卡顶层 `version` 无关：后者由卡作者标记内容版本，不参与平台协议选择。
+Schema 发布版本为 `x-schema-version: "2.0.0"`。玩家卡片使用 `formatVersion: "2"` 选择新协议；
+顶层 `version` 由卡作者标记内容版本，不参与平台协议选择。新语法见 [清单与主程序](./runtime.md)。
 
 协议版本遵循 SemVer：
 

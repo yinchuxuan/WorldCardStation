@@ -1,5 +1,13 @@
 {
+  "formatVersion": "2",
   "version": "1.0",
+  "main": "entry.js",
+  "agents": { "narrator": "narrator.json" },
+  "state": { "schema": {
+    "score": { "type": "number", "default": 1 },
+    "visual.scene": { "type": "string", "default": "test" },
+    "audio.bgm": { "type": "string", "default": "test" }
+  } },
   "id": "tauri-e2e-card",
   "name": "Tauri E2E Card",
   "audio": { "bgm": { "test": "audio/silence.wav" } },
@@ -7,24 +15,5 @@
     "background": { "test": "images/scene.jpg" },
     "portrait": { "test": { "normal": "images/scene.jpg" } }
   },
-  "ui": { "root": { "source": "ui/root.js" } },
-  "rules": [
-    {
-      "id": "initialize",
-      "when": { "phase": "init" },
-      "then": [
-        { "type": "insert", "role": "assistant", "content": "Tauri 测试开场" },
-        { "type": "state.set", "path": "visual.scene", "value": "test" },
-        { "type": "state.set", "path": "audio.bgm", "value": "test" },
-        { "type": "state.set", "path": "score", "value": 1 }
-      ]
-    },
-    {
-      "id": "show-portrait",
-      "when": { "phase": "pre_send" },
-      "then": [
-        { "type": "state.set", "path": "visual.portraits", "value": { "test": "normal" } }
-      ]
-    }
-  ]
+  "ui": { "root": { "source": "ui/root.js" } }
 }

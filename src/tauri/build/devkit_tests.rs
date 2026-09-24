@@ -40,7 +40,9 @@ fn devkit_is_deterministic_versioned_and_contains_only_offline_resources() {
     }
     for (name, bytes) in &bundle {
         assert!(
-            name.ends_with(".md") || name.ends_with(".js") || name == "templates/minimal/card.json"
+            name.ends_with(".md")
+                || name.ends_with(".js")
+                || name.starts_with("templates/minimal/") && name.ends_with(".json")
         );
         assert!(
             std::str::from_utf8(bytes).unwrap().lines().count() <= 200,
@@ -134,7 +136,14 @@ fn devkit_minimal_template_passes_the_real_platform_loader_and_validator() {
     crate::game_card_schema::validate_card(&card, &template).unwrap();
     card["id"] = Uuid::new_v4().to_string().into();
     crate::game_card_schema::validate_card(&card, &template).unwrap();
-    assert!(!card["rules"].as_array().unwrap().is_empty());
+    let definition =
+        crate::game_runtime_definition::load_card_definition(&template, &card, &[]).unwrap();
+    assert_eq!(card["formatVersion"], "2");
+    assert!(!definition["agents"]["narrator"]["definition"]["rules"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert!(template.join("main.js").is_file());
 }
 
 #[test]

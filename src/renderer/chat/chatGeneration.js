@@ -95,13 +95,7 @@ function handleGenerationAbort(options, preSend, baseMessages, streamResult = {}
       role: 'assistant',
       content,
       _thinking: options.tw.getThinkingContent(),
-      thinking: options.tw.getThinkingContent(),
-      _meta: {
-        statePatchPlayback: {
-          afterResponseApplied: false,
-          appliedPatchCount: streamResult.appliedPatchCount || 0
-        }
-      }
+      thinking: options.tw.getThinkingContent()
     });
     const base = preSend?.applied ? preSend.messages : baseMessages;
     options.observer?.('generation.abort', { status: 'partial_committed' }, [...(base || []), assistantMessage], streamResult.state);

@@ -8,13 +8,12 @@ function useGameCardPresentation() {
   const [bgmStopToken, setBgmStopToken] = React.useState(0);
   const targets = React.useRef({});
 
-  const request = React.useCallback((setter, card, state, extra = {}) => {
+  const request = React.useCallback((setter, card, state) => {
     sequenceRef.current += 1;
     setter({
       id: sequenceRef.current,
       card: card || null,
-      state: state || {},
-      ...extra
+      state: state || {}
     });
   }, []);
 

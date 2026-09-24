@@ -1,29 +1,29 @@
 import React from 'react';
 import { getStateValue } from '../../shared/game-card/state/statePaths.js';
+import useMainView from './useMainView.js';
 
-const EMPTY_VIEW = { state: {}, contexts: {}, records: [], reading: null };
 const KEYS = ['visual.scene', 'visual.portraits', 'visual.textPanel', 'audio.bgm'];
 
-function useMainPresentation({ mainSession, card, presentation, setGameState }) {
+function useMainPresentation({ mainSession, card, presentation, setGameState, setMessages, setIsLoading }) {
+  const current = useMainView({ mainSession, setGameState, setMessages, setIsLoading });
   const options = React.useRef();
-  options.current = { card, presentation, setGameState };
-  const [current, setCurrent] = React.useState({ session: mainSession, view: mainSession?.view() || EMPTY_VIEW });
+  options.current = { card, presentation };
   React.useEffect(() => {
     if (!mainSession) return undefined;
     let previous = mainSession.view().state, first = true, baseline;
     const sync = (view, detail) => {
-      const { card: activeCard, presentation: stage, setGameState: setState } = options.current;
-      const restoredTargets = () => Object.fromEntries(Object.entries(mainSession.viewState?.presentation || {})
+      const { card: activeCard, presentation: stage } = options.current;
+      const restoredTargets = saved => Object.fromEntries(Object.entries(saved || {})
         .map(([key, state]) => [key, state ? { card: activeCard, state } : null]));
-      setCurrent({ session: mainSession, view });
-      setState(view.state);
-      if (detail.type === 'restore' || detail.type === 'bind' && mainSession.viewState?.presentation) {
-        stage.restore(restoredTargets());
+      if (detail.type === 'restore' || detail.type === 'bind') {
+        const saved = mainSession.viewState?.presentation;
+        if (saved) stage.restore(restoredTargets(saved));
+        else stage.updateAll(activeCard, view.state);
         baseline = undefined;
       } else if (detail.type === 'loading') { stage.restore({}); baseline = undefined; }
       else if (detail.type === 'start') {
         if (!detail.retry) baseline = stage.capture();
-        else { baseline = restoredTargets(); stage.restore(baseline); }
+        else { baseline = restoredTargets(mainSession.viewState?.presentation); stage.restore(baseline); }
         first = true; stage.stopBgm();
       }
       else if (detail.type === 'rollback') { if (baseline) stage.restore(baseline); }
@@ -45,7 +45,7 @@ function useMainPresentation({ mainSession, card, presentation, setGameState }) 
         }
       }
       previous = view.state;
-      if (detail.type === 'complete') {
+      if (detail.type === 'complete' || detail.type === 'host-state') {
         mainSession.setViewState?.({ reading: null, presentation: Object.fromEntries(
           Object.entries(stage.capture()).map(([key, target]) => [key, target?.state || null])) });
       }
@@ -53,7 +53,7 @@ function useMainPresentation({ mainSession, card, presentation, setGameState }) 
     sync(mainSession.view(), { type: 'bind' });
     return mainSession.subscribe(sync);
   }, [mainSession, card]);
-  return current.session === mainSession ? current.view : mainSession?.view() || EMPTY_VIEW;
+  return current;
 }
 
 export default useMainPresentation;

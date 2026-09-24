@@ -32,7 +32,7 @@ test('real Worker runs Judge → JS → Narrator; subsequent rounds keep all con
   expect(session.snapshot().state.count).toBe(2);
   expect(seen[2].messages).toHaveLength(1);
   expect(session.snapshot().contexts.judge.initialized).toBe(true);
-  expect(session.snapshot().contexts.judge.messages.map(m => m.id)).toEqual(['msg-round-1-1', 'msg-round-2-1']);
+  expect(session.snapshot().contexts.judge.messages.map(m => m.id)).toEqual(['msg-round-2-1', 'msg-round-3-1']);
   await session.dispose();
 });
 
@@ -59,10 +59,10 @@ test('JS branch can skip narrator and still finish a complete round', async () =
   const result = await session.send('go');
   expect(seen).toEqual(['judge']);
   expect(result.state.count).toBe(1);
-  expect(result.contexts.narrator.initialized).toBe(false);
+  expect(result.contexts.narrator.initialized).toBe(true);
 });
 
-test('second Agent failure rolls back the entire round and retry re-executes both', async () => {
+test('second Agent failure retains the live scene; retry restores baseline and re-executes both', async () => {
   let fail = true;
   const ids = [];
   const session = testMainSession(factory, source, async ({ agentId }, cb) => {
@@ -70,9 +70,15 @@ test('second Agent failure rolls back the entire round and retry re-executes bot
     if (agentId === 'narrator' && fail) throw new Error('provider failed');
     cb.onToken(agentId === 'judge' ? '<state_patch>{"verdict":"yes"}</state_patch>' : 'ok');
   }, { files });
+  await session.start();
   const baseline = session.snapshot();
   await expect(session.send('hello')).rejects.toThrow('provider failed');
   expect(session.snapshot()).toEqual(baseline);
+  expect(session.view().state.verdict).toBe('yes');
+  expect(session.view().contexts.judge.messages).toHaveLength(1);
+  expect(session.failed).toBe(true);
+  expect(session.running).toBe(false);
+  expect(() => session.exportSession()).toThrow('不能保存');
   fail = false;
   await session.retry();
   expect(ids).toEqual(['judge', 'narrator', 'judge', 'narrator']);
@@ -82,7 +88,7 @@ test('second Agent failure rolls back the entire round and retry re-executes bot
   expect(session.snapshot().contexts.judge.messages).toHaveLength(1);
 });
 
-test('cancel rejects reentry, aborts transport, and fences late callbacks', async () => {
+test('cancel discards pending input, aborts transport, and fences late callbacks', async () => {
   const started = barrier(), gate = barrier();
   let request, callbacks;
   const session = testMainSession(factory, source, async (req, cb) => {
@@ -90,9 +96,11 @@ test('cancel rejects reentry, aborts transport, and fences late callbacks', asyn
   }, { files });
   const result = session.send('first');
   await started.promise;
-  await expect(session.send('second')).rejects.toThrow('another input');
+  const pending = session.send('second');
+  expect(session.pendingCount).toBe(1);
   await session.cancel();
   await expect(result).rejects.toThrow('cancelled');
+  await expect(pending).rejects.toMatchObject({ code: 'INPUT_DISCARDED' });
   expect(request.signal.aborted).toBe(true);
   const baseline = session.snapshot();
   callbacks.onToken('<state_patch>{"count":999}</state_patch>');
@@ -115,7 +123,7 @@ test('unfinished and swallowed failed Agent calls cannot commit a round', async 
   for (const body of ["ctx.agents.call('judge');", "try { await ctx.agents.call('judge').done(); } catch {}"] ) {
     const session = testMainSession(factory, `export async function onInput(ctx) { ${body} }`, async () => { throw new Error('no model'); });
     await expect(session.send('go')).rejects.toThrow();
-    expect(session.snapshot().contexts.judge.initialized).toBe(false);
+    expect(session.snapshot().contexts.judge.initialized).toBe(true);
   }
 });
 

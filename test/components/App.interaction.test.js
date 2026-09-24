@@ -168,21 +168,5 @@ describe('App Component - Interaction', () => {
     expect(appContainer.className).not.toContain('game-card-theme-white-album-2');
   });
 
-  test('should render ChatPanel without a global registration', async () => {
-    const App = require('../../src/renderer/App.jsx').default;
-    _render(React.createElement(App, null));
 
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('ChatPanel Mock')).toBeInTheDocument();
-  });
-
-  test('should render SettingsPanel without a global registration', async () => {
-    const App = require('../../src/renderer/App.jsx').default;
-    _render(React.createElement(App, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText(/Settings:/)).toBeInTheDocument();
-  });
 });

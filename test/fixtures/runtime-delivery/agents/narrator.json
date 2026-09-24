@@ -1,0 +1,8 @@
+{
+  "model": "default",
+  "rules": [
+    { "when": { "phase": "pre_send" }, "then": [{ "type": "insert", "role": "system", "content": "Narrator: {{state:verdict}}", "ttl": 1 }] },
+    { "$import": "rules/input.json" },
+    { "when": { "phase": "post_response" }, "then": [{ "type": "replace", "predicate": { "index": "last" }, "content": "最终历史" }] }
+  ]
+}

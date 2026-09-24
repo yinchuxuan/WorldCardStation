@@ -49,9 +49,18 @@ try {
   await writeFile(path.join(output, 'index.json'), before);
   // A separate catalog tests reading checkpoints without changing the normal fixture's semantics.
   await writeFile(path.join(source, 'card.json'), JSON.stringify({ ...card, display: { segmentedReading: true } }));
+  const main = await readFile(path.join(source, 'entry.js'), 'utf8');
+  await writeFile(path.join(source, 'entry.js'), main.replace("mode: 'continuous'", "mode: 'segmented'"));
   const readingArgs = [...args];
   readingArgs[readingArgs.indexOf('--output') + 1] = path.resolve('dist/web-reading-fixture/cards');
   execFileSync('cargo', readingArgs, { encoding: 'utf8' });
+  const runtimeArgs = [...args];
+  runtimeArgs[runtimeArgs.indexOf('--') + 1] = path.resolve('test/fixtures/runtime-delivery');
+  runtimeArgs[runtimeArgs.indexOf('--output') + 1] = path.resolve('dist/web-runtime-fixture/cards');
+  runtimeArgs.splice(runtimeArgs.indexOf('--cover'), 2);
+  execFileSync('cargo', runtimeArgs, { encoding: 'utf8' });
+  runtimeArgs[runtimeArgs.indexOf('--') + 1] = path.resolve('test/fixtures/runtime-startup');
+  execFileSync('cargo', runtimeArgs, { encoding: 'utf8' });
   console.log('Real Rust publisher round-trip, checksums and immutable repeat passed.');
 } finally {
   await rm(temporary, { recursive: true, force: true });

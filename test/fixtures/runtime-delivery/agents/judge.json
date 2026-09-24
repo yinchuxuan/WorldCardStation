@@ -1,0 +1,7 @@
+{
+  "model": "default",
+  "rules": [
+    { "when": { "phase": "init" }, "then": [{ "type": "insert", "role": "system", "content": "Judge: 更新 verdict。" }] },
+    { "$import": "rules/input.json" }
+  ]
+}

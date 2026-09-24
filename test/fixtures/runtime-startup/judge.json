@@ -1,0 +1,6 @@
+{
+  "model": "default", "rules": [{ "when": { "phase": "init" }, "then": [
+    { "type": "state.inc", "path": "count", "value": 1 },
+    { "type": "insert", "role": "system", "content": "judge-ready" }
+  ] }]
+}

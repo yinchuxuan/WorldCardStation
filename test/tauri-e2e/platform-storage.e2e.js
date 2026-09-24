@@ -2,13 +2,12 @@
 
 const { card } = require('./support/cards');
 const {
-  invoke, invokeError, refreshApp, saveHistory
+  invoke, invokeError, refreshApp, resetNoCard, saveHistory
 } = require('./support/tauri');
 
 describe('Tauri history and game card storage', () => {
   beforeEach(async () => {
-    await invoke('set_active_game_card', { id: null });
-    await saveHistory([]);
+    await resetNoCard();
   });
 
   it('should save, clear and load chat history through Tauri', async () => {
@@ -38,8 +37,8 @@ describe('Tauri history and game card storage', () => {
   it('should save, list, read, activate and clear game cards', async () => {
     const first = card('e2e_quest_card', 'E2E Quest');
     const second = card('e2e_second_card', 'Second Quest');
-    await invoke('e2e_seed_game_card', { card: first });
-    await invoke('e2e_seed_game_card', { card: second });
+    await require('./support/tauri').saveCard(first);
+    await require('./support/tauri').saveCard(second);
     const ids = (await invoke('get_game_cards')).map(item => item.id);
     expect(ids).toEqual(expect.arrayContaining([first.id, second.id]));
     expect(await invoke('get_game_card', { id: first.id })).toEqual(first);
@@ -51,7 +50,7 @@ describe('Tauri history and game card storage', () => {
 
   it('should show the active game card title after restart', async () => {
     const active = card('e2e_title_card', 'Title Quest');
-    await invoke('e2e_seed_game_card', { card: active });
+    await require('./support/tauri').saveCard(active);
     await invoke('set_active_game_card', { id: active.id });
     await refreshApp();
     await expect($('.game-card-title-name')).toHaveText('Title Quest');

@@ -50,7 +50,6 @@ describe('useChatGeneration request errors', () => {
       state: progressedState
     }));
     jest.spyOn(generationServices, 'sendChatRequest').mockRejectedValue(new Error('Network failed'));
-    jest.spyOn(generationServices, 'toGameCardApiMessages').mockImplementation(messages => messages);
     const { result, options } = renderRetryGeneration({
       messages: [{ role: 'assistant', content: 'old' }],
       gameState: baseState,

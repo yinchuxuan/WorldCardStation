@@ -25,7 +25,7 @@ describe('Tauri multi-turn game card pipeline', () => {
           content: 'Game rules apply', _meta: { visibility: 'llm_only' } },
         { type: 'replace', predicate: { role: 'user' }, content: '[Player] {{original_content}}' }
       ] },
-      { when: { phase: 'after_response' }, then: [
+      { when: { phase: 'post_response' }, then: [
         { type: 'insert', predicate: { index: 'last' }, anchor: 'after', role: 'system',
           content: 'round hint', ttl: 2, _meta: { visibility: 'llm_only' } }
       ] }
@@ -35,16 +35,16 @@ describe('Tauri multi-turn game card pipeline', () => {
     server.queueOpenAi('turn 2 response');
     await sendMessage('turn 1');
     await browser.waitUntil(() => server.requests.length === 1);
-    await waitForHistory(value => value.messages.some(item => item.content === 'round hint'));
+    await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.some(item => item.content === 'round hint'));
     await sendMessage('turn 2');
     await browser.waitUntil(() => server.requests.length === 2);
     expect(server.requests[0].messages.some(item => item.content === 'Game rules apply')).toBe(true);
     expect(server.requests[0].messages.some(item => item.content === '[Player] turn 1')).toBe(true);
     expect(server.requests[1].messages.some(item => item.content === 'round hint')).toBe(true);
     const saved = await waitForHistory(value => (
-      value.messages.filter(item => item.content === 'round hint').length === 2
+      value.runtimeSession.current.contexts.narrator.messages.filter(item => item.content === 'round hint').length === 2
     ));
-    expect(saved.messages.find(item => item.content === 'round hint').ttl).toBe(1);
+    expect(saved.runtimeSession.current.contexts.narrator.messages.find(item => item.content === 'round hint').ttl).toBe(1);
   });
 
   it('should extract Anthropic system messages during multi-turn setup', async () => {
@@ -89,7 +89,7 @@ describe('Tauri multi-turn game card pipeline', () => {
 
   it('should expire a TTL message after its configured turns', async () => {
     await activateCard(card('multi-ttl', 'TTL Expire', [{
-      when: { phase: 'after_response', length: 2 }, then: [{
+      when: { phase: 'post_response', length: 2 }, then: [{
         type: 'insert', predicate: { index: 'last' }, anchor: 'after', role: 'system',
         content: 'temp', ttl: 3, _meta: { visibility: 'llm_only' }
       }]
@@ -99,11 +99,11 @@ describe('Tauri multi-turn game card pipeline', () => {
       await sendMessage(`t${turn}`);
       await browser.waitUntil(() => server.requests.length === turn);
       const saved = await waitForHistory(value => {
-        const temp = value.messages.find(item => item.content === 'temp');
-        return value.messages.filter(item => item.role === 'assistant').length === turn
+        const temp = value.runtimeSession.current.contexts.narrator.messages.find(item => item.content === 'temp');
+        return value.runtimeSession.current.contexts.narrator.messages.filter(item => item.role === 'assistant').length === turn
           && (turn < 4 ? temp?.ttl === 4 - turn : !temp);
       });
-      const temp = saved.messages.find(item => item.content === 'temp');
+      const temp = saved.runtimeSession.current.contexts.narrator.messages.find(item => item.content === 'temp');
       if (turn < 4) expect(temp.ttl).toBe(4 - turn);
       else expect(temp).toBeUndefined();
     }
@@ -113,7 +113,7 @@ describe('Tauri multi-turn game card pipeline', () => {
     await activateCard(card('multi-state', 'State Persist', [
       { when: { phase: 'pre_send' }, then: [{ type: 'exec',
         source: 'state.score = (state.score || 0) + 10; return { messages, state };' }] },
-      { when: { phase: 'after_response' }, then: [{ type: 'exec',
+      { when: { phase: 'post_response' }, then: [{ type: 'exec',
         source: 'state.score += 5; return { messages, state };' }] }
     ]));
     server.queueOpenAi('ok'); server.queueOpenAi('ok');

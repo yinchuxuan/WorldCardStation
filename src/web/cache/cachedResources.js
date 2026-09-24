@@ -2,6 +2,8 @@ import { fileUrl, safeResourcePath } from './releaseIdentity.js';
 import { validateGameCard } from '../../shared/game-card/schema/validateGameCard.js';
 import { collectSchemaFileReferences } from '../../shared/game-card/schema/schemaFileReferences.js';
 import { loadCachedCardResources } from '../../renderer/gameCard/gameCardRuntimeCache.js';
+import { loadRuntimeDefinition } from '../../shared/game-card/runtime/loadDefinition.js';
+import { loadMainProgram } from '../../renderer/gameCard/mainProgram.js';
 
 export async function createCachedContext(cache, manifest, reference, urls = URL) {
   const files = new Map(manifest.files.map(file => [file.path, file]));
@@ -52,6 +54,23 @@ export async function createCachedContext(cache, manifest, reference, urls = URL
   function dispose() { disposed = true; objectUrls.forEach(url => urls.revokeObjectURL(url)); objectUrls.clear(); }
   try {
     card = await (await response('card.json')).json();
+    if (card.formatVersion === '2') {
+      const definition = await loadRuntimeDefinition({
+        readText: async path => (await response(path)).text(),
+        stat: async path => {
+          if (files.has(path)) return 'file';
+          if ([...files.keys()].some(file => file.startsWith(`${path}/`))) return 'directory';
+          // The release lists files only. An authorized empty scope is a virtual directory.
+          if (Object.values(card.files || {}).some(scope => scope?.directory === path)) return 'directory';
+          throw new Error(`清单缺少已声明资源：${path}`);
+        }
+      });
+      card = definition.card;
+      if (card.id !== reference.cardId || card.version !== reference.cardVersion) throw new Error('游戏卡与发布身份不一致');
+      const preloaded = await loadMainProgram(definition, path => resources.readText(card.id, path));
+      alive();
+      return { card, reference, resources, preloaded, dispose };
+    }
     const validation = validateGameCard(card);
     if (!validation.valid) throw new Error(`游戏卡配置无效：${validation.errors.join('; ')}`);
     if (card.id !== reference.cardId || card.version !== reference.cardVersion) throw new Error('游戏卡与发布身份不一致');

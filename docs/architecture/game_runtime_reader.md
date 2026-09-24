@@ -24,8 +24,11 @@ next() 的完成、调用 done() 的完成和整个输入轮的完成仍为三�
 
 ## 展示与记录
 
-ctx.present(reader) 驱动当前轮创建的 reader，同一时间只能有一个 present，同一 reader 不重复 present。
-segmented 显示一个正文单元后等待玩家确认，包括最后一段；continuous 自动消费到 EOF。
+ctx.present(reader, { waitForAdvance = true } = {}) 驱动本轮 reader，同一时间只能有一个 present，同一 reader 不重复 present。
+segmented 默认每段等待玩家确认，包括最后一段。waitForAdvance 可为布尔值，或接收该段 text、同步返回布尔值的卡内函数。
+该 text 已过滤控制标签，但尚未经过 display rules；false 表示显示本段后不等待确认，继续读取。continuous 始终自动消费。
+present 仅在来源 EOF 且全部必要阅读确认完成后返回；不会遇到选项标记就提前截断来源。平台不识别卡片专属的选项标签。
+返回只结束消费，不清空已展示画面，也不代表 main 返回；无确认的交互页可以保留并接受下一次输入。
 平台确认只解除 Worker 的等待，不在 renderer 中执行脚本或重新 apply patch。
 隐藏 Agent 不自动创建正文、占据阅读页或执行阅读 patch。
 
@@ -35,7 +38,9 @@ content 是已展示正文，不含控制标签；patches 是已提交记录，�
 仅 patch 的记录允许 content 为空，但不产生消息气泡。字符串来源无身份去重，main 不应对同一正文重复创建有副作用的 reader。
 
 平台复用现有正文样式、Markdown 安全渲染和输入 action；分段点击/Enter 推进沿用交互目标过滤。
+输入框不受运行锁或阅读等待控制；卡片通过自己的 UI/CSS 决定何时显示，主程序运行时提交的输入排队等待。标题栏不提供通用停止按钮；底层取消机制供重试和生命周期清理使用。运行锁不代表模型正在思考。
 reading.previous/next/latest 回看已展示单元只移动 UI 游标，不重新解析、不恢复旧变量或重新播放演出。
+卡内 UI 的 `ui.pendingInput` 为本轮等待首次 present 非空正文的玩家输入；正文展示、整轮结束/失败/取消后为 null，开场和读档也为 null。它是临时 UI 信息，不属于 State 或存档；旧正文、Agent 隐藏输出及纯变量 patch 不会清除它。
 
 ## 演出与失败
 
@@ -45,9 +50,9 @@ State 的演出字段变化按新值发布；阅读 patch 显式 set 同一 BGM 
 规则的显式演出动作沿用已有控制器语义。请求密钥和资源 URL 不进入主程序 Worker。
 
 输入开始保留完整 State、全部 Agent 上下文/初始化标记、可见记录、阅读位置和实际已发布演出目标。
-失败/取消恢复这些基准，终止 Worker、模型和阅读等待；迟到回调无权发布。
+失败时终止 Worker、模型和阅读等待，清除 pendingInput，但保留已展示正文、已提交变量和演出现场；迟到回调无权发布。retry 才恢复轮前基准。
 即使 main 尚在等待玩家阅读，call.done() 失败也立即终止该轮；不在底层透明重生成。
-snapshot() 只包含完整结果；view() 的临时结果只供显示，不能用于存档。
+snapshot() 只包含完整结果；view() 包括未完成或失败现场，只供显示。失败后禁止自动/手动保存，不把旧 snapshot 冒充当前现场保存。
 
 ## Agent 历史
 
@@ -58,7 +63,7 @@ snapshot() 只包含完整结果；view() 的临时结果只供显示，不能�
 
 ## 交付边界与验证
 
-此能力通过内部 mainSession 注入共用 ChatRuntime，普通玩家新协议入口仍关闭；不写入旧格式存档。
+此能力由 mainSession 接入双端共用 ChatRuntime；新协议保存 runtimeSession，不写入旧卡格式存档。
 完整数据与阅读/演出恢复见 [多 Agent Session](./game_runtime_sessions.md)，不持久化 Reader、Promise 或 JS 栈。
 reader 单元测试覆盖双来源/双模式、跨 chunk、提交时点和错误；真实 Worker 集成验证后处理差异、隐藏输出与整轮回滚。
 共享 React 测试验证历史隔离及演出恢复；浏览器 main-reader 用例通过本地 SSE、真实资源缓存和播放器覆盖逐段演出及失败恢复。

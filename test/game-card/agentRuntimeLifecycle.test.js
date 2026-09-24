@@ -13,6 +13,7 @@ test('raw output arrives before done and remains separate from async post_respon
     enteredPost.resolve(); await post.promise;
     return { messages: messages.map(msg => ({ ...msg, content: 'rewritten' })), state, trace: { applied: true } };
   } } });
+  await app.initialize();
   const call = app.agents.call('a');
   const reader = call.response[Symbol.asyncIterator]();
   await token.promise;
@@ -36,13 +37,14 @@ test('cancellation settles uncooperative transport and fences late callbacks', a
       oldCallbacks = callbacks;
       callbacks.onToken('partial'); entered.resolve(); await release.promise;
     });
+  await app.initialize();
   const first = app.agents.call('a');
   await entered.promise;
   expect(() => app.state.set('count', 8)).toThrow('during an Agent call');
   app.cancel();
   await expect(first.done()).rejects.toThrow('cancelled');
   await expect(consume(first.response)).rejects.toThrow('cancelled');
-  expect(app.state.get('count')).toBe(0);
+  expect(app.state.get('count')).toBe(1);
   expect(app.agents.messages('a')).toEqual([]);
   await app.agents.call('b').done();
   expect(() => oldCallbacks.onToken('late')).toThrow('cancelled');
@@ -65,8 +67,10 @@ test('cancel during exec ignores result and retry runs init again', async () => 
       return { messages, state: { ...state, count: attempts }, trace: { applied: true } };
     } }
   });
-  const first = app.agents.call('a'); await entered.promise;
-  app.cancel(); await expect(first.done()).rejects.toThrow('cancelled');
+  const first = app.initialize(); await entered.promise;
+  app.cancel();
+  await expect(first).rejects.toThrow('cancelled');
+  await app.initialize();
   await app.agents.call('a').done();
   release.resolve(); await Promise.resolve(); await Promise.resolve();
   expect(app.state.get('count')).toBe(2);
@@ -78,6 +82,7 @@ test('transport errors preserve previous successful Agent state and histories', 
     if (agentId === 'b') throw new Error('offline');
     cb.onToken('<state_patch>{"count":3}</state_patch>');
   });
+  await app.initialize();
   await app.agents.call('a').done();
   const call = app.agents.call('b');
   await expect(call.done()).rejects.toThrow('Agent b: offline');

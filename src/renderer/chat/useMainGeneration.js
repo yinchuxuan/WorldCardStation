@@ -1,59 +1,60 @@
 import React from 'react';
-import { createChatMessage } from './messageIds.js';
 
-// Internal injection point until the V2 import/player entry is delivered.
-function useMainGeneration({ mainSession, setMessages, setGameState, setIsLoading, setRequestError, canMutate }) {
+// Acceptance clears the draft immediately; completion is observed independently.
+function useMainGeneration({ mainSession, setRequestError, canMutate, onResponseValidationWarning }) {
   const current = React.useRef(mainSession);
-  const history = React.useRef({ messages: [], baseline: [] });
+  const operation = React.useRef(0);
+  const warningCallback = React.useRef(onResponseValidationWarning);
+  warningCallback.current = onResponseValidationWarning;
   React.useEffect(() => {
     current.current = mainSession;
-    history.current = { messages: [], baseline: [] };
-    if (mainSession) { setIsLoading(false); setMessages(mainSession.snapshot().messages || mainSession.snapshot().records || []); }
+    const seen = new Set();
+    let violations = [];
+    if (mainSession) warningCallback.current?.(null);
+    const sync = (view, detail = {}) => {
+      if (current.current !== mainSession) return;
+      if (['start', 'loading', 'restore'].includes(detail.type)) {
+        seen.clear(); violations = [];
+        warningCallback.current?.(null);
+      } else if (detail.type === 'agent-response' && detail.warnings?.length) {
+        const key = `${detail.agentId}:${detail.messageId}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        violations = [...violations, ...detail.warnings.map(item => ({ ...item, agentId: detail.agentId }))];
+        warningCallback.current?.({ violations, retryExhausted: false });
+      }
+    };
+    const unsubscribe = mainSession?.subscribe?.(sync);
     return () => {
       current.current = null;
-      void mainSession?.dispose();
+      unsubscribe?.();
     };
-  }, [mainSession, setIsLoading, setMessages]);
-  async function run(input, retry) {
-    if (!mainSession || current.current !== mainSession || mainSession.running || mainSession.ready === false) return false;
-    if (canMutate?.() === false) return false;
-    if (!retry && !String(input || '').trim()) return false;
-    if (input !== undefined) history.current.input = input;
-    const base = retry ? history.current.baseline : history.current.messages;
-    if (!retry) history.current.baseline = base;
-    setIsLoading(true);
-    setRequestError?.(null);
-    const content = input ?? history.current.input;
-    const user = createChatMessage({ role: 'user', content });
-    const existing = new Set(base.filter(msg => msg.role === 'assistant').map(msg => msg.id));
-    const visible = records => [...base, user, ...(records || []).filter(record => !existing.has(record.id) && record.content)];
-    const unsubscribe = mainSession.subscribe?.((view, detail) => {
-      if (current.current === mainSession && detail.type !== 'rollback') setMessages(view.messages || visible(view.records));
-    });
-    try {
-      const result = await (retry ? mainSession.retry(input) : mainSession.send(input));
-      if (current.current !== mainSession) return false;
-      history.current = { messages: result.messages || visible(result.records), baseline: base, input: content };
-      setMessages(history.current.messages);
-      setGameState(result.state);
-      return true;
-    } catch (error) {
-      if (current.current === mainSession) {
-        history.current.messages = base;
-        setMessages(mainSession.snapshot().messages || base);
-        setGameState(mainSession.snapshot().state);
+  }, [mainSession]);
+  function allowed() {
+    return mainSession && current.current === mainSession && mainSession.ready !== false && canMutate?.() !== false;
+  }
+  async function observe(promise, token) {
+    try { await promise; return true; }
+    catch (error) {
+      if (current.current === mainSession && token === operation.current && error.code !== 'INPUT_DISCARDED') {
         setRequestError?.(`本轮未完成：${error.message}`);
       }
       return false;
-    } finally {
-      unsubscribe?.();
-      if (current.current === mainSession) setIsLoading(false);
     }
   }
   return {
-    send: input => run(input, false),
-    retry: input => run(input, true),
-    stop: () => mainSession?.cancel()
+    send(input) {
+      if (!allowed() || mainSession.failed || mainSession.queuePaused || !String(input || '').trim()) return false;
+      setRequestError?.(null);
+      void observe(mainSession.send(input), operation.current);
+      return true;
+    },
+    retry(input) {
+      if (!allowed()) return false;
+      setRequestError?.(null);
+      return observe(mainSession.retry(input), ++operation.current);
+    },
+    stop() { operation.current += 1; return mainSession?.cancel(); }
   };
 }
 

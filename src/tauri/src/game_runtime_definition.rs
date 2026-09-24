@@ -1,4 +1,4 @@
-//! Internal protocol loading boundary. Not exposed through a player command yet.
+//! Shared native import, publication and static-check loading boundary.
 use crate::game_card_paths::{existing_directory, existing_file};
 use crate::game_card_references::collect_schema_references;
 use crate::game_card_schema::{
@@ -10,9 +10,34 @@ use std::{fs, path::Path};
 
 const SCHEMA: &str = include_str!("../../shared/game-card/schema/game-card.schema.json");
 #[path = "game_runtime_definition_tests.rs"]
+#[cfg(test)]
 mod tests;
 
-fn definition_schema(kind: &str) -> Value {
+pub(crate) fn agent_files(
+    root: &Path,
+    card: &Value,
+) -> crate::game_card_error::CardResult<Vec<String>> {
+    let schema = definition_schema("runtimeAgent");
+    let mut files = Vec::new();
+    for file in card["agents"].as_object().unwrap().values() {
+        let expanded =
+            crate::game_card_imports::read_json_with_sources(root, file.as_str().unwrap())?;
+        files.extend(
+            expanded
+                .sources
+                .values()
+                .map(|location| location.file.clone()),
+        );
+        files.extend(
+            collect_schema_references(&expanded.card, &schema)
+                .into_iter()
+                .map(|item| item.file),
+        );
+    }
+    Ok(files)
+}
+
+pub(crate) fn definition_schema(kind: &str) -> Value {
     let mut source: Value = serde_json::from_str(SCHEMA).unwrap();
     let overrides = source["x-runtime-overrides"].as_array().unwrap().clone();
     for item in overrides {
@@ -87,17 +112,27 @@ fn agent_references(rules: &Value, agents: &Value, file: &str, path: &str) -> Re
 }
 
 pub(crate) fn load_definition(root: &Path, model_ids: &[String]) -> Result<Value, String> {
-    let card = read_json(root, "card.json")?;
+    let card = crate::game_card_imports::read_card(root).map_err(|e| e.error)?;
+    load_card_definition(root, &card, model_ids)
+}
+
+pub(crate) fn load_card_definition(
+    root: &Path,
+    card: &Value,
+    model_ids: &[String],
+) -> Result<Value, String> {
     if card["formatVersion"] != "2" {
         return Err(
             "card.json: formatVersion: unsupported protocol; migrate to formatVersion \"2\"".into(),
         );
     }
-    validate(root, &card, "runtimeManifest", "card.json")?;
+    validate(root, card, "runtimeManifest", "card.json")?;
     let mut agents = serde_json::Map::new();
     for (id, file) in card["agents"].as_object().unwrap() {
         let file = file.as_str().unwrap();
-        let definition = read_json(root, file)?;
+        let definition = crate::game_card_imports::read_json_with_sources(root, file)
+            .map_err(|e| e.error)?
+            .card;
         validate(root, &definition, "runtimeAgent", file)?;
         let model = definition["model"].as_str().unwrap();
         if model != "default" && !model_ids.iter().any(|id| id == model) {

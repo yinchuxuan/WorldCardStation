@@ -8,6 +8,7 @@ import { imageReady } from './imageReady.js';
 import { createHostedRepository } from './cardRepository.js';
 import { selectBackgroundImage } from './selectBackground.js';
 import { createWebSessions } from './sessions.js';
+import { requirePlayerProtocol } from '../shared/game-card/runtime/playerProtocol.js';
 
 function unavailable(operation) {
   return () => {
@@ -31,7 +32,11 @@ const rendererServices = Object.freeze({
   cards: { ...unavailableService('cards', [
     'importFile',
     'stageTavernImport', 'commitTavernImport', 'cancelTavernImport'
-  ]), ...cards },
+  ]), ...cards, async setActive(id, options) {
+    const card = await cards.setActive(id, options);
+    try { return requirePlayerProtocol(card); }
+    catch (error) { await cards.setActive(null); throw error; }
+  } },
   development: unavailableService('development', ['getInstructions']),
   trace: unavailableService('trace', ['start', 'append', 'close']),
   window: {
@@ -49,7 +54,7 @@ const gameCardPlatform = Object.freeze({
   resources: { ...hostedCards.resources,
     getImageUrl: (...args) => imageReady(hostedCards.resources.getImageUrl(...args))
   },
-  repository: { getActiveCard: async () => { await cards.restore(); return hostedCards.repository.getActiveCard(); } },
+  repository: { getActiveCard: async () => { await cards.restore(); return requirePlayerProtocol(await hostedCards.repository.getActiveCard()); } },
   scriptExecutor: controlledScriptExecutor
 });
 const { capabilities, savePolicy, cardPolicy } = webPolicy;

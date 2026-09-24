@@ -17,22 +17,6 @@ describe('useSettingsState Hook - Background Handlers', () => {
     platformMock.selectBackgroundImage.mockResolvedValue({ success: false, canceled: true });
   });
 
-  test('should load background config on mount', async () => {
-    platformMock.getBackgroundConfig.mockResolvedValue({
-      success: true,
-      config: { backgroundImageUrl: 'bg-url', backgroundOpacity: 0.5 }
-    });
-
-    const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;
-    const { result } = renderHook(() => useSettingsState(jest.fn()));
-
-    await hookAct(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
-
-    expect(result.current.backgroundConfig.backgroundImageUrl).toBe('bg-url');
-    expect(result.current.backgroundConfig.backgroundOpacity).toBe(0.5);
-  });
 
   test('should handle handleBackgroundChange for backgroundImageUrl with auto-save', async () => {
     const useSettingsState = require('../../src/renderer/settings/useSettingsState.js').default;

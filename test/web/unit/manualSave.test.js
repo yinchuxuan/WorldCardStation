@@ -9,16 +9,16 @@ function fixture(saveHistory = jest.fn(async () => ({ saveTarget: { id: 'a', rev
   act(() => { hook.result.current.hydrate({ messages: [], saveTarget: { id: 'a', revision: 0 } }); hook.result.current.markLoaded(); });
   return { ...hook, repository };
 }
-test('dirty tracks messages, state, reading and retry base; saving binds the complete snapshot', async () => {
+test('dirty tracks messages, state and retry base; saving binds the complete snapshot', async () => {
   const { result, rerender, repository } = fixture();
   expect(result.current.manual.dirty).toBe(false);
   rerender({ messages: [{ id: 'm', content: 'hello' }], gameState: { score: 2 }, isLoading: false });
   act(() => { result.current.setRetryBase([{ content: 'before' }], { score: 1 });
-    result.current.setReadingPosition({ messageId: 'm', segmentIndex: 1 }); });
+    result.current.notifyViewChanged(); });
   expect(result.current.manual.dirty).toBe(true);
   await act(() => result.current.save());
   expect(repository.saveHistory).toHaveBeenCalledWith([{ id: 'm', content: 'hello' }], expect.objectContaining({
-    asNew: true, gameState: { score: 2 }, retryBaseState: { score: 1 }, viewState: { reading: { messageId: 'm', segmentIndex: 1 } }
+    asNew: true, gameState: { score: 2 }, retryBaseState: { score: 1 }, viewState: {}
   }));
   expect(result.current.manual.dirty).toBe(false);
 });
@@ -69,4 +69,17 @@ test('leaving is blocked while state operations are running', async () => {
   act(() => { end = result.current.manual.beginOperation(); });
   await expect(result.current.manual.requestLeave()).resolves.toBe(false);
   act(() => end());
+});
+
+test('startup may queue input after hydration without enabling saves or carrying permission across loads', () => {
+  const { result, rerender } = fixture();
+  act(() => result.current.reset());
+  expect(result.current.manual.canQueueInput()).toBe(false);
+  act(() => result.current.hydrate({ messages: [], saveTarget: { id: 'b', revision: 0 } }));
+  rerender({ messages: [], gameState: {}, isLoading: true });
+  expect(result.current.manual.canQueueInput()).toBe(true);
+  expect(result.current.manual.canMutate()).toBe(false);
+  expect(result.current.manual.blocked).toBe(true);
+  act(() => result.current.reset());
+  expect(result.current.manual.canQueueInput()).toBe(false);
 });

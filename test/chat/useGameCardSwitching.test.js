@@ -39,10 +39,10 @@ describe('useGameCardSwitching', () => {
       'clear-error',
       'runtime:no-card',
       'stop-bgm',
-      'clear-visual',
-      'reload'
+      'clear-visual'
     ]);
     expect(context.presentation.updateAll).toHaveBeenCalledWith(null, {});
+    expect(context.session.reload).not.toHaveBeenCalled();
   });
 
   test('uses the same session and presentation transition after import', async () => {
@@ -57,8 +57,7 @@ describe('useGameCardSwitching', () => {
       'clear-error',
       'runtime:new-card',
       'stop-bgm',
-      'clear-visual',
-      'reload'
+      'clear-visual'
     ]);
   });
 
@@ -84,8 +83,7 @@ describe('useGameCardSwitching', () => {
       'clear-error',
       'runtime:no-card',
       'stop-bgm',
-      'clear-visual',
-      'reload'
+      'clear-visual'
     ]);
   });
 

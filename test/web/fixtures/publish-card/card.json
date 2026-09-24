@@ -1,4 +1,7 @@
 {
+  "formatVersion": "2",
+  "main": "entry.js",
+  "agents": { "narrator": "agents/narrator.json" },
   "id": "web-demo",
   "version": "1.0",
   "name": "静态发布测试卡",
@@ -10,12 +13,5 @@
     "portrait": { "guide": { "smile": "images/cover.png" } } },
   "ui": { "root": { "source": "ui/root.jsx" }, "stylesheet": "ui/style.css",
     "scripts": { "pick": "scripts/main.js" } },
-  "rules": [{ "$import": "rules/init.json" },
-    { "when": { "phase": "pre_send" }, "then": [{ "type": "state.inc", "path": "count", "value": 1 }] },
-    { "when": { "phase": "after_response" }, "then": [
-      { "type": "state.set", "path": "visual.scene", "value": "outside" },
-      { "type": "state.set", "path": "visual.portraits", "value": { "guide": "smile" } },
-      { "type": "visual.updateBackground" }, { "type": "audio.updateBgm" }
-    ] }
-  ]
+  "presentation": { "autoUpdateOnFirstToken": true }
 }

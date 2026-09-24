@@ -1,0 +1,10 @@
+{
+  "model": "default",
+  "rules": [{
+    "when": { "phase": "pre_send" },
+    "then": [
+      { "type": "insert", "role": "user", "content": "{{state:input}}" },
+      { "type": "state.set", "path": "visual.portraits", "value": { "test": "normal" } }
+    ]
+  }]
+}

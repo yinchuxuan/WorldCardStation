@@ -1,6 +1,12 @@
 import { extractExecIncludes, normalizeCardPath, resolveExecIncludePath, resolveExecSource } from '../execSource.js';
 import { assertBrowserExecSource, compileExecSource } from '../../../shared/game-card/exec/execCompilation.js';
 import { createUiRootFactory } from '../../../shared/game-card/exec/uiCompilation.js';
+import { parse } from 'acorn';
+import { inspectScriptAst } from '../../../shared/game-card/runtime/mainModules.js';
+
+function checkRuntimeSyntax(source, ctx) {
+  if (ctx.card.formatVersion === '2') inspectScriptAst(parse(`function run(ctx) { ${source} }`, { ecmaVersion: 'latest' }));
+}
 
 async function loadScript(file, files, stack, ctx, origin) {
   const location = { file, pointer: '', reference: origin };
@@ -12,6 +18,7 @@ async function loadScript(file, files, stack, ctx, origin) {
   files[file] = source;
   await ctx.check('exec_syntax', location, () => {
     assertBrowserExecSource(source);
+    checkRuntimeSyntax(source, ctx);
     compileExecSource(source, true); // Compile only: never call the returned function.
   });
   for (const include of extractExecIncludes(source)) {
@@ -25,6 +32,7 @@ async function checkExec(action, location, ctx) {
   if (typeof action.source === 'string') {
     await ctx.check('exec_syntax', location, () => {
       assertBrowserExecSource(action.source);
+      checkRuntimeSyntax(action.source, ctx);
       compileExecSource(action.source, false);
     });
     return;
@@ -36,6 +44,7 @@ async function checkExec(action, location, ctx) {
   await ctx.check('exec_syntax', { file: action.sourceFile, pointer: '', reference: location }, () => {
     const source = resolveExecSource(action, { fileContents: files });
     assertBrowserExecSource(source);
+    checkRuntimeSyntax(source, ctx);
     compileExecSource(source, true);
   });
 }

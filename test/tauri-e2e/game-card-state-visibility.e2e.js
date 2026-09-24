@@ -28,13 +28,15 @@ describe('Tauri state patch and visibility', () => {
   });
 
   it('should apply state_patch and retry from the saved snapshot', async () => {
-    await activateCard(card('state-patch-card', 'State Patch'));
+    await activateCard(card('state-patch-card', 'State Patch', [], {
+      state: { schema: { events: { type: 'array', default: [] } } }
+    }));
     server.queueOpenAi(patchResponse('first'));
     server.queueOpenAi(patchResponse('retry'));
     await sendMessage('record event');
     let history = await waitForHistory(value => value.gameState.events?.[0] === 'first');
-    expect(history.retryBaseState).toEqual({});
-    expect(history.messages.map(item => item.content)).toEqual([
+    expect(history.runtimeSession.retryBase.snapshot.state).toEqual({ events: [] });
+    expect(history.runtimeSession.current.contexts.narrator.messages.map(item => item.content)).toEqual([
       'record event', patchResponse('first')
     ]);
 
@@ -44,7 +46,7 @@ describe('Tauri state patch and visibility', () => {
     expect(server.requests[1].messages).toEqual([
       { role: 'user', content: 'record event' }
     ]);
-    expect(history.messages.map(item => item.content)).toEqual([
+    expect(history.runtimeSession.current.contexts.narrator.messages.map(item => item.content)).toEqual([
       'record event', patchResponse('retry')
     ]);
   });
@@ -58,8 +60,8 @@ describe('Tauri state patch and visibility', () => {
     }]));
     server.queueOpenAi('ok');
     await sendMessage('hello');
-    const saved = await waitForHistory(value => value.messages.length >= 3);
-    expect(saved.messages.some(item => item.content === 'secret system prompt')).toBe(true);
+    const saved = await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.length >= 3);
+    expect(saved.runtimeSession.current.contexts.narrator.messages.some(item => item.content === 'secret system prompt')).toBe(true);
     await expect($('.chat-history')).not.toHaveText(expect.stringContaining('secret system prompt'));
   });
 
@@ -72,8 +74,8 @@ describe('Tauri state patch and visibility', () => {
     }]));
     server.queueOpenAi('ok');
     await sendMessage('hello');
-    const saved = await waitForHistory(value => value.messages.length >= 3);
-    expect(saved.messages.some(item => (
+    const saved = await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.length >= 3);
+    expect(saved.runtimeSession.current.contexts.narrator.messages.some(item => (
       item.role === 'system' && item.content === 'plain system prompt'
     ))).toBe(true);
     const text = await $('.chat-history').getText();

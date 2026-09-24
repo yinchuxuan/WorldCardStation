@@ -38,10 +38,13 @@ fn web_release_is_deterministic_complete_and_private_by_default() {
     assert_eq!(
         paths,
         vec![
+            "agents/narrator.json",
             "audio/tone.wav",
             "card.json",
+            "entry.js",
             "images/cover.png",
             "images/outside.png",
+            "rules/init.json",
             "scripts/helper.js",
             "scripts/main.js",
             "state.json",
@@ -70,7 +73,6 @@ fn web_release_is_deterministic_complete_and_private_by_default() {
             .contains(&f.root.to_string_lossy().to_string())
     );
 }
-
 #[tokio::test]
 async fn web_release_identity_matches_desktop_directory_and_containers() {
     let f = Fixture::new();
@@ -111,7 +113,6 @@ async fn web_release_identity_matches_desktop_directory_and_containers() {
     assert_ne!(updated.content_fingerprint, first.content_fingerprint);
     assert!(f.release_dir(&first).is_dir());
 }
-
 #[test]
 fn web_release_failure_preserves_index_and_never_overwrites_release() {
     let f = Fixture::new();
@@ -133,7 +134,6 @@ fn web_release_failure_preserves_index_and_never_overwrites_release() {
         .to_string_lossy()
         .starts_with('.')));
 }
-
 #[test]
 fn web_release_rejects_private_references_paths_and_cyclic_scripts() {
     let f = Fixture::new();
@@ -167,7 +167,6 @@ fn web_release_rejects_private_references_paths_and_cyclic_scripts() {
         .error
         .contains("Private"));
 }
-
 #[test]
 fn web_release_rejects_unknown_catalog_and_concurrent_publisher() {
     let f = Fixture::new();

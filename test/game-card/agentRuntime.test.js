@@ -1,5 +1,16 @@
 import { runtime, rule, insert, consume } from './agentRuntimeHelpers.js';
 
+test('call cannot implicitly initialize an Agent', async () => {
+  const generate = jest.fn();
+  const app = runtime({ a: { rules: [rule('init', [insert('ready')])] } }, generate);
+  expect(() => app.agents.call('a')).toThrow('initialized');
+  expect(app.agents.messages('a')).toEqual([]);
+  await app.initialize();
+  await app.initialize();
+  expect(app.agents.messages('a').map(msg => msg.content)).toEqual(['ready']);
+  expect(generate).not.toHaveBeenCalled();
+});
+
 test('hidden sequential Agents share State, not contexts, and preserve raw versus final messages', async () => {
   const requests = [];
   const app = runtime({
@@ -16,12 +27,13 @@ test('hidden sequential Agents share State, not contexts, and preserve raw versu
       ? 'raw<state_patch>{"type":"state.inc","path":"count","value":1}</state_patch>'
         + '<state_patch_stream>{"count":99}</state_patch_stream>' : 'narration');
   });
+  await app.initialize();
   const first = app.agents.call('judge');
   const old = app.agents.messages('judge');
   await first.done();
   await first.done();
   expect(app.state.get('count')).toBe(1);
-  expect(old).toEqual([]);
+  expect(old.map(msg => msg.content)).toEqual(['judge']);
   expect(await consume(first.response)).toContain('raw<state_patch>');
   expect(() => first.response[Symbol.asyncIterator]()).toThrow('one consumer');
   const final = app.agents.messages('judge').find(msg => msg.id === first.messageId);
@@ -34,7 +46,7 @@ test('hidden sequential Agents share State, not contexts, and preserve raw versu
   expect(app.agents.messages('narrator')).toHaveLength(2);
 });
 
-test('init and TTL advance only for the called Agent, even when post_response empties Messages', async () => {
+test('init runs once up front; TTL advances only for the called Agent', async () => {
   const requests = [];
   const app = runtime({ a: { rules: [
     rule('init', [{ type: 'state.inc', path: 'count', value: 1 }]),
@@ -44,6 +56,7 @@ test('init and TTL advance only for the called Agent, even when post_response em
     requests.push(request);
     cb.onToken('response');
   });
+  await app.initialize();
   const first = app.agents.call('a');
   await first.done();
   const temporary = app.agents.messages('a')[0];
@@ -69,6 +82,7 @@ test('nested rules query current own Messages, cross-Agent defaults, and apply J
   ] }])] }, b: {} }, undefined, { dependencies: {
     runExecAction: (messages, state) => ({ messages, state: { ...state, count: 5 }, trace: { applied: true } })
   } });
+  await app.initialize();
   await app.agents.call('a').done();
   expect(app.agents.messages('a').map(msg => msg.content)).toEqual(['first', 'first/empty', 'answer']);
   expect(app.state.get('count')).toBe(5);
@@ -80,7 +94,7 @@ test('rule errors fail call, do not send model or leave init/State partial chang
     { type: 'state.inc', path: 'count', value: 1 },
     { type: 'state.set', path: 'count', value: 'invalid' }
   ])] } }, generate);
-  await expect(app.agents.call('a').done()).rejects.toThrow('Agent a');
+  await expect(app.initialize()).rejects.toThrow();
   expect(generate).not.toHaveBeenCalled();
   expect(app.state.get('count')).toBe(0);
   expect(app.agents.messages('a')).toEqual([]);
@@ -95,6 +109,7 @@ test.each([
 ])('exec cannot return forged/duplicate IDs or invalid messages', async change => {
   const app = runtime({ a: { rules: [rule('pre_send', [insert('seed'), { type: 'exec', source: 'return {};' }])] } },
     undefined, { dependencies: { runExecAction: messages => ({ messages: change(messages), trace: { applied: true } }) } });
+  await app.initialize();
   await expect(app.agents.call('a').done()).rejects.toThrow();
   expect(app.agents.messages('a')).toEqual([]);
 });
@@ -104,6 +119,7 @@ test('an empty history does not reinitialize a successful Agent', async () => {
     rule('init', [{ type: 'state.inc', path: 'count', value: 1 }]),
     rule('post_response', [{ type: 'remove', predicate: { all: true } }])
   ] } });
+  await app.initialize();
   await app.agents.call('a').done();
   expect(app.agents.messages('a')).toEqual([]);
   await app.agents.call('a').done();

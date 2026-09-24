@@ -9,7 +9,7 @@ describe('sendChatRequest - OpenAI protocol', () => {
     global.fetch.mockResolvedValue(global.createStreamingMock('Hello from OpenAI'));
   });
 
-  test('should call fetch with OpenAI endpoint and headers', async () => {
+  test.each(['openai', undefined])('uses OpenAI endpoint and headers for protocol %s', async (protocol) => {
     const onToken = jest.fn();
     const onThinkingToken = jest.fn();
 
@@ -18,6 +18,7 @@ describe('sendChatRequest - OpenAI protocol', () => {
         apiUrl: 'https://api.openai.com/v1',
         apiKey: 'sk-test-key',
         modelName: 'gpt-4',
+        protocol,
         messages: [{ role: 'user', content: 'Hello' }]
       },
       { onToken, onThinkingToken }

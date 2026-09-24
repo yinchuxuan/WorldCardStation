@@ -120,12 +120,11 @@ describe('useChatGeneration game card pipeline', () => {
     ]);
   });
 
-  test('applies after_stream when segmented output finishes', async () => {
+  test('applies after_stream and after_response in order', async () => {
     global.platformMock.getActiveGameCard.mockResolvedValue({
       success: true,
       card: {
         version: '1', id: 'segmented', name: 'Segmented',
-        display: { segmentedReading: true },
         rules: [
           { when: { phase: 'after_stream' }, then: [
             { type: 'state.set', path: 'summaryApplied', value: true }
@@ -142,8 +141,7 @@ describe('useChatGeneration game card pipeline', () => {
 
     await act(async () => { await result.current.send('hello'); });
 
-    expect(setGameState).toHaveBeenLastCalledWith({ summaryApplied: true });
-    expect(setGameState).not.toHaveBeenCalledWith(expect.objectContaining({ readingFinished: true }));
+    expect(setGameState).toHaveBeenLastCalledWith({ summaryApplied: true, readingFinished: true });
     expect(setMessages).toHaveBeenLastCalledWith([
       expect.objectContaining({ role: 'user', content: 'hello' }),
       expect.objectContaining({ role: 'assistant', content: 'ok' })

@@ -23,8 +23,8 @@ mod game_card_repository;
 mod game_card_schema;
 mod game_card_source_map;
 mod game_card_state_schema;
-#[cfg(test)]
 mod game_runtime_definition;
+mod player_card_import;
 mod history;
 mod runtime_session;
 mod json_store;

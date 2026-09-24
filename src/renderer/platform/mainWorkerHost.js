@@ -1,6 +1,6 @@
 const DEFAULT_MAIN_CPU_TIMEOUT_MS = 2000;
 
-function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, generate, readText, signal, display, onUpdate,
+function runMainWorker({ workerFactory, program, input, startup = false, snapshot, idPrefix, generate, readText, signal, display, onUpdate, onTrace,
   timeoutMs = DEFAULT_MAIN_CPU_TIMEOUT_MS }) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(new Error('input cancelled')); return; }
@@ -61,13 +61,14 @@ function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, gene
       else if (data.type === 'view') {
         try { onUpdate?.(data.view, data.detail); } catch (error) { finish(error); }
       }
+      else if (data.type === 'trace') onTrace?.(data.event);
       else if (data.type === 'complete') finish(null, data.result);
       else if (data.type === 'failed') finish(new Error(data.error));
     };
     worker.onerror = event => finish(new Error(event.message || 'main.js Worker failed'));
     signal.addEventListener('abort', abort, { once: true });
     timer = setTimeout(() => finish(new Error('main.js Worker startup timed out')), Math.max(timeoutMs, 10000));
-    try { send({ type: 'start', program, input, snapshot, idPrefix }); }
+    try { send({ type: 'start', program, input, startup, snapshot, idPrefix, trace: Boolean(onTrace) }); }
     catch (error) { finish(error); }
   });
 }

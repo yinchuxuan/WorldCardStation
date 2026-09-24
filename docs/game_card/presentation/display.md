@@ -182,10 +182,14 @@ Display rules 不要求 assistant 输出大量标签。推荐用正则识别轻�
 
 ## 分段阅读
 
-`display.segmentedReading: true` 让平台把 assistant 回复按 Markdown 自然段分页并隐藏 thinking block。默认从最新回复第一段开始；点击应用画布中的非交互区域或按 Enter 显示下一段。链接、按钮、输入控件和文本选择不会触发推进。未声明或设为 `false` 时沿用普通全文展示。
+新主程序以 `ctx.createReader({source, mode: "segmented"})` 明确选择分段阅读；
+continuous 是非分段增量显示。不要仅设置 display.segmentedReading 来改变 main.js 的 reader。
+平台复用现有阅读 UI，点击非交互区域或 Enter 推进；链接、输入控件和文本选择不推进。
 
-游戏卡可用 `display.segmentSeparator` 指定分隔符。例如 `"segmentSeparator": "\n"` 会按每个换行分页。该值是普通字符串而非正则表达式；平台会先把回复和分隔符中的 CRLF 统一为 LF，再精确切分并忽略空段。未声明时仍按一个或多个空行划分 Markdown 自然段。分隔发生在 display rules 之后，因此游戏卡生成的交互块应避免在最终 HTML 内包含该分隔符。
+display.segmentSeparator 可指定普通字符串分隔符，默认按空行分段；CRLF 统一为 LF。
+reader 先对源文本分段、处理 patch，再由 display 变换显示正文；避免显示替换改变预期的阅读段数。
 
-分段发生在 display rules 之后，平台也会隐藏完整的 `<state_patch>`，因此协议块不会产生空白页面。patch 位于两段之间时，在阅读游标进入后一段前应用；正文开始前的 patch 在流式接收时先提交，不等待阅读推进，结尾 patch 属于读完末段的边界。回看只移动阅读游标，不回滚已经应用的 state。
-平台按 session 维护跨 assistant 回复的阅读游标；同一回复内逐段移动，到达首尾后进入相邻回复。已完成消息的 `messageId` 和 `segmentIndex` 会在 state patch 提交后与 messages、game state 原子保存，加载 session 时恢复。历史回复中的输入 action 页会被跳过；回看会保存当前显示位置，但不会回滚 messages、game state、retry snapshot 或当前视听演出。
-游戏卡 UI 可读取 `ui.reading` 的 `canPrevious`、`canNext`、`atLatest`、`messageIndex` 和 `segmentIndex`，并发送 `reading.previous`、`reading.next`、`reading.latest`。流式生成期间回看不会停止生成，新段落也不会强制把游标拉回最新位置。
+state_patch_stream 在推进到后段时提交；普通 state_patch 仅过滤，其结算由 Agent 负责。
+尾部无正文 patch 不生成空白页面。实际展示单元和提交结果保存在 Session，
+回看与读档不重新解析源文本或重播 patch；执行中的阅读不形成可保存存档。
+具体来源、完成时机与失败语义见 [reader](../runtime.md#reader-与两种-patch)。

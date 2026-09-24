@@ -32,9 +32,10 @@ listen('message', async ({ data }) => {
       generate: ({ signal: _signal, ...args }, callbacks) => request('model', args, callbacks),
       display: args => request('present', args),
       onUpdate: (view, detail) => post({ type: 'view', view, detail }),
+      observer: data.trace ? (type, detail, messages, state) => post({ type: 'trace', event: { type, detail, messages, state } }) : undefined,
       readText: path => request('read', { path })
     });
-    const result = await execute({ input: data.input, snapshot: data.snapshot, idPrefix: data.idPrefix });
+    const result = await execute({ input: data.input, startup: data.startup, snapshot: data.snapshot, idPrefix: data.idPrefix });
     post({ type: 'complete', result });
   } catch (error) { post({ type: 'failed', error: `${data.program.graph.entry}: ${error.message}` }); }
 });

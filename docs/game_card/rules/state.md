@@ -92,35 +92,12 @@ saved session.gameState -> ensureStateDefaults(schema, savedState)
 
 ## 执行顺序
 
-加载会话：
+载入时恢复共享 State 和全部 Agent 数据，不执行 init；新会话从 schema 默认值开始。
+每次 Agent 调用执行 init（首次）、TTL 衰减、pre_send、模型生成、校验、普通 patch、post_response。
+main.js 通过 ctx.state.get/has/set/delete 读写共享变量，调用期间不并发修改 State。
 
-```txt
-read messages.json
-  -> load active card and state schema
-  -> ensureStateDefaults(schema, savedGameState)
-  -> run init rules if messages is empty
-  -> save messages + gameState if changed
-```
-
-用户发送：
-
-```txt
-append user message
-  -> load state schema
-  -> ensureStateDefaults(schema, gameState)
-  -> decayTTL
-  -> run pre_send rules
-  -> send to LLM
-  -> 按顺序解析正文与 state_patch，按流式/阅读游标提交 patch
-  -> 完整流结束后执行 responseValidation；retry 则回滚并重新生成
-  -> 接受 assistant message
-  -> run after_stream rules
-  -> 等待该响应的剩余 patch 全部提交
-  -> run after_response rules
-  -> save messages + gameState
-```
-
-普通模式在流游标越过完整 patch 时提交；分段模式正文开始前的 patch 先提交，后续 patch 随阅读游标提交。`after_stream` 不等待阅读完成，`after_response` 等待全部 patch 提交。各规则阶段执行前补齐 state 默认值，详见 [运行流程](../overview.md#pipeline-执行流程)。
+阅读提交独立于模型完成：分段 reader 推进时提交 state_patch_stream，非分段仅过滤标签。
+失败或取消恢复整轮基准；不会保存半轮变量，详见 [主程序与 reader](../runtime.md)。
 
 ## 变量引用
 
@@ -163,25 +140,20 @@ Content 描述符支持读取 state：
 
 ## 持久化
 
-state 随聊天历史保存：
-
-```json
-{
-  "messages": [],
-  "gameState": {}
-}
-```
-
-兼容旧格式：
-
-- 旧文件如果是数组，按 `messages` 读取，`gameState` 为空对象
-- 新保存统一写对象格式
-- messages 和 gameState 必须一起保存，避免剧情记录与变量状态不一致
+State 与全部 Agent 上下文、实际展示记录一起保存在带版本的 runtimeSession 中。
+桌面自动保存完整轮次；Web 显式创建新存档。旧卡存档不能作为新协议 Session 恢复。
+不保存 Promise、模型请求、reader 或 JS 调用栈，不提供游戏卡存档迁移。
 
 ## 模型 State Patch
 
-动态变量用于开放运行时命名空间，例如 `memory.*`、`flags.*`、`npc.*.notes`。未被 schema 或 dynamic 覆盖的 path 默认不可由 LLM 创建或写入。
+LLM 只能写入 schema 已声明（或声明对象的允许子路径）且 llmWrite 未禁止的路径。
+顶层 action/action 数组沿用 State action 格式；不带 type 的对象表示批量 state.set。
+例如 `{"player.hp":80}`。复杂逻辑仍由主程序或规则 exec 完成。
 
-LLM 不直接写持久化 state，而是在回复中输出隐藏 `<state_patch>`。顶层 action 或 action 数组沿用原格式；不带 `type` 的顶层对象是批量 `state.set` 语法糖，例如 `{"visual.scene":"rooftop","audio.bgm":"sad"}`。响应管线把正文与 patch 作为一条有序时间线：普通模式在流游标越过完整 patch 时应用；分段模式先应用正文开始前的 patch，其余在阅读游标进入 patch 后的段落时应用，尾部 patch 在读完末段时应用。patch 按 schema 校验且只应用一次，回看不回滚。供应商请求失败时恢复请求开始前的 state，用户主动取消时保留已经应用的 patch；retry 始终使用发送前的独立 snapshot。全部 patch 提交后才执行 `after_response`。解析或校验失败不应中断聊天，只记录 warning 并跳过非法补丁。复杂状态逻辑继续使用 `exec`。
+- `<state_patch>…</state_patch>`：完整响应通过校验后、post_response 前提交一次。
+- `<state_patch_stream>…</state_patch_stream>`：仅由分段 reader 在下一段显示前提交。
+- 两种标签均从玩家正文过滤；非分段和隐藏调用不提交阅读 patch。
+- 非法或无权限 patch 使整轮失败并回滚，不静默跳过。
+- 历史回看和读档不重复提交；两种通道不保证跨通道时序，避免竞争写同一路径。
 
-每次 state 读取失败、补丁失败或修改成功都应记录 trace，至少包含 phase、rule/action 位置、变更 diff、校验错误和 LLM patch reason。
+具体完成边界与例子见 [清单、主程序与 reader](../runtime.md)。

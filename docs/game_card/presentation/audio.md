@@ -123,13 +123,13 @@ gameState.audio.bgm
 播放时机：
 
 - 用户提交消息后立即停止当前 BGM；仅键入输入不停止
-- 供应商请求失败时恢复提交前的 BGM；用户主动取消时保持停止并保留部分回复
+- 供应商请求失败或用户取消都恢复整轮开始前的 BGM 与数据
 - LLM 只输出 thinking/reasoning 时保持停止
 - 普通模式在正文第一个 token 开始流式输出时，按当前 `gameState.audio.bgm` 从头加载并播放
 - 分段模式在 session 加载时恢复存档中的 BGM，但不在正文首 token 时自动继承播放
 - 分段模式每次成功执行 `state.set audio.bgm` 时，在阅读游标越过该 patch 后发布播放请求；即使值未变化也会重新播放
-- 普通模式下，`state_patch` 改变 `audio.bgm` 时，在流游标越过该 patch 后发布播放请求
-- 普通模式的 `pre_send` / `after_response` 可通过 `audio.updateBgm` 手动发布播放请求；分段模式忽略该动作
+- 普通 state_patch 在完整生成校验后提交并发布；state_patch_stream 仅随分段 reader 提交
+- Agent 的 pre_send / post_response 可通过 audio.updateBgm 发布播放请求
 - 平台所有 BGM 播放入口统一延迟 1 秒；停止或新的播放请求会取消尚未执行的延迟任务
 - 每个播放请求都从头播放；同一 BGM 复用已解析的资源 URL
 

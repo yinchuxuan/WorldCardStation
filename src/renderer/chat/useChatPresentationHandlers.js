@@ -31,11 +31,6 @@ function useChatPresentationHandlers(card, presentation) {
     updatePortrait(card, state);
   }, [card, updateBackground, updatePortrait]);
 
-  const onValidationRetry = React.useCallback((state) => {
-    stopBgm();
-    updateAll(card, state);
-  }, [card, stopBgm, updateAll]);
-
   const onRequestFailureRestore = React.useCallback((state) => {
     stopBgm();
     updateAll(card, state);
@@ -58,7 +53,7 @@ function useChatPresentationHandlers(card, presentation) {
   return {
     onRetryStateRestore,
     onRequestFailureRestore,
-    onValidationRetry,
+    onValidationRetry: onRequestFailureRestore,
     onSessionLoaded,
     onStatePatchApplied,
     onStreamContentStart

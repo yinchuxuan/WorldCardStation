@@ -1,14 +1,16 @@
 import React from 'react';
 import { savePolicy } from '../platform/index.js';
 
-export default function useManualSave({ snapshot, loadedRef, repository, isLoading, enabled = true }) {
+export default function useManualSave({ snapshot, loadedRef, repository, isLoading, enabled = true, incomplete = false }) {
   const state = React.useRef({ baseline: '', target: null, saving: false, error: null,
-    savedAt: null, conflict: false, operations: 0 });
+    savedAt: null, conflict: false, operations: 0, hydrated: false });
   const [, render] = React.useReducer(value => value + 1, 0);
   const loading = React.useRef(isLoading);
   loading.current = isLoading;
   const enabledRef = React.useRef(enabled);
   enabledRef.current = enabled;
+  const incompleteRef = React.useRef(incomplete);
+  incompleteRef.current = incomplete;
   const fingerprint = () => JSON.stringify(snapshot());
   const dirty = () => {
     if (!enabledRef.current || !loadedRef.current) return false;
@@ -21,10 +23,13 @@ export default function useManualSave({ snapshot, loadedRef, repository, isLoadi
       Object.assign(state.current, { baseline: result.runtimeSession ? fingerprint() : JSON.stringify({ messages: result.messages || [], options: {
         gameState: result.gameState || {}, retryBaseMessages: result.retryBaseMessages ?? null,
         retryBaseState: result.retryBaseState ?? null, viewState: result.viewState || {}
-      } }), target: result.saveTarget, savedAt: result.savedAt, conflict: false, error: null });
+      } }), target: result.saveTarget, savedAt: result.savedAt, conflict: false, error: null, hydrated: true });
       render();
     },
     changed: () => { if (savePolicy === 'manual') render(); },
+    resetInput: () => { state.current.hydrated = false; },
+    canQueueInput: () => savePolicy !== 'manual' || (state.current.hydrated && !state.current.saving
+      && !state.current.conflict && !state.current.transition),
     canMutate: () => savePolicy !== 'manual' || (loadedRef.current && !state.current.saving
       && !state.current.conflict && !state.current.transition),
     endLeave() { state.current.transition = false; render(); },
@@ -34,7 +39,7 @@ export default function useManualSave({ snapshot, loadedRef, repository, isLoadi
       let ended = false;
       return () => { if (!ended) { ended = true; state.current.operations -= 1; render(); } };
     },
-    get blocked() { return !enabledRef.current || (savePolicy === 'manual' && (!loadedRef.current || busy() || state.current.conflict)); },
+    get blocked() { return !enabledRef.current || incompleteRef.current || (savePolicy === 'manual' && (!loadedRef.current || busy() || state.current.conflict)); },
     get dirty() { return dirty(); },
     get saving() { return state.current.saving; },
     get error() { return state.current.error; },

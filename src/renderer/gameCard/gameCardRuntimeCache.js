@@ -1,8 +1,7 @@
-import { extractExecIncludes, resolveExecIncludePath } from './execSource.js';
+import { collectExecDependencies } from './execDependencies.js';
 import { collectExecSourcePaths, collectFileContentPaths } from './resourcePreload.js';
 import { loadExternalStateSchema } from './stateSchemaLoader.js';
 
-const MAX_INCLUDE_DEPTH = 20;
 const missingResources = {};
 const missingCard = {};
 let entriesByCard = new WeakMap();
@@ -61,33 +60,12 @@ function loadCachedRuntimeCard(card, resources) {
   return entry.card;
 }
 
-function loadDirectIncludes(card, resources, filePath) {
-  const entry = cacheEntry(card, resources);
-  if (!entry.directIncludes.has(filePath)) {
-    const includes = readCachedCardText(card, resources, filePath).then(source => (
-      extractExecIncludes(source).map(path => resolveExecIncludePath(filePath, path))
-    ));
-    entry.directIncludes.set(filePath, includes);
-  }
-  return entry.directIncludes.get(filePath);
-}
-
-async function collectScriptPaths(card, resources, filePath, paths, stack = []) {
-  if (stack.includes(filePath)) throw new Error(`circular exec include: ${filePath}`);
-  if (stack.length > MAX_INCLUDE_DEPTH) throw new Error('exec include depth exceeded');
-  paths.add(filePath);
-  const includes = await loadDirectIncludes(card, resources, filePath);
-  for (const includePath of includes) {
-    await collectScriptPaths(card, resources, includePath, paths, [...stack, filePath]);
-  }
-}
-
 async function buildFileContents(card, resources, runtimeCard, scriptPaths) {
   const paths = new Set(collectFileContentPaths(runtimeCard));
   await Promise.all([...paths].map(path => readCachedCardText(card, resources, path)));
-  for (const scriptPath of scriptPaths) {
-    await collectScriptPaths(card, resources, scriptPath, paths);
-  }
+  const scripts = await collectExecDependencies(scriptPaths, path => readCachedCardText(card, resources, path),
+    cacheEntry(card, resources).directIncludes);
+  scripts.forEach(path => paths.add(path));
   const entries = await Promise.all([...paths].map(async path => (
     [path, await readCachedCardText(card, resources, path) || '']
   )));

@@ -1,5 +1,5 @@
 use crate::app_storage::AppStorage;
-use crate::game_card_imports::read_card_with_sources;
+use crate::game_card_imports::{read_card_with_sources, read_json_with_sources};
 use crate::game_card_source_map::{locate, SourceMap};
 use crate::json_store::AppResult;
 use crate::trace_files::{self, TraceScope};
@@ -12,6 +12,7 @@ use uuid::Uuid;
 struct Capture {
     scope: TraceScope,
     sources: SourceMap,
+    agent_sources: HashMap<String, SourceMap>,
     sequence: u64,
     failed: bool,
 }
@@ -37,6 +38,18 @@ impl RuntimeTrace {
         crate::game_card_paths::require_safe_id(&scope.session_id).map_err(|error| error.error)?;
         let dir = trace_files::directory(storage, &scope, true)?;
         let expanded = read_card_with_sources(&root).map_err(|error| error.error)?;
+        let mut agent_sources = HashMap::new();
+        if let Some(agents) = expanded.card["agents"].as_object() {
+            for (id, file) in agents {
+                let file = file.as_str().ok_or("Invalid Agent file")?;
+                agent_sources.insert(
+                    id.clone(),
+                    read_json_with_sources(&root, file)
+                        .map_err(|error| error.error)?
+                        .sources,
+                );
+            }
+        }
         let fingerprint = trace_files::fingerprint(&root)?;
         let _session_guard = storage.lock(&dir).await;
         let token = Uuid::new_v4().to_string();
@@ -56,6 +69,7 @@ impl RuntimeTrace {
             Capture {
                 scope,
                 sources: expanded.sources,
+                agent_sources,
                 sequence: 1,
                 failed: false,
             },
@@ -88,9 +102,14 @@ impl RuntimeTrace {
                     .as_object_mut()
                     .ok_or("Trace event must be an object")?;
                 if let Some(pointer) = item.get("pointer").and_then(Value::as_str) {
+                    let sources = item
+                        .get("agentId")
+                        .and_then(Value::as_str)
+                        .and_then(|id| capture.agent_sources.get(id))
+                        .unwrap_or(&capture.sources);
                     item.insert(
                         "source".into(),
-                        serde_json::to_value(locate(&capture.sources, pointer)).unwrap(),
+                        serde_json::to_value(locate(sources, pointer)).unwrap(),
                     );
                 }
                 item.insert("captureId".into(), json!(token));

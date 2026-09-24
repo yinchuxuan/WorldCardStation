@@ -9,6 +9,7 @@
 | 任务 | 文档 |
 | --- | --- |
 | 消息结构、可见性、TTL、规则阶段和执行顺序 | [游戏卡运行流程](./game_card/overview.md) |
+| formatVersion 2、main.js、Agent 与 reader | [清单与主程序](./game_card/runtime.md) |
 | 卡结构校验与协议版本 | [Schema 边界](./game_card/schema.md) |
 | insert/remove/replace、state action、exec/args/include | [操作](./game_card/rules/actions.md) |
 | 消息匹配、逻辑组合、最近 N 条 | [Predicate](./game_card/rules/predicates.md) |
@@ -25,7 +26,7 @@
 
 ## 最小模板与资源组织
 
-开发包的 `templates/minimal/card.json` 是初始化用模板。客户端 `--init-project` 为新卡自动生成 UUID；手动复制时也必须替换占位 ID。模板本身不依赖任何库或外部文件。
+开发包的 `templates/minimal/` 包含 card.json、main.js 和 agents/narrator.json。客户端 `--init-project` 为新卡自动生成 UUID；手动复制时须复制整个模板并替换占位 ID。模板不依赖额外库或媒体。
 
 入口必须叫 `card.json`，不是 `cards.json`。`rules/`、`state/`、`lib/` 等只是推荐目录，不会自动加载。通过 `$import`、`stateSchema`、`sourceFile` 或资源声明显式引用所需内容。
 

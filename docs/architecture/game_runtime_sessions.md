@@ -13,6 +13,7 @@ runtimeSession 是独立版本的完整数据包，version 为数字 1，与卡�
 ```text
 runtimeSession
 ├─ version / cardId / cardVersion
+├─ started                          必须为 true：全部 init 与 onStart 已成功完成
 ├─ sequence                         已分配的输入轮 ID 上界
 ├─ current
 │  ├─ state                         共享变量
@@ -38,7 +39,7 @@ patches 仅作记录，历史回看和读档绝不重新 apply。
 - exportSession() 只在已成功加载且输入轮结束后可用；模型返回但仍在阅读时也拒绝。
 - snapshot() 保持“最后完整结果”的语义；view() 是临时预览，不能作为存档来源。
 - 玩家输入和可见记录由 Session 统一维护，不依赖 React 组件的临时历史。
-- 失败/取消恢复整轮基准后才能保存；不保存半轮正文或半轮 Agent 上下文。
+- 失败保留现场但禁止保存；只有 retry 恢复轮前基准并成功完成后才重新允许保存。不保存半轮正文或半轮 Agent 上下文，不自动覆盖已有存档。
 - retryBase 一并保存；重启后的重试仍从该输入前的全部数据重跑，不重复追加上下文。
 - sequence 不因重试、取消或恢复较早存档回退，消息 ID 不与保留历史冲突。
 - 不保存 Reader、Promise、Worker、执行中的请求或 JS 栈。
@@ -61,9 +62,10 @@ beginLoad() 先禁止输入/保存，取消旧轮次并清除旧预览；restore
 未知版本、损坏内容、缺失 Agent 或非法 State 都阻止继续输入和保存；保留原档，成功重新加载后才解除。
 
 恢复不执行 init、规则、模型请求或 reader，只恢复视图并等待下一次输入。
-已初始化 Agent 下一轮不重复 init；未调用 Agent 保持未初始化；TTL 只在下一次所属 Agent 调用时推进。
+所有 Agent 在新 Session 的 onStart 前初始化，包括尚未调用的 Agent；TTL 只在所属 Agent 调用时推进。
+新建空 Session 执行启动操作，完成前禁止保存；旧数据包缺少 started 标记时拒绝恢复，不猜测或重播开场。
 切换加载使用失效标记丢弃旧加载结果；取消后的 Worker 和模型回调不能写入目标会话。
-普通玩家 V2 导入入口仍关闭；本契约用于已注入的内部运行时，完整导入/发布接入另行交付。
+双端玩家入口加载新协议并使用该数据包。桌面保留不同内容版本的原档，但版本不匹配时禁止恢复和覆盖；Web 按不可变发布版本隔离存档。
 
 ## 验证
 

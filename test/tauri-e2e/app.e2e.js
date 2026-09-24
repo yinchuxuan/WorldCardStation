@@ -1,7 +1,7 @@
 /* global browser, $, before, after */
 
 const http = require('node:http');
-const { invoke, sendMessage } = require('./tauriCommands');
+const { invoke, sendMessage, revealHeader } = require('./support/tauri');
 
 describe('Tauri desktop application', () => {
   let server;
@@ -49,6 +49,7 @@ describe('Tauri desktop application', () => {
   });
 
   it('imports a card and mounts its dynamic UI, background and BGM', async () => {
+    await revealHeader();
     await browser.execute(() => document.querySelector('.game-card-title-main')?.click());
     await $('.game-card-switch-import').click();
     await expect($('.game-card-title-name')).toHaveText('Tauri E2E Card');

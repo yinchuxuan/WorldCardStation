@@ -31,7 +31,7 @@ pre_send
 
 `validateResponse` 必须早于 `after_stream`，避免 summary 等规则处理随后被 retry 丢弃的回复。分段模式仍按阅读游标提交真实 state；校验器只使用完整响应构造的更新记录和候选最终值，不提前提交尚未读到的 patch。
 
-## 顶层配置
+## Agent 配置
 
 ```json
 {
@@ -46,10 +46,10 @@ pre_send
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `onFailure` | `retry \| warn` | 默认失败策略，未声明时为 `retry` |
-| `maxRetries` | integer | 自动重试次数，不包含第一次生成；默认 2，范围 0–5；仅用于 `retry` |
+| `maxRetries` | integer | 结构上保留 0–5；新 Agent 不进行透明自动重试，实际重试由整轮主程序处理 |
 | `rules` | array | 校验规则，按声明顺序执行并收集全部违规，最多 64 条 |
 
-规则数组使用隐式 AND。单条规则可通过 `onFailure` 覆盖默认策略。存在任意 `retry` 违规时重试；只有 `warn` 违规时接受回复。达到 `maxRetries` 后仍失败，最后一次回复按 `warn` 接受，不引入第三种 reject 语义。
+规则数组使用隐式 AND。单条规则可通过 onFailure 覆盖默认策略。存在任意 retry 违规时调用失败并回滚整轮；只有 warn 违规时接受回复。不会按 maxRetries 自动降级接受。
 
 ## 通用规则字段
 
@@ -165,8 +165,8 @@ validateResponse({ config, rawContent, stateBefore, stateAfter, updates })
 // -> { passed, action, violations }
 ```
 
-- `stateBefore`：`pre_send` 完成后的快照。
-- `stateAfter`：按输出顺序计算全部合法 patch 后的校验候选值，不代表分段模式已经提交。
+- `stateBefore`：结算普通 patch 前的 State，可能包含已经推进的阅读 patch。
+- `stateAfter`：按输出顺序计算普通 patch 后的候选值；不模拟尚未推进的阅读 patch。
 - `updates`：规范化后的更新记录，至少包含 path、operation、before、after。
 - `passed`：所有启用且命中 `when` 的规则是否通过。
 - `action`：通过时为 `null`；失败时为 `retry` 或 `warn`。
@@ -176,21 +176,17 @@ validateResponse({ config, rawContent, stateBefore, stateAfter, updates })
 
 ## Retry 与 Warning
 
-`retry` 会丢弃无效 assistant，恢复本轮响应开始前的 state、背景、立绘和 BGM，不执行该响应的 `after_stream` / `after_response`。下一次请求复用已经完成的 `pre_send` 结果，并临时追加全部违规说明；说明不保存到 messages，也不进入 summary。
+新 Agent 调用在完整生成后先计算普通 state_patch 候选值，再进行回复校验。
+state_patch_stream 属于阅读，不计入普通结算候选值或 updates。content 正则过滤两种标签；raw 保留完整输出。
 
-`warn` 的固定语义是“接受回复并附加非阻塞提醒”。它与通过校验的回复执行完全相同的后续流程：保存 assistant，执行 `after_stream`，按普通或分段模式原有时机提交 state patch，发布背景、立绘和 BGM，全部 patch 提交后执行 `after_response`，最后正常持久化。warning 不得阻塞阅读、选项或下一轮输入。
+`retry` 违规使本次调用失败，不执行 post_response；平台停止并保留现场，玩家重试时才恢复整轮 main.js 开始前的 State、所有 Agent 和演出。
+玩家重试会重新执行整轮主程序，不复用失败调用的 pre_send，不透明重播已经提交阅读副作用的流。
+首版不在 Agent 内按 maxRetries 自动补发请求；该配置不能改变整轮重试边界。
 
-```txt
-validateResponse
-  -> warn
-  -> after_stream
-  -> state_patch 到达提交边界
-  -> after_response
-  -> 保存 assistant、state 和 warning
-```
+`warn` 接受响应，将违规信息写入本次 assistant 的 _meta.validationWarnings，
+然后提交普通 patch、执行 post_response。warning 不发给模型。
+原始 response 和实际可见记录不自动包含后处理元数据；可在 Agent 消息历史中检查 warning。
+平台在 Agent 校验完成、发布回复时显示告警，不等待 present 阅读结束；同轮多 Agent 告警合并，每条回复只通知一次。
+关闭提醒后，阅读推进不会再次弹出同一告警；实际开始下一轮或重试、切换 Session 时清除旧提醒，读档不重弹历史警告。
 
-平台应将 warning 作为 assistant 的内部元数据持久化，其中包含规则 id、message 和实际匹配信息；它不发送给 LLM、不进入 summary，也不受游戏卡 UI 样式控制。提醒应使用平台级非阻塞入口，不弹出必须确认的模态框。
-
-玩家在 warning 后仍可手动 retry。此时平台使用该轮原有的生成前 retry snapshot，撤销 assistant、summary、state 和视听演出后重新生成；玩家继续阅读、选择选项或发送下一条消息，则视为接受该 warning。达到 `maxRetries` 后降级得到的 warning 遵循完全相同的接受与提交语义。
-
-自动重试期间保持 `isLoading`。用户停止生成会终止整个重试链。正则在游戏卡加载边界验证 flags 和语法；待检查文本上限为 131072 字符，超限视为规则失败，避免正则阻塞渲染进程。
+正则的内容长度限制及匹配语义保持不变；是否正确生成、演出仍需实际游玩验证。

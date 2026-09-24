@@ -72,7 +72,9 @@ export function validateRuntimeSession(value, definition) {
   requireValue(object(value) && value.version === 1 && typeof value.cardId === 'string'
     && typeof value.cardVersion === 'string' && Number.isSafeInteger(value.sequence) && value.sequence >= 0, 'version/card/sequence');
   if (definition) requireValue(value.cardId === definition.card.id && value.cardVersion === definition.card.version, 'card identity');
+  requireValue(value.started === true, 'started');
   validateSnapshot(value.current, definition);
+  requireValue(Object.values(value.current.contexts).every(context => context.initialized), 'startup.initialized');
   validateView(value.viewState, value.current);
   if (value.retryBase !== null) {
     requireValue(object(value.retryBase) && typeof value.retryBase.input === 'string', 'retryBase');

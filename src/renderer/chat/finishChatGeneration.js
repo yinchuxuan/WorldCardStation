@@ -60,19 +60,12 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
     tw.clearStreaming();
     return true;
   }
-  const segmented = preSend.card?.display?.segmentedReading === true;
   const assistantMessage = createChatMessage({
     id: streamMessageId,
     role: 'assistant',
     content,
     _thinking: tw.getThinkingContent(),
-    thinking: tw.getThinkingContent(),
-    _meta: {
-      statePatchPlayback: {
-        afterResponseApplied: !segmented,
-        appliedPatchCount: streamResult.appliedPatchCount || 0
-      }
-    }
+    thinking: tw.getThinkingContent()
   });
   const base = preSend.applied ? preSend.messages : baseMessages;
   const streamedState = streamResult.state || preSend.state || baseState;
@@ -84,19 +77,6 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
     streamed.messages, streamMessageId, warning
   );
   const acceptedAssistant = withValidationWarning(assistantMessage, warning);
-  if (segmented) {
-    options.observer?.('generation.commit', { status: 'awaiting_reading' }, streamedMessages, streamed.state);
-    if (streamed.applied) {
-      setGameState?.(streamed.state);
-      setMessages(streamedMessages);
-    } else if (options.appendAssistantWithUpdater) {
-      setMessages(previous => [...previous, acceptedAssistant]);
-    } else setMessages(streamedMessages);
-    options.onResponseValidationWarning?.(warning);
-    setIsLoading(false);
-    tw.clearStreaming();
-    return true;
-  }
   const after = await generationServices.prepareAfterResponseMessages({
     messages: streamedMessages,
     state: streamed.state,
@@ -122,10 +102,4 @@ async function finishChatGeneration(preSend, baseMessages, baseState, options, s
   return true;
 }
 
-export {
-  applyAfterStream,
-  attachValidationWarning,
-  finishChatGeneration,
-  hasAfterStreamRule,
-  validationWarning
-};
+export { finishChatGeneration };

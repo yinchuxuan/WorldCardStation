@@ -1,6 +1,6 @@
 # 新运行时清单与加载契约
 
-适用任务：formatVersion "2" 的内部加载边界；普通玩家入口尚未开放。
+适用任务：formatVersion "2" 的双端加载边界。
 相关代码：`src/shared/game-card/runtime/loadDefinition.js`、`src/tauri/src/game_runtime_definition.rs`。
 前置文档：[运行时设计](./game_runtime_design.md)。脚本 API 见 [最小执行契约](./game_runtime_api.md)。
 结构事实源仍为 `src/shared/game-card/schema/game-card.schema.json`；本文解释跨文件语义，不替代 Schema。
@@ -11,9 +11,8 @@
 - `version` 是作者的内容版本，不选择运行协议。
 - 唯一 Schema 的 `runtimeManifest` / `runtimeAgent` 定义新清单，复用资源、State、操作等定义。
 - 新协议 Schema 视图替换阶段枚举、收紧路径、给 find 增加 agentId；JS/Rust 按相同方式构造。
-- 顶层 Schema 和 `x-schema-version: 1.10.0` 暂描述现有玩家协议，不把新卡声明为旧卡的小版本升级。
-- 旧播放器对含 formatVersion 的卡明确报“不支持此运行协议”，不得忽略入口而执行旧规则。
-- 当前保留旧播放器只为了分步交付，不承诺最终的双执行器兼容。
+- Schema 发布版本为 x-schema-version 2.0.0，formatVersion 2 选择运行协议。
+- 玩家入口拒绝旧版或未知版本；根部旧结构仅用于底层迁移/格式测试，不是播放器兼容承诺。
 
 ## card.json
 
@@ -36,7 +35,7 @@
 
 - 上述 formatVersion、id、name、version、main、agents 必填；agents 至少一个。
 - Agent ID 为大小写敏感的字母开头标识，只允许字母、数字、下划线、连字符，最长 64 字符；禁用原型相关保留名。
-- main 是卡内 `.js` 模块路径，不强制文件名必须为 main.js；导出 `async function onInput(ctx, input)`。
+- main 是卡内 `.js` 模块路径，不强制文件名必须为 main.js；导出 `async function onInput(ctx, input)`，可选导出 `async function onStart(ctx)`。
 - agents 的值是独立 `.json` 文件路径，不接收内联对象或目录；同一个文件可供多个 ID 使用，运行实例仍独立。
 - description、author、state、stateSchema、files、audio、visual、presentation、display、ui 延续现有含义。
 - rules、responseValidation 移至各 Agent；card.json 不接受这两个顶层字段。
@@ -85,8 +84,9 @@ agents 按 ID 保存 `{ id, file, definition }`。JS 返回深冻结快照；Rus
 所有路径拒绝绝对路径、反斜杠、盘符、空路径分量、`.` / `..` 分量及控制字符。
 错误包含来源文件及相关字段；JSON 错误标出实际文件，跨文件引用错误不一律归到 card.json。
 
-此加载器读取完整原始 JSON，不展开 `$import`；遇到未支持字段显式失败。
-现有导入/发布链的 `$import` 展开与源码映射在接入阶段处理；不能以测试加载器替代完整 dry-run。
+清单和 Agent JSON 均展开 `$import`，沿用卡根相对路径、深度/循环限制及数组整项展开。
+JS definition/agent 返回 sources 源码映射；导入、发布和 dry-run 使用相同规则。
+桌面资源存在性由原生加载边界检查；Web 使用完整缓存清单检查，不允许缺文件时请求未授权网络路径。
 入口 JS 语法、onInput 导出和模块依赖校验属于受控脚本宿主；本边界只确认文件类型、存在性并读取源码。
 运行、reader、模型请求和 UI 均不在此加载阶段执行。
 

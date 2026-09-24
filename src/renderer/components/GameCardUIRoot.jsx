@@ -49,6 +49,7 @@ function GameCardUIRootContent({
   setGameState,
   messages = [],
   isLoading = false,
+  pendingInput = null,
   canRetry = false,
   retrySource = '',
   onRetry,
@@ -122,12 +123,13 @@ function GameCardUIRootContent({
   const ui = R.useMemo(() => ({
     cardId,
     isLoading,
+    pendingInput,
     canRetry,
     retrySource,
     reading,
     root: card?.ui?.root || {},
     renderAssistantMessage: (content, options) => renderAssistantMessage(R, content, card, options, gameState)
-  }), [R, cardId, isLoading, canRetry, retrySource, reading, card, gameState]);
+  }), [R, cardId, isLoading, pendingInput, canRetry, retrySource, reading, card, gameState]);
 
   if (!loadedRoot?.Component) return null;
   return C('div', {
@@ -161,6 +163,7 @@ const gameCardUIRootPropTypes = {
   setGameState: PropTypes.func,
   messages: PropTypes.arrayOf(message),
   isLoading: PropTypes.bool,
+  pendingInput: PropTypes.string,
   canRetry: PropTypes.bool,
   retrySource: PropTypes.string,
   onRetry: PropTypes.func,

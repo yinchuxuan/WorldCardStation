@@ -34,11 +34,13 @@ function prepareMainExecution(global, program, bridge) {
     try { modules[module.path] = evaluate(Object.freeze({ ...modules })); }
     catch (error) { throw new Error(`${module.path}: ${error.message}`, { cause: error }); }
   }
-  const onInput = modules[graph.entry].onInput;
+  const { onInput, onStart } = modules[graph.entry];
   if (typeof onInput !== 'function') throw new Error(`${graph.entry}: onInput must be a function`);
+  if (onStart !== undefined && typeof onStart !== 'function') throw new Error(`${graph.entry}: onStart must be a function`);
   return data => executeMainRound({
-    definition, onInput, ...data, generate: bridge.generate, display: bridge.display, onUpdate: bridge.onUpdate,
+    definition, onInput, onStart, ...data, generate: bridge.generate, display: bridge.display, onUpdate: bridge.onUpdate,
     dependencies: {
+      observer: bridge.observer,
       fileContents, readText: bridge.readText,
       runExecAction: (messages, state, action, options) => runExecAction(messages, state, action, { ...options, scriptExecutor })
     }

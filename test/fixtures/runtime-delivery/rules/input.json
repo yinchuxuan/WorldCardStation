@@ -1,0 +1,3 @@
+[
+  { "when": { "phase": "pre_send" }, "then": [{ "type": "insert", "role": "user", "content": "{{state:turn.input}}" }] }
+]

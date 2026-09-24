@@ -10,6 +10,7 @@ use std::path::Path;
 
 const SPEC_DOCUMENTS: &[&str] = &[
     "game_card/overview.md",
+    "game_card/runtime.md",
     "game_card/schema.md",
     "game_card/rules/actions.md",
     "game_card/rules/predicates.md",

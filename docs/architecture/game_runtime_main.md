@@ -11,11 +11,12 @@ definition 来自新清单加载器；readText 必须绑定当前授权卡根，
 generate 由平台模型适配器提供，仍使用独立 AbortSignal 和内容/thinking 回调；配置和密钥不发送到 Worker。
 测试可以向 createMainSession 注入同契约的 workerFactory，不在 renderer 主线程执行卡片源码。
 
-- send(input)：从当前已完成结果开始一轮，成功返回包含 state/contexts/records/messages 的只读快照。
-- retry(input?)：从上一轮开始前的内存基准重跑，可替换玩家输入；不是只重试最后一个 Agent。
-- cancel()：终止当前 Worker、取消模型请求，等待输入退出；可以再次 send/retry。
+- start()：新 Session 按顺序执行全部 init 后调用可选 onStart，完成后幂等；恢复的已启动 Session 不执行脚本。
+- send(input)：进入 Session 内 FIFO；启动及前一轮结束后，从最新完整结果执行 onInput。返回该轮完成的只读快照 Promise。
+- retry(input?)：清空待执行输入，取消并等待当前轮退出，再从上一轮开始前的基准重跑；可替换玩家输入，不是只重试最后一个 Agent。
+- cancel()：清空待执行输入，终止当前 Worker、取消模型请求并等待退出；之后可以再次 send/retry。
 - dispose()：永久停止实例；切换 Session、卸载卡片或销毁输入宿主时调用。
-- snapshot()：返回最后完整结果的副本，不暴露执行中的半轮 State；running 表示输入是否未结束。
+- snapshot()：返回最后完整结果的副本；view() 保留执行或失败现场。running 只表示正在执行/取消，failed 表示失败现场未解决；pendingCount 为待执行输入数。
 - view()/subscribe(listener)：宿主只读观察当前临时 State、Agent 历史和可见记录；不是可保存快照。
 - advance()：确认当前显示段已读完；没有等待阅读时返回 false，不预先消费下一段。
 
@@ -24,9 +25,14 @@ State API 同步校验、写入和读取，和 Agent 引擎位于同一个 Worke
 调用期间 main 不得 set/delete State；完成后可立即读取普通 patch 和 post_response 的结果。
 Messages 查询是只读副本，输入不自动写入或广播给任何 Agent。
 
+输入轮严格串行；present 完成不等于 onInput 返回，后续游戏逻辑仍属于当前轮。
+失败时停止执行并暂停队列，保留待执行输入；不自动跳过失败轮。退出 loading，但禁止新输入及保存；retry 清空队列并恢复轮前基准后重跑。取消队列不将失败现场标为成功。
+pending 队列只存于内存，不进入存档；beginLoad/dispose 同样取消当前轮并清空队列。
+运行锁保护 State 和 Agent 历史，不决定输入框显隐或可编辑性。UI 发送在入队时返回成功并清空草稿，完成/失败通过订阅更新。
+
 ## 卡内模块
 
-main 指向的模块必须导出函数 onInput(ctx, input)，通常写成 export async function onInput。
+main 指向的模块必须导出函数 onInput(ctx, input)，可选导出函数 onStart(ctx)。非函数导出会报错。
 支持静态相对路径 import、命名导入/别名、namespace 导入，以及命名 function/class/简单 const 声明导出。
 依赖先加载、每轮求值一次；导出是初始化时的只读命名空间快照，不支持完整 ESM 的动态 live binding。
 不支持 default/re-export、export let/var、解构导出、动态 import、import.meta、顶层 await 或循环依赖。
@@ -50,14 +56,16 @@ exec 不获得 agents.call，也不能借助动态编译绕过 main 的调度。
 脚本同步或微任务死循环均可终止；模型等待期间的超时仍由现有传输层负责。
 
 onInput 返回时必须没有未完成调用、reader 或 present。未读取的隐藏 response 不影响成功；调用或 reader 失败都会使整轮失败，脚本 catch 不能将其转为成功提交。
-Worker 的临时数据通过只读 view 更新演出和历史；只有整轮成功才更新 Session 的完整 snapshot，失败、取消、超时均恢复整轮基准。
+Worker 的临时数据通过只读 view 更新演出和历史；只有整轮成功才更新 Session 的完整 snapshot。异常/超时停止并保留最后已发布的变量、历史及画面，不自动回滚；失败 patch 不提交。
+只有 retry 才从失败现场恢复轮前基准并重新执行；切换/卸载丢弃现场。内部主动取消仍清理当前执行，不允许迟到结果写入。
 重试成功轮同样从原始基准开始，不重复追加上下文；失败轮分配过的消息 ID 不在下一轮复用。
 终止后不再接收旧 Worker 结果，迟到模型/文件回调也不能写回新 Session。
 
 ## 输入与交付边界
 
-共享 useChatGeneration 接受内部 mainSession 注入，复用现有发送、重试、停止入口；普通聊天和旧播放器保持原路径。
-GameCardRuntimeProvider 的 mainSession 由内部宿主管理，Session 切换必须替换实例，输入 Hook 释放旧实例。
+共享 useChatGeneration 接受 mainSession，复用现有发送、重试、停止入口；普通聊天保留原路径。
+GameCardRuntimeProvider 从已验证的卡片准备主程序与 Agent 定义，加载期间禁止输入。
+切卡销毁旧实例，Session 切换通过 beginLoad/restoreHistory 恢复数据；异步加载结果按请求代次隔离。
 此通道尚不由普通导入流程自动创建；注入时使用带版本的完整 Session 保存恢复，不写入旧格式数据。
 reader/present 的读取、展示记录与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)。注入时也跳过旧 Session 加载和初始化，避免覆盖新运行时数据。
 保存与恢复接口见 [多 Agent Session](./game_runtime_sessions.md)。新协议仍未向普通玩家开放，不迁移旧卡存档。

@@ -6,7 +6,7 @@ function ordinaryPatches(text) {
   return createReaderTokenizer().feed(text, true).filter(token => token.type === 'state_patch').map(token => token.text);
 }
 
-function completeResponse(rawContent, config, store) {
+function completeResponse(rawContent, config, store, observe = () => {}) {
   const before = store.snapshot();
   let candidate = before;
   const updates = [];
@@ -25,12 +25,14 @@ function completeResponse(rawContent, config, store) {
       ? rawContent.replace(/<state_patch(?:_stream)?>[\s\S]*?<\/state_patch(?:_stream)?>/g, '') : rawContent,
     stateBefore: before, stateAfter: candidate, updates
   }).violations);
+  observe('model.response.validation', { violations, candidate, updates });
   if (violations.some(item => item.onFailure === 'retry')) {
     const error = new Error(`response validation failed: ${violations.map(item => item.message).join('; ')}`);
     error.violations = violations;
     throw error;
   }
   store.replace(candidate);
+  observe('state_patch.end', { updates });
   return violations;
 }
 

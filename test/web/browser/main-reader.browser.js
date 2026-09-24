@@ -23,7 +23,7 @@ describe('main reader → existing presentation (real SSE and media)', () => {
     expect(second.state.visual.scene).toBe('outside');
     expect(second.state.visual.portraits).toEqual({ guide: 'smile' });
     expect(second.state.audio.bgm).toBe('theme');
-    await browser.$('button=narrator').click();
+    await browser.$('button[aria-label="下一个 Agent"]').click();
     expect(await browser.$('[data-gc-part="message-history"]').getText()).toContain('state_patch_stream');
     await browser.$('button=Next reader').click();
     await browser.waitUntil(() => browser.execute(() => Boolean(window.mainReaderHarness.result())));
@@ -45,7 +45,7 @@ describe('main reader → existing presentation (real SSE and media)', () => {
     const play = await browser.$('#reader-harness .game-card-bgm-btn.blocked');
     if (await play.isExisting()) await play.click();
     await browser.waitUntil(() => browser.execute(() => !document.querySelector('#reader-harness audio').paused));
-    await browser.$('button=narrator').click();
+    await browser.$('button[aria-label="下一个 Agent"]').click();
     expect(await browser.$('[data-gc-part="message-history"]').getText()).toContain('state_patch_stream');
     await browser.$('button=Next reader').click();
     expect((await browser.execute(() => window.mainReaderHarness.snapshot())).state).toEqual(before.state);
@@ -60,7 +60,7 @@ describe('main reader → existing presentation (real SSE and media)', () => {
     expect(after.contexts.narrator.messages.length).toBe(before.contexts.narrator.messages.length + 1);
     expect(after.records.length).toBe(before.records.length + 1);
   });
-  it('failure after visible reading restores the entire baseline and media', async () => {
+  it('failure after visible reading preserves the scene without saving the failed round', async () => {
     await browser.execute(() => window.mainReaderHarness.init());
     await browser.$('button=Fail reader').click();
     await browser.waitUntil(() => browser.execute(() => Boolean(window.mainReaderHarness.view().reading)));
@@ -72,7 +72,13 @@ describe('main reader → existing presentation (real SSE and media)', () => {
     const result = await browser.execute(() => window.mainReaderHarness.result());
     expect(result.errorMessage).toContain('reader rollback');
     expect((await browser.execute(() => window.mainReaderHarness.snapshot())).records).toEqual([]);
-    await browser.waitUntil(() => browser.execute(() => !document.querySelector('#reader-harness img')
-      && document.querySelector('#reader-harness audio').paused));
+    const stopped = await browser.execute(() => window.mainReaderHarness.view());
+    expect(stopped.reading).toBeNull();
+    expect(stopped.state.visual.scene).toBe('outside');
+    expect(stopped.records[0].content).toContain('第二段。');
+    await browser.waitUntil(() => browser.execute(() => document.querySelectorAll('#reader-harness img').length === 2
+      && [...document.querySelectorAll('#reader-harness img')].every(img => img.complete && img.naturalWidth > 0)));
+    await browser.$('button=Save reader').click();
+    await expect(browser.$('#reader-harness output')).toHaveText(expect.stringContaining('不能保存'));
   });
 });

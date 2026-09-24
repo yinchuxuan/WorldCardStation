@@ -26,18 +26,16 @@ pub async fn e2e_seed_game_card(state: State<'_, AppStorage>, card: Value) -> Ca
 pub async fn import_game_card_from_file(
     app: AppHandle,
     state: State<'_, AppStorage>,
-    tasks: State<'_, crate::tavern_tasks::TavernTasks>,
     tavern_only: Option<bool>,
 ) -> CardResult<Value> {
+    if tavern_only.unwrap_or(false) {
+        return Err(GameCardError::new(
+            "酒馆转换尚未支持 formatVersion 2，请先迁移为原生游戏卡。",
+        ));
+    }
     #[cfg(feature = "e2e")]
     if let Some(path) = std::env::var_os("WORLD_CARD_STATION_E2E_IMPORT_FILE") {
-        return tasks
-            .prepare_file(
-                &state,
-                std::path::Path::new(&path),
-                tavern_only.unwrap_or(false),
-            )
-            .await;
+        return crate::player_card_import::import(&state, std::path::Path::new(&path)).await;
     }
     let selected = app
         .dialog()
@@ -53,9 +51,7 @@ pub async fn import_game_card_from_file(
     let path = selected
         .into_path()
         .map_err(|error| GameCardError::new(error.to_string()))?;
-    tasks
-        .prepare_file(&state, &path, tavern_only.unwrap_or(false))
-        .await
+    crate::player_card_import::import(&state, &path).await
 }
 
 #[tauri::command]
@@ -63,6 +59,9 @@ pub async fn set_active_game_card(
     state: State<'_, AppStorage>,
     id: Option<String>,
 ) -> CardResult<Value> {
+    if let Some(id) = id.as_deref() {
+        crate::player_card_import::validate_installed(&state, id)?;
+    }
     game_card_repository::set_active(&state, id.as_deref()).await?;
     Ok(json!({}))
 }
@@ -75,7 +74,11 @@ pub async fn delete_game_card(state: State<'_, AppStorage>, id: String) -> CardR
 
 #[tauri::command]
 pub async fn get_active_game_card(state: State<'_, AppStorage>) -> CardResult<Option<Value>> {
-    game_card_repository::active(&state).await
+    let card = game_card_repository::active(&state).await?;
+    if let Some(id) = card.as_ref().and_then(|card| card["id"].as_str()) {
+        crate::player_card_import::validate_installed(&state, id)?;
+    }
+    Ok(card)
 }
 
 #[tauri::command(rename_all = "camelCase")]

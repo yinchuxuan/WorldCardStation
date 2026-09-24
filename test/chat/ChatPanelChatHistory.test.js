@@ -2,7 +2,7 @@
  * Tests for ChatPanel Chat History Persistence
  */
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import ChatPanel from '../../src/renderer/ChatPanel.jsx';
 
 const platformMock = global.platformMock;
@@ -85,38 +85,12 @@ describe('ChatPanel Chat History Persistence', () => {
       jest.advanceTimersByTime(200);
     });
 
-    // saveChatHistory should have been called after response completes
-    expect(platformMock.saveChatHistory).toHaveBeenCalled();
+    await waitFor(() => expect(platformMock.saveChatHistory.mock.calls.at(-1)?.[0]).toEqual([
+      expect.objectContaining({ role: 'user', content: 'Hello' }),
+      expect.objectContaining({ role: 'assistant', content: 'Test response' })
+    ]));
   });
 
-  test('should not expose the legacy clear history button after messages save', async () => {
-    render(React.createElement(ChatPanel));
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    // Send a message first
-    const input = screen.getByPlaceholderText('输入您的回答...');
-    fireEvent.change(input, { target: { value: 'Hello' } });
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.advanceTimersByTime(100);
-    });
-
-    const sendBtn = document.querySelector('button[type="submit"]');
-    fireEvent.click(sendBtn);
-
-    await act(async () => {
-      jest.advanceTimersByTime(200);
-    });
-
-    expect(platformMock.saveChatHistory).toHaveBeenCalled();
-    expect(screen.queryByTitle('清空聊天历史')).not.toBeInTheDocument();
-    expect(document.querySelector('.chat-header-clear-btn')).toBeNull();
-  });
 
   test('should handle getChatHistory failure gracefully', async () => {
     platformMock.getChatHistory.mockResolvedValue({ success: false, error: 'Read error', messages: [] });

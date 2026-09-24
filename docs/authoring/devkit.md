@@ -19,7 +19,7 @@ devkit/
   spec/game_card/                 # 按 rules/presentation/packaging 分类的 DSL 文档
   spec/authoring/runtime_trace.md # 运行日志契约
   spec/compatibility/tavern/      # 相关转换语义
-  templates/minimal/card.json     # 不带库或外部资源的最小卡
+  templates/minimal/             # card.json + main.js + Agent JSON
   libs/worldbook-library/         # 通用脚本和 README/SEMANTICS
 ```
 

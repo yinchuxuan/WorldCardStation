@@ -18,7 +18,7 @@ client --init-project .
 
 ## 2. 编写游戏卡
 
-按需查阅 [DSL spec](./spec/README.md)，编写根目录的 `card.json`、规则、状态和内容资源。优先使用普通 DSL，复杂逻辑再用 `exec` 或 lib。
+按需查阅 [DSL spec](./spec/README.md)，先读 [清单与主程序](./spec/game_card/runtime.md)。card.json 声明 formatVersion 2、main 和 agents；main.js 编排一轮输入，Agent JSON 中的规则准备各自 Messages。使用共享 State 传递输入和业务结果；通过 reader/present 显式展示回复。短时规则逻辑可用 exec 或 lib。
 
 接入 lib 时，按以下流程操作：
 

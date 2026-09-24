@@ -27,7 +27,6 @@ describe('useChatGeneration response validation', () => {
   const originals = { ...generationServices };
 
   beforeEach(() => {
-    generationServices.toGameCardApiMessages = jest.fn(messages => messages);
     generationServices.prepareAfterResponseMessages = jest.fn(async options => ({
       ...options,
       applied: true,
@@ -124,7 +123,7 @@ describe('useChatGeneration response validation', () => {
     );
   });
 
-  test('validates late segmented patches without committing them early', async () => {
+  test('validates patches that arrive after visible content', async () => {
     const activeCard = card({
       id: 'score-update',
       type: 'state.update',
@@ -133,7 +132,6 @@ describe('useChatGeneration response validation', () => {
       value: { eq: 2 },
       message: '必须更新 score'
     });
-    activeCard.display = { segmentedReading: true };
     activeCard.state = { schema: {
       score: { type: 'number', default: 0, llmWrite: true }
     } };
@@ -148,9 +146,9 @@ describe('useChatGeneration response validation', () => {
     await act(async () => { await result.current.retry(); });
 
     expect(generationServices.sendChatRequest).toHaveBeenCalledTimes(1);
-    expect(options.setGameState).not.toHaveBeenCalledWith({ score: 2 });
+    expect(options.setGameState).toHaveBeenCalledWith({ score: 2 });
     const accepted = options.setMessages.mock.calls.at(-1)[0];
-    expect(accepted.at(-1)._meta.statePatchPlayback.appliedPatchCount).toBe(0);
+    expect(accepted.at(-1).content).toContain('<state_patch>');
   });
 
   test('keeps the current retry attempt message id when it is stopped', async () => {

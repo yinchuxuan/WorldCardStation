@@ -1,6 +1,26 @@
 use super::*;
 
 #[test]
+fn web_release_preserves_agent_declaration_order() {
+    let f = Fixture::new();
+    let mut card = read_card(&f.source).unwrap();
+    card["agents"] = serde_json::from_str(
+        r#"{"z_first":"agents/narrator.json","a_second":"agents/narrator.json"}"#,
+    ).unwrap();
+    write_json(&f.source.join("card.json"), &card).unwrap();
+    let published = f.publish();
+    let installed = read_card(&f.release_dir(&published)).unwrap();
+    assert_eq!(installed["agents"].as_object().unwrap().keys().collect::<Vec<_>>(),
+        vec!["z_first", "a_second"]);
+    assert_eq!(f.publish().release_id, published.release_id);
+    card["agents"] = serde_json::from_str(
+        r#"{"a_second":"agents/narrator.json","z_first":"agents/narrator.json"}"#,
+    ).unwrap();
+    write_json(&f.source.join("card.json"), &card).unwrap();
+    assert_ne!(f.publish().content_fingerprint, published.content_fingerprint);
+}
+
+#[test]
 fn web_release_resource_change_and_cover_identity_are_separate() {
     let f = Fixture::new();
     let first = f.publish();

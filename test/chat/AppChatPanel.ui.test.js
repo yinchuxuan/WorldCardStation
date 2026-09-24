@@ -17,23 +17,6 @@ describe('ChatPanel Component - UI', () => {
     global.fetch.mockResolvedValue(global.createStreamingMock('Test response'));
   });
 
-  test('should render ChatPanel component and toggle header', async () => {
-    const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
-
-    _render(_React.createElement(ChatPanel, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('普通聊天')).toBeInTheDocument();
-
-    const header = document.querySelector('.chat-header');
-    _fireEvent.click(header);
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('msg历史记录')).toBeInTheDocument();
-  });
-
   test('should show model name when configured', async () => {
     const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
 
@@ -63,7 +46,7 @@ describe('ChatPanel Component - UI', () => {
     });
   });
 
-  test('should disable submit button when input is empty', async () => {
+  test('enables nonblank input and rejects empty or whitespace-only submissions', async () => {
     const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
 
     _render(_React.createElement(ChatPanel, null));
@@ -77,56 +60,15 @@ describe('ChatPanel Component - UI', () => {
     expect(document.querySelector('form[data-gc-part="chat-input"]')).toBeTruthy();
     expect(document.querySelector('textarea[data-gc-part="chat-input-textarea"]')).toBeTruthy();
     expect(submitBtn.dataset.gcPart).toBe('chat-send-button');
-  });
-
-  test('should enable submit button when input has value', async () => {
-    const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
-
-    _render(_React.createElement(ChatPanel, null));
-
-    await act(async () => { await Promise.resolve(); });
-
     const input = _screen.getByPlaceholderText('输入您的回答...');
     _fireEvent.change(input, { target: { value: 'some text' } });
-
-    await act(async () => { await Promise.resolve(); });
-
-    const submitBtn = document.querySelector('button[type="submit"]');
-    expect(submitBtn.disabled).toBe(false);
-  });
-
-  test('should not submit when input is only whitespace', async () => {
-    const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
-
-    _render(_React.createElement(ChatPanel, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    const input = _screen.getByPlaceholderText('输入您的回答...');
-    _fireEvent.change(input, { target: { value: '   ' } });
-
-    await act(async () => { await Promise.resolve(); });
-
-    _fireEvent.click(document.querySelector('button[type="submit"]'));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  test('should handle no platformMock gracefully', async () => {
-    const originalPlatformMock = global.platformMock;
-    global.platformMock = undefined;
-
-    const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
-
-    _render(_React.createElement(ChatPanel, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('普通聊天')).toBeInTheDocument();
-
-    global.platformMock = originalPlatformMock;
+    expect(submitBtn).toBeEnabled();
+    for (const value of ['   ', '']) {
+      _fireEvent.change(input, { target: { value } });
+      expect(submitBtn).toBeDisabled();
+      await act(async () => { _fireEvent.submit(input.closest('form')); });
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
   });
 
   test('should handle failed config load', async () => {

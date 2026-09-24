@@ -4,7 +4,6 @@ const path = require('node:path');
 const { card } = require('./support/cards');
 const { StreamServer } = require('./support/streamServer');
 const { activateCard, invoke, revealHeader, sendMessage, waitForHistory } = require('./support/tauri');
-
 const dataDir = path.resolve('test-results/tauri-e2e/data/game-cards/cards');
 const tracePath = (id, session = 'default') => path.join(dataDir, id, 'sessions', session, 'trace.jsonl');
 const read = file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
@@ -52,7 +51,7 @@ describe('Developer mode runtime trace', () => {
       { type: 'insert', role: 'system', content: 'transient secret body', ttl: 1, _meta: { visibility: 'llm_only', source: 'trace' } },
       { type: 'remove', predicate: { '_meta.source': 'trace' } },
       { type: 'exec', sourceFile: 'main.js', args: { score: 3 } }
-    ] }, { when: { phase: 'after_response' }, then: [
+    ] }, { when: { phase: 'post_response' }, then: [
       { type: 'replace', predicate: { role: 'assistant' }, content: 'changed {{original_content}}' }
     ] }];
     await activateCard(card(id, 'Trace Flow', [{ $import: 'rules.json' }], { files: { entry: 'entry.md' } }), {
@@ -72,15 +71,17 @@ describe('Developer mode runtime trace', () => {
     await titleButton.click();
     server.queueOpenAi('original answer');
     await sendMessage('question');
-    const history = await waitForHistory(value => value.messages.some(message => message.content === 'changed original answer'));
+    const history = await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.some(message => message.content === 'changed original answer'));
     expect(history.gameState.score).toBe(3);
-    const events = await waitEvent(tracePath(id), 'generation.commit');
-    const insertion = events.find(event => event.type === 'action.end' && event.actionType === 'insert');
+    const events = await waitEvent(tracePath(id), 'agent.end');
+    const insertion = events.find(event => event.type === 'action.end' && event.actionType === 'insert'
+      && event.changes?.messages?.added?.some(message => message.content === 'transient secret body'));
     expect(insertion.changes.messages.added[0]).toMatchObject({ content: 'transient secret body', ttl: 1, _meta: { visibility: 'llm_only' } });
     expect(insertion.source).toEqual({ file: 'rules.json', pointer: '/0/then/0' });
     expect(events.some(event => event.type === 'resource.read' && event.reference === 'entry')).toBe(true);
     expect(events.find(event => event.type === 'exec.end').result.effects).toEqual({ selected: [1] });
-    expect(events.find(event => event.type === 'model.request').messages).toEqual(server.requests[0].messages);
+    expect(events.find(event => event.type === 'model.request').normalized_messages).toEqual(server.requests[0].messages);
+    expect(events.find(event => event.type === 'agent.start')).toMatchObject({ agentId: 'narrator', sourceFile: 'agents/narrator.json' });
     expect(fs.readFileSync(tracePath(id), 'utf8')).not.toContain('NEVER-LOG-THIS-TRACE-KEY');
     const current = await currentTrace();
     expect(current).toMatchObject({ cardId: id, session: { id: 'default' }, file: tracePath(id) });
@@ -91,11 +92,11 @@ describe('Developer mode runtime trace', () => {
     const before = fs.readFileSync(tracePath(id), 'utf8');
     server.queueOpenAi('second answer');
     await sendMessage('second question');
-    await waitForHistory(value => value.messages.some(message => message.content === 'changed second answer'));
+    await waitForHistory(value => value.runtimeSession.current.contexts.narrator.messages.some(message => message.content === 'changed second answer'));
     expect(fs.readFileSync(tracePath(id), 'utf8')).toBe(before);
   });
 
-  it('keeps actions before a real Worker timeout and logs rule rollback without sending a model request', async () => {
+  it('keeps actions before a real Worker timeout and logs whole-round rollback without inventing a script result', async () => {
     const id = 'runtime-trace-timeout';
     await activateCard(card(id, 'Trace Timeout', [{ when: { phase: 'pre_send' }, then: [
       { type: 'state.set', path: 'attempted', value: 'visible before failure' },
@@ -103,14 +104,14 @@ describe('Developer mode runtime trace', () => {
     ] }]));
     await mode(true);
     await sendMessage('trigger');
-    const events = await waitEvent(tracePath(id), 'rule.rollback');
-    expect(events.find(event => event.type === 'action.end').changes.state)
+    const events = await waitEvent(tracePath(id), 'operation.end');
+    expect(events.find(event => event.type === 'action.end' && event.actionType === 'state.set').changes.state)
       .toContainEqual({ path: '/attempted', hasBefore: false, hasAfter: true, after: 'visible before failure' });
-    expect(events.find(event => event.type === 'exec.error').error.code).toBe('SCRIPT_TIMEOUT');
-    expect(events.find(event => event.type === 'rule.rollback').changes.state)
-      .toContainEqual({ path: '/attempted', hasBefore: true, hasAfter: false, before: 'visible before failure' });
+    expect(events.find(event => event.type === 'main.view' && event.reason === 'rollback').error).toContain('timed out');
+    expect(events.some(event => event.type === 'exec.end')).toBe(false);
+    expect((await invoke('get_chat_history')).gameState.attempted).toBeUndefined();
     expect(server.requests).toHaveLength(0);
-    await expect($('.chat-history')).toHaveText(expect.stringContaining('Script execution timed out'));
+    await expect($('body')).toHaveText(expect.stringContaining('main.js computation timed out'));
     await mode(false);
   });
 
@@ -119,7 +120,8 @@ describe('Developer mode runtime trace', () => {
     await activateCard(card(id, 'Trace Sessions', [{ when: { phase: 'init' }, then: [
       { type: 'insert', role: 'assistant', content: 'opening' }
     ] }]));
-    await waitForHistory(value => value.messages.some(message => message.content === 'opening'));
+    server.queueOpenAi('first'); await sendMessage('第一轮');
+    await waitForHistory(value => value.runtimeSession?.current.contexts.narrator.messages.some(message => message.content === 'opening'));
     expect(fs.existsSync(tracePath(id))).toBe(false);
     await mode(true);
     await browser.execute(() => document.querySelector('[aria-label="管理聊天会话"]').click());
@@ -127,12 +129,13 @@ describe('Developer mode runtime trace', () => {
     await browser.execute(() => document.querySelector('[aria-label="新建会话"]').click());
     await browser.waitUntil(async () => (await invoke('get_chat_history')).traceScope.sessionId !== 'default');
     const scope = (await invoke('get_chat_history')).traceScope;
+    server.queueOpenAi('second'); await sendMessage('新会话的第一轮');
     await waitEvent(tracePath(id, scope.sessionId), 'action.end');
     const oldEvents = read(tracePath(id));
     const newEvents = read(tracePath(id, scope.sessionId));
     expect(oldEvents.at(-1).type).toBe('capture.end');
     expect(newEvents[0].snapshot.messages).toEqual([]);
-    expect(newEvents.some(event => event.kind === 'init' && event.type === 'action.end')).toBe(true);
+    expect(newEvents.some(event => event.phase === 'init' && event.agentId === 'narrator' && event.type === 'action.end')).toBe(true);
     expect(newEvents.every(event => event.sessionId === scope.sessionId)).toBe(true);
     const current = await currentTrace();
     expect(current).toMatchObject({ cardId: id, session: { id: scope.sessionId, title: '新会话' }, file: tracePath(id, scope.sessionId) });

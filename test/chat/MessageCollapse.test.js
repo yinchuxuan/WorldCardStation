@@ -4,6 +4,7 @@
  */
 
 const MessageCollapseRenderer = require('../../src/renderer/components/MessageCollapseRenderer.jsx').default;
+const { findLastRoleIndex } = require('../../src/renderer/chat/messageSelection.js');
 const R = require('react');
 const { render: _render } = require('@testing-library/react');
 
@@ -14,7 +15,7 @@ describe('MessageCollapseRenderer', () => {
       { role: 'assistant', content: 'hi' },
       { role: 'user', content: 'again' }
     ];
-    expect(MessageCollapseRenderer.findLastUserIndex(msgs)).toBe(2);
+    expect(findLastRoleIndex(msgs, 'user')).toBe(2);
   });
 
   test('findLastUserIndex returns -1 when no user messages', () => {
@@ -22,11 +23,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'assistant', content: 'hi' },
       { role: 'assistant', content: 'bye' }
     ];
-    expect(MessageCollapseRenderer.findLastUserIndex(msgs)).toBe(-1);
+    expect(findLastRoleIndex(msgs, 'user')).toBe(-1);
   });
 
   test('findLastUserIndex with empty array returns -1', () => {
-    expect(MessageCollapseRenderer.findLastUserIndex([])).toBe(-1);
+    expect(findLastRoleIndex([], 'user')).toBe(-1);
   });
 
   test('render shows collapsed indicator when history should be collapsed', () => {
@@ -36,11 +37,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'user', content: 'second' }
     ];
     const mockTw = { displayedCount: 0, streamContent: { slice: () => '', content: '' } };
-    const renderMarkdown = (text) => R.createElement('div', { className: 'content' }, text);
+    const renderMarkdown = (message) => R.createElement('div', { className: 'content' }, message.content);
     const renderAssistantMsg = (msg) => R.createElement('div', { className: 'assistant' }, msg.content);
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+    const result = MessageCollapseRenderer.render({ messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
       onExpand: () => {} });
 
@@ -56,11 +57,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'user', content: 'second' }
     ];
     const mockTw = { displayedCount: 0, streamContent: { slice: () => '', content: '' } };
-    const renderMarkdown = (text) => R.createElement('div', { className: 'content' }, text);
+    const renderMarkdown = (message) => R.createElement('div', { className: 'content' }, message.content);
     const renderAssistantMsg = (msg) => R.createElement('div', { className: 'assistant' }, msg.content);
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+    const result = MessageCollapseRenderer.render({ messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: true,
       onExpand: () => {} });
 
@@ -74,11 +75,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'user', content: 'test' }
     ];
     const mockTw = { displayedCount: 0, streamContent: { slice: () => '', content: '' } };
-    const renderMarkdown = (text) => R.createElement('div', { className: 'content' }, text);
+    const renderMarkdown = (message) => R.createElement('div', { className: 'content' }, message.content);
     const renderAssistantMsg = () => null;
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+    const result = MessageCollapseRenderer.render({ messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
       onExpand: () => {} });
 
@@ -91,11 +92,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'user', content: 'test' }
     ];
     const mockTw = { displayedCount: 0, streamContent: { slice: () => '', content: '' } };
-    const renderMarkdown = (text) => R.createElement('div', { className: 'content' }, text);
+    const renderMarkdown = (message) => R.createElement('div', { className: 'content' }, message.content);
     const renderAssistantMsg = () => R.createElement('div', { className: 'streaming' }, 'streaming');
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: true, typewriter: mockTw, renderUserMessage: renderMarkdown,
+    const result = MessageCollapseRenderer.render({ messages, isLoading: true, typewriter: mockTw, renderUserMessage: renderMarkdown,
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
       onExpand: () => {} });
 
@@ -108,7 +109,7 @@ describe('MessageCollapseRenderer', () => {
   });
 
   test('render returns null for empty messages and not loading', () => {
-    const result = MessageCollapseRenderer.render({ rawMessages: [], isLoading: false, typewriter: null, renderUserMessage: () => {},
+    const result = MessageCollapseRenderer.render({ messages: [], isLoading: false, typewriter: null, renderUserMessage: () => {},
       renderAssistantMessage: () => {}, renderRetryButton: () => null, isExpanded: false, onExpand: () => {} });
     expect(result).toBe(null);
   });
@@ -122,11 +123,11 @@ describe('MessageCollapseRenderer', () => {
       { role: 'user', content: 'e' }
     ];
     const mockTw = { displayedCount: 0, streamContent: { slice: () => '', content: '' } };
-    const renderMarkdown = (text) => R.createElement('div', { className: 'content' }, text);
+    const renderMarkdown = (message) => R.createElement('div', { className: 'content' }, message.content);
     const renderAssistantMsg = () => null;
     const renderRetryBtn = () => null;
 
-    const result = MessageCollapseRenderer.render({ rawMessages: messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
+    const result = MessageCollapseRenderer.render({ messages, isLoading: false, typewriter: mockTw, renderUserMessage: renderMarkdown,
       renderAssistantMessage: renderAssistantMsg, renderRetryButton: renderRetryBtn, isExpanded: false,
       onExpand: () => {} });
 

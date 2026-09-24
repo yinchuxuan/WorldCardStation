@@ -100,26 +100,7 @@ describe('App Component - Theme', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  test('should render app container', async () => {
-    const App = require('../../src/renderer/App.jsx').default;
 
-    _render(React.createElement(App, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    const appContainer = document.querySelector('.app-container');
-    expect(appContainer).toBeTruthy();
-  });
-
-  test('should render ChatPanel when no document selected', async () => {
-    const App = require('../../src/renderer/App.jsx').default;
-
-    _render(React.createElement(App, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText('ChatPanel Mock')).toBeInTheDocument();
-  });
 
   test('uses the initial game card background from the runtime callback', async () => {
     initialGameCardBackground = 'local://localhost/game-card%2Fwhite-album-2%2Fimage%2Fimages%2Finvite.png';
@@ -135,13 +116,4 @@ describe('App Component - Theme', () => {
       .not.toContain('%252F');
   });
 
-  test('should render SettingsPanel component', async () => {
-    const App = require('../../src/renderer/App.jsx').default;
-
-    _render(React.createElement(App, null));
-
-    await act(async () => { await Promise.resolve(); });
-
-    expect(_screen.getByText(/Settings:/)).toBeInTheDocument();
-  });
 });

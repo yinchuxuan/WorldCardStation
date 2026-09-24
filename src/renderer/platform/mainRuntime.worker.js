@@ -30,6 +30,8 @@ listen('message', async ({ data }) => {
   try {
     const execute = prepareMainExecution(realm, data.program, {
       generate: ({ signal: _signal, ...args }, callbacks) => request('model', args, callbacks),
+      display: args => request('present', args),
+      onUpdate: (view, detail) => post({ type: 'view', view, detail }),
       readText: path => request('read', { path })
     });
     const result = await execute({ input: data.input, snapshot: data.snapshot, idPrefix: data.idPrefix });

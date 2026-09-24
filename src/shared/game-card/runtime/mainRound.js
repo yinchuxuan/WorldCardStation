@@ -1,15 +1,26 @@
 import { createAgentRuntime } from './agentRuntime.js';
+import { createMainReaders } from './mainReaders.js';
 
 // Lives inside the disposable script realm. Only a completed round exports data.
-async function executeMainRound({ onInput, input, ...options }) {
-  const runtime = createAgentRuntime(options);
+async function executeMainRound({ onInput, input, display = async () => { throw new Error('presentation host unavailable'); },
+  onUpdate = () => {}, ...options }) {
+  let readers;
+  const runtime = createAgentRuntime({ ...options, onUpdate: (_, detail) => onUpdate(readers.view(), detail) });
   let valid = true, rejectFailure;
   const pending = new Set();
   const failed = new Promise((_, reject) => { rejectFailure = reject; });
   const check = () => { if (!valid) throw new Error('input context expired'); };
+  readers = createMainReaders({ runtime, snapshot: options.snapshot, idPrefix: options.idPrefix || '',
+    separator: options.definition.card.display?.segmentSeparator, check, fail: rejectFailure, display, update: onUpdate });
   const ctx = Object.freeze({
     state: Object.freeze(Object.fromEntries(Object.entries(runtime.state).map(([key, fn]) =>
       [key, (...args) => { check(); return fn(...args); }]))),
+    createReader: readers.createReader,
+    present(reader) {
+      const work = readers.present(reader);
+      work.catch(rejectFailure);
+      return work;
+    },
     agents: Object.freeze({
       messages(id) { check(); return runtime.agents.messages(id); },
       call(id) {
@@ -25,7 +36,8 @@ async function executeMainRound({ onInput, input, ...options }) {
   try {
     await Promise.race([Promise.resolve().then(() => onInput(ctx, input)), failed]);
     if (pending.size) throw new Error('onInput returned with an unfinished Agent call; await call.done()');
-    return runtime.snapshot();
+    readers.assertFinished();
+    return readers.view();
   } finally {
     valid = false;
     runtime.stop();

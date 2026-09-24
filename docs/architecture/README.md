@@ -11,4 +11,5 @@
 - [新运行时清单与加载契约](./game_runtime_manifest.md)：formatVersion 2 的内部定义、资源路径与模型引用。
 - [最小执行契约](./game_runtime_api.md)：后续主程序、调用句柄、消息快照和 reader 的正式 API。
 - [受控主程序与输入轮](./game_runtime_main.md)：Worker 隔离、卡内模块、整轮重试和内部输入通道。
+- [Reader 与现有演出](./game_runtime_reader.md)：双模式读取、可见记录、分段演出与 Agent 历史。
 - [游戏运行时重构实施步骤](./game_runtime_implementation.md)：分阶段交付、依赖关系、测试与验收门槛。

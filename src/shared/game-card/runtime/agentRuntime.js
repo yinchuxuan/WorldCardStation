@@ -7,7 +7,7 @@ import { runAgentRules } from './agentRules.js';
 import { completeResponse } from './completeResponse.js';
 
 // Host-only API. No main.js, display, storage or platform dependency.
-function createAgentRuntime({ definition, generate, dependencies = {}, snapshot, idPrefix = '' }) {
+function createAgentRuntime({ definition, generate, dependencies = {}, snapshot, idPrefix = '', onUpdate = () => {} }) {
   const card = mergeRuntimeStateSchema({ ...definition.card,
     state: { ...definition.card.state, schema: definition.stateSchema } });
   const store = createSharedState(card.state.schema, card.state.initial || {});
@@ -15,6 +15,9 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
   let sequence = 0;
   let active;
   let stopped = false;
+  let ruleWork;
+  const view = () => cloneJson({ state: store.snapshot(), contexts });
+  const publish = detail => { if (!stopped) onUpdate(view(), detail); };
   const nextId = () => `msg-${idPrefix}${++sequence}`;
   if (snapshot) {
     store.replace(snapshot.state);
@@ -42,10 +45,10 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
       if (controller.signal.aborted || active !== token || stopped) throw new Error('Agent call cancelled');
     }
     const agent = definition.agents[agentId].definition;
-    const phase = name => runAgentRules({
+    const phase = name => (ruleWork = runAgentRules({
       card: { ...card, rules: agent.rules }, agentId, phase: name, context, store, dependencies,
       messages, nextId, check
-    });
+    }).then(effects => publish({ type: 'rules', effects })));
     async function execute() {
       check();
       if (!context.initialized) {
@@ -65,9 +68,11 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
       check();
       stream.finish();
       const warnings = completeResponse(content, agent.responseValidation, store);
+      publish({ type: 'model-patch' });
       context.messages.push({ id: messageId, role: 'assistant', content,
         ...(thinking ? { thinking } : {}), ...(warnings.length ? { _meta: { validationWarnings: warnings } } : {}) });
       await phase('post_response');
+      publish({ type: 'agent' });
     }
     // Abort races even an uncooperative transport/exec; check fences its late results.
     let onAbort;
@@ -89,6 +94,16 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
     return Object.freeze({ messageId, response: stream.response, done: () => done });
   }
   return Object.freeze({
+    view,
+    async applyReadingPatch(text) {
+      // Rules run on an async pipeline snapshot. Do not overwrite a concurrent reading commit.
+      let waiting;
+      do { waiting = ruleWork; await waiting; } while (waiting !== ruleWork);
+      if (stopped) throw new Error('Agent runtime stopped');
+      const result = store.patch(text);
+      store.replace(result.state);
+      publish({ type: 'reading-patch', updates: result.updates });
+    },
     snapshot() {
       if (active) throw new Error('cannot snapshot an unfinished Agent call');
       return cloneJson({ state: store.snapshot(), contexts });
@@ -97,7 +112,9 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
     state: Object.freeze(Object.fromEntries(Object.entries(store.api).map(([name, operation]) => [name, (...args) => {
       if (stopped) throw new Error('Agent runtime stopped');
       if (active && ['set', 'delete'].includes(name)) throw new Error('cannot write State during an Agent call');
-      return operation(...args);
+      const result = operation(...args);
+      if (['set', 'delete'].includes(name)) publish({ type: 'state' });
+      return result;
     }]))),
     cancel: () => active?.controller.abort(),
     stop() { stopped = true; active?.controller.abort(); }

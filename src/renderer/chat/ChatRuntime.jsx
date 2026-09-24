@@ -29,6 +29,10 @@ import useModelConfig from './useModelConfig.js';
 import useReadingStatePatches from './useReadingStatePatches.js';
 import useChatDisplay from './useChatDisplay.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
+import useMainPresentation from './useMainPresentation.js';
+import useMainReading from './useMainReading.js';
+import MainMessages from './MainMessages.jsx';
+import AgentHistoryTitle from '../components/AgentHistoryTitle.jsx';
 function ChatRuntime({
   BgmPlayer = GameCardBgmPlayer,
   BackgroundRuntime = GameCardBackgroundRuntime,
@@ -39,6 +43,7 @@ function ChatRuntime({
   const [messages, setMessages] = React.useState([]), [isLoading, setIsLoading] = React.useState(false);
   const [showMsgHistory, setShowMsgHistory] = React.useState(false);
   const [msgHistoryMessages, setMsgHistoryMessages] = React.useState(null);
+  const [agentSelection, setAgentSelection] = React.useState(null);
   const [showStreamThinking, setShowStreamThinking] = React.useState(true);
   const [isInputHovered, setIsInputHovered] = React.useState(false);
   const [isInputTriggerHovered, setIsInputTriggerHovered] = React.useState(false);
@@ -51,6 +56,10 @@ function ChatRuntime({
   const modelConfig = useModelConfig();
   const typewriter = useTypewriter();
   const presentation = useGameCardPresentation();
+  const mainView = useMainPresentation({ mainSession: runtime.mainSession, card: runtime.activeCard, presentation, setGameState: runtime.setGameState });
+  const mainReading = useMainReading(runtime.mainSession, mainView, chatPanelRef, showMsgHistory);
+  const agentId = (agentSelection && agentSelection.session === runtime.mainSession && mainView.contexts[agentSelection.id])
+    ? agentSelection.id : Object.keys(mainView.contexts)[0];
   const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, enabled: !runtime.mainSession });
   const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
   const generation = useChatGeneration({
@@ -72,7 +81,7 @@ function ChatRuntime({
   useAppClosePersistence({ stopGeneration: generation.stop, flush: persistence.flush });
   const scroll = useChatScroll({ messages, isLoading, displayedCount: typewriter.displayedCount, showMsgHistory });
   const session = useChatSession({
-    setMessages,
+    setMessages, enabled: !runtime.mainSession,
     setGameState: runtime.setGameState,
     setRuntimeError: runtime.setRuntimeError,
     isLoading,
@@ -100,7 +109,7 @@ function ChatRuntime({
     beginOperation: persistence.manual.beginOperation
   });
   const segmented = useSegmentedReading({
-    enabled: segmentedReading,
+    enabled: segmentedReading && !runtime.mainSession,
     isLoading, messages,
     streamContent: typewriter.streamContent,
     rawStreamContent: typewriter.rawStreamContent,
@@ -112,6 +121,7 @@ function ChatRuntime({
     restorePosition: persistence.readingPosition, restoreToken: persistence.readingRestoreToken,
     onPositionChange: persistence.setReadingPosition
   });
+  const reading = runtime.mainSession ? mainReading : segmented;
   const handleRetry = React.useCallback(async (content) => {
     const retryContent = typeof content === 'string'
       ? content
@@ -123,6 +133,7 @@ function ChatRuntime({
   const toggleHistory = () => {
     const next = !showMsgHistory;
     setShowMsgHistory(next);
+    if (runtime.mainSession) return;
     if (next && savePolicy === 'manual') setMsgHistoryMessages(messages);
     else if (next) rendererServices.sessions.loadHistory()
       .then(result => setMsgHistoryMessages(result.messages))
@@ -134,7 +145,7 @@ function ChatRuntime({
   const streamThinking = typewriter.getThinkingContent();
   const currentThinking = isLoading && streamThinking ? streamThinking : null;
   return <div className="chat-panel" data-gc-part="chat-panel"
-    ref={chatPanelRef} onClick={showMsgHistory ? undefined : segmented.advanceVisiblePage}>
+    ref={chatPanelRef} onClick={showMsgHistory ? undefined : reading.advanceVisiblePage}>
     <PlatformRequestErrorNotice error={requestError} onClose={() => setRequestError(null)} />
     <PlatformResponseWarningNotice warning={responseWarning} onClose={() => setResponseWarning(null)} />
     <GameCardStyleHost card={runtime.activeCard} />
@@ -143,12 +154,13 @@ function ChatRuntime({
       setGameState={runtime.setGameState} messages={messages} isLoading={isLoading}
       canRetry={Boolean(editUserMessage.retrySource && modelConfig?.apiUrl && modelConfig?.apiKey)}
       retrySource={editUserMessage.retrySource} onRetry={handleRetry}
-      reading={segmented.ui} onReadingNavigate={segmented.navigate}
+      reading={reading.ui} onReadingNavigate={reading.navigate}
       uiScopeKey={session.revision} onError={runtime.setRuntimeError}
       beginOperation={persistence.manual.beginOperation} canMutate={persistence.manual.canMutate} />
     <div className="chat-main" data-gc-part="chat-main">
       <ChatHeader onToggleHistory={toggleHistory}>
-        {showMsgHistory ? <span className="header-title">msg历史记录</span> : <GameCardTitleControl
+        {showMsgHistory ? <AgentHistoryTitle contexts={mainView.contexts} selected={agentId}
+          onSelect={id => setAgentSelection({ session: runtime.mainSession, id })} /> : <GameCardTitleControl
           modelName={modelConfig?.apiUrl ? (modelConfig.modelName || '已连接') : ''} isLoading={isLoading}
           onBeforeSessionChange={session.beforeLeave}
           saveControl={persistence.manual}
@@ -164,7 +176,9 @@ function ChatRuntime({
       <div className="chat-history" data-gc-part="chat-history" data-view={showMsgHistory ? 'history' : 'messages'} ref={scroll.chatHistoryRef}>
         <div className="chat-reading-veil game-card-visual-panel" data-gc-part="chat-reading-veil" aria-hidden="true" />
         {runtime.runtimeError ? <GameCardErrorPanel error={runtime.runtimeError} /> : null}
-        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(msgHistoryMessages) : <ChatMessages
+        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(runtime.mainSession ? mainView.contexts[agentId]?.messages : msgHistoryMessages)
+          : runtime.mainSession ? <MainMessages messages={messages} reading={mainReading} display={display} displayRevision={displayRevision}
+            isLoading={isLoading} handleRetry={handleRetry} /> : <ChatMessages
           display={display} displayRevision={displayRevision} depths={depths}
           segmentedReading={segmentedReading} segmented={segmented} typewriter={typewriter}
           currentThinking={currentThinking} showStreamThinking={showStreamThinking}

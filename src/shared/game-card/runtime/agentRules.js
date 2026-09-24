@@ -2,6 +2,7 @@ import { applyRulesAsync } from '../engine/engine.js';
 import { validateMessage } from '../exec/execResult.js';
 import { cloneJson } from '../utils/jsonValue.js';
 import { assertJson, assertPath } from './sharedState.js';
+import { collectPresentationEffects } from '../engine/presentationActions.js';
 
 async function runAgentRules({ card, agentId, phase, context, store, dependencies, messages, nextId, check }) {
   const finalizeAction = (result, previous, action) => {
@@ -43,6 +44,7 @@ async function runAgentRules({ card, agentId, phase, context, store, dependencie
   check();
   context.messages = result.messages;
   store.replace(result.state);
+  return collectPresentationEffects(result.trace);
 }
 
 export { runAgentRules };

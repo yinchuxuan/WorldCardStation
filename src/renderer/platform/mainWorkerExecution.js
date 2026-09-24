@@ -37,7 +37,7 @@ function prepareMainExecution(global, program, bridge) {
   const onInput = modules[graph.entry].onInput;
   if (typeof onInput !== 'function') throw new Error(`${graph.entry}: onInput must be a function`);
   return data => executeMainRound({
-    definition, onInput, ...data, generate: bridge.generate,
+    definition, onInput, ...data, generate: bridge.generate, display: bridge.display, onUpdate: bridge.onUpdate,
     dependencies: {
       fileContents, readText: bridge.readText,
       runExecAction: (messages, state, action, options) => runExecAction(messages, state, action, { ...options, scriptExecutor })

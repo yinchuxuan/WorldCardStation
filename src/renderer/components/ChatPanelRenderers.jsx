@@ -10,6 +10,7 @@ const ChatPanelRenderers = {
     }
     const msgsArray = msgHistoryMessages.map(msg => {
       const result = { role: msg.role, content: msg.content };
+      if (msg.id) result.id = msg.id;
       const thinking = msg.thinking || msg._thinking;
       if (thinking) result.thinking = thinking;
       if (msg._meta) result._meta = msg._meta;

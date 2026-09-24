@@ -1,24 +1,9 @@
 import { validateResponse } from '../validation/responseValidation.js';
+import { createReaderTokenizer } from './readerTokens.js';
 
 // Parse complete control blocks without executing reading-time patches.
 function ordinaryPatches(text) {
-  const tags = /<\/?state_patch(?:_stream)?>/g;
-  const patches = [];
-  let open;
-  for (const match of text.matchAll(tags)) {
-    const closing = match[0].startsWith('</');
-    const name = match[0].replace(/[<>/]/g, '');
-    if (!closing) {
-      if (open) throw new Error('nested state patch tags');
-      open = { name, offset: match.index + match[0].length };
-    } else {
-      if (!open || open.name !== name) throw new Error('unmatched state patch tag');
-      if (name === 'state_patch') patches.push(text.slice(open.offset, match.index));
-      open = undefined;
-    }
-  }
-  if (open) throw new Error('unclosed state patch tag');
-  return patches;
+  return createReaderTokenizer().feed(text, true).filter(token => token.type === 'state_patch').map(token => token.text);
 }
 
 function completeResponse(rawContent, config, store) {

@@ -6,6 +6,7 @@ import { rendererServices, savePolicy, gameCardPlatform } from '../platform/inde
 import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
+  enabled = true,
   setMessages,
   setGameState,
   setRuntimeError,
@@ -19,6 +20,7 @@ function useChatSession({
 }) {
   const [revision, setRevision] = React.useState(0);
   const loadCurrent = React.useCallback(async () => {
+    if (!enabled) return null;
     persistence.reset();
     if (savePolicy === 'manual') setIsLoading?.(true);
     try {
@@ -52,7 +54,7 @@ function useChatSession({
       setRuntimeError(normalizeGameCardError(error));
       return null;
     } finally { if (savePolicy === 'manual') setIsLoading?.(false); }
-  }, [onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
+  }, [enabled, onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
 
   const load = React.useCallback(() => {
     setRevision(value => value + 1);

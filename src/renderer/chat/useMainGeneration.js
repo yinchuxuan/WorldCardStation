@@ -8,12 +8,12 @@ function useMainGeneration({ mainSession, setMessages, setGameState, setIsLoadin
   React.useEffect(() => {
     current.current = mainSession;
     history.current = { messages: [], baseline: [] };
-    if (mainSession) setIsLoading(false);
+    if (mainSession) { setIsLoading(false); setMessages(mainSession.snapshot().records || []); }
     return () => {
       current.current = null;
       void mainSession?.dispose();
     };
-  }, [mainSession, setIsLoading]);
+  }, [mainSession, setIsLoading, setMessages]);
   async function run(input, retry) {
     if (!mainSession || current.current !== mainSession || mainSession.running) return false;
     if (!retry && !String(input || '').trim()) return false;
@@ -22,11 +22,17 @@ function useMainGeneration({ mainSession, setMessages, setGameState, setIsLoadin
     if (!retry) history.current.baseline = base;
     setIsLoading(true);
     setRequestError?.(null);
+    const content = input ?? history.current.input;
+    const user = createChatMessage({ role: 'user', content });
+    const existing = new Set(base.filter(msg => msg.role === 'assistant').map(msg => msg.id));
+    const visible = records => [...base, user, ...(records || []).filter(record => !existing.has(record.id) && record.content)];
+    const unsubscribe = mainSession.subscribe?.((view, detail) => {
+      if (current.current === mainSession && detail.type !== 'rollback') setMessages(visible(view.records));
+    });
     try {
       const result = await (retry ? mainSession.retry(input) : mainSession.send(input));
       if (current.current !== mainSession) return false;
-      const content = input ?? history.current.input;
-      history.current = { messages: [...base, createChatMessage({ role: 'user', content })], baseline: base, input: content };
+      history.current = { messages: visible(result.records), baseline: base, input: content };
       setMessages(history.current.messages);
       setGameState(result.state);
       return true;
@@ -39,6 +45,7 @@ function useMainGeneration({ mainSession, setMessages, setGameState, setIsLoadin
       }
       return false;
     } finally {
+      unsubscribe?.();
       if (current.current === mainSession) setIsLoading(false);
     }
   }

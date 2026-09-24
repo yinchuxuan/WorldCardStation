@@ -6,6 +6,7 @@ function useGameCardPresentation() {
   const [portraitRequest, setPortraitRequest] = React.useState(null);
   const [bgmRequest, setBgmRequest] = React.useState(null);
   const [bgmStopToken, setBgmStopToken] = React.useState(0);
+  const targets = React.useRef({});
 
   const request = React.useCallback((setter, card, state, extra = {}) => {
     sequenceRef.current += 1;
@@ -18,12 +19,15 @@ function useGameCardPresentation() {
   }, []);
 
   const updateBackground = React.useCallback((card, state) => {
+    targets.current.background = { card, state };
     request(setBackgroundRequest, card, state);
   }, [request]);
   const updatePortrait = React.useCallback((card, state) => {
+    targets.current.portrait = { card, state };
     request(setPortraitRequest, card, state);
   }, [request]);
   const updateBgm = React.useCallback((card, state) => {
+    targets.current.bgm = { card, state };
     request(setBgmRequest, card, state);
   }, [request]);
   const updateAll = React.useCallback((card, state) => {
@@ -51,11 +55,20 @@ function useGameCardPresentation() {
     });
   }, [updateBackground, updateBgm, updatePortrait]);
   const stopBgm = React.useCallback(() => {
+    targets.current.bgm = null;
     setBgmStopToken(value => value + 1);
   }, []);
+  const capture = React.useCallback(() => ({ ...targets.current }), []);
+  const restore = React.useCallback(snapshot => {
+    updateBackground(snapshot.background?.card, snapshot.background?.state);
+    updatePortrait(snapshot.portrait?.card, snapshot.portrait?.state);
+    stopBgm();
+    if (snapshot.bgm) updateBgm(snapshot.bgm.card, snapshot.bgm.state);
+  }, [stopBgm, updateBackground, updateBgm, updatePortrait]);
 
   return {
     applyEffects,
+    capture, restore,
     backgroundRequest,
     bgmRequest,
     bgmStopToken,

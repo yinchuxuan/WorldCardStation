@@ -18,7 +18,7 @@ test('main code cannot access host, network, storage, timers, dynamic constructo
   const result = await session.send('go');
   expect(result.state.globals).toEqual(Array(16).fill('undefined'));
   expect(result.state.constructors).toEqual(Array(4).fill('undefined'));
-  expect(result.state.keys).toEqual(['state', 'agents']);
+  expect(result.state.keys).toEqual(['state', 'createReader', 'present', 'agents']);
   expect(result.contexts.judge.messages).toHaveLength(1);
 });
 

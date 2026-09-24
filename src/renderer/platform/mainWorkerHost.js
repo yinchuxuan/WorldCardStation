@@ -1,6 +1,6 @@
 const DEFAULT_MAIN_CPU_TIMEOUT_MS = 2000;
 
-function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, generate, readText, signal,
+function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, generate, readText, signal, display, onUpdate,
   timeoutMs = DEFAULT_MAIN_CPU_TIMEOUT_MS }) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(new Error('input cancelled')); return; }
@@ -37,6 +37,9 @@ function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, gene
             onToken: text => send({ type: 'token', id: data.id, text }),
             onThinkingToken: text => send({ type: 'token', id: data.id, text, thinking: true })
           });
+        } else if (data.type === 'present') {
+          if (!display) throw new Error('presentation host unavailable');
+          await display(data.args, controller.signal);
         } else {
           const path = data.args.path;
           if (typeof path !== 'string' || /[\\:?#%]/.test(path) || [...path].some(char => char.charCodeAt(0) < 32)
@@ -54,7 +57,10 @@ function runMainWorker({ workerFactory, program, input, snapshot, idPrefix, gene
       else if (data.type === 'pong' && data.id === ping) {
         awaitingPong = false;
         if (!data.waiting) finish(new Error('main.js has an unresolved task without platform work'));
-      } else if (data.type === 'model' || data.type === 'read') void handleRequest(data);
+      } else if (['model', 'read', 'present'].includes(data.type)) void handleRequest(data);
+      else if (data.type === 'view') {
+        try { onUpdate?.(data.view, data.detail); } catch (error) { finish(error); }
+      }
       else if (data.type === 'complete') finish(null, data.result);
       else if (data.type === 'failed') finish(new Error(data.error));
     };

@@ -24,7 +24,9 @@ export async function startModelServer(port) {
     const slow = url.pathname.startsWith('/slow/');
     response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
     response.flushHeaders();
-    const text = url.pathname.startsWith('/pages/') ? '第一页的内容。\n\n第二页的内容。'
+    const text = url.pathname.startsWith('/reader-judge/') ? '辅助裁定，不应展示。'
+      : url.pathname.startsWith('/reader/') ? '第一段。<state_patch_stream>{"visual.scene":"outside","visual.portraits":{"guide":"smile"},"audio.bgm":"theme"}</state_patch_stream>第二段。'
+      : url.pathname.startsWith('/pages/') ? '第一页的内容。\n\n第二页的内容。'
       : '你好，旅人。<state_patch>{"score":7}</state_patch>新的旅程开始了。';
     const anthropic = url.pathname.endsWith('/messages');
     let closed = false;

@@ -11,11 +11,13 @@ definition 来自新清单加载器；readText 必须绑定当前授权卡根，
 generate 由平台模型适配器提供，仍使用独立 AbortSignal 和内容/thinking 回调；配置和密钥不发送到 Worker。
 测试可以向 createMainSession 注入同契约的 workerFactory，不在 renderer 主线程执行卡片源码。
 
-- send(input)：从当前已完成结果开始一轮，成功返回包含 state/contexts 的只读快照。
+- send(input)：从当前已完成结果开始一轮，成功返回包含 state/contexts/records 的只读快照。
 - retry(input?)：从上一轮开始前的内存基准重跑，可替换玩家输入；不是只重试最后一个 Agent。
 - cancel()：终止当前 Worker、取消模型请求，等待输入退出；可以再次 send/retry。
 - dispose()：永久停止实例；切换 Session、卸载卡片或销毁输入宿主时调用。
 - snapshot()：返回最后完整结果的副本，不暴露执行中的半轮 State；running 表示输入是否未结束。
+- view()/subscribe(listener)：宿主只读观察当前临时 State、Agent 历史和可见记录；不是可保存快照。
+- advance()：确认当前显示段已读完；没有等待阅读时返回 false，不预先消费下一段。
 
 一轮只允许一个未完成 Agent，主程序通过 await call.done() 顺序推进。
 State API 同步校验、写入和读取，和 Agent 引擎位于同一个 Worker，不使用异步镜像替代同步语义。
@@ -38,17 +40,17 @@ exec 不获得 agents.call，也不能借助动态编译绕过 main 的调度。
 
 ## 隔离、超时和完成
 
-每轮使用一个可终止 Worker。脚本只收到 State/Agent API；不接触 DOM、网络、存储、定时器、Worker 消息通道或平台配置。
+每轮使用一个可终止 Worker。脚本只收到 State/Agent 和 reader/present API；不接触 DOM、网络、存储、定时器、Worker 消息通道或平台配置。
 模块通过 AST 检查和受控编译加载，禁用动态 import/eval/Function；禁用函数构造器链并冻结基础对象原型。
 全局能力采用允许列表；无法屏蔽的宿主全局会使初始化失败，不降低隔离继续执行。
 这些限制只应用于专用 Worker，不修改现有 renderer 或旧 exec 的全局环境。
 
-默认响应性检测窗口为 2 秒：Worker 不响应探测时终止；模型/授权文件等待期间只要 Worker 能响应则不消耗这个窗口。
+默认响应性检测窗口为 2 秒：Worker 不响应探测时终止；模型/授权文件/玩家阅读等待期间只要 Worker 能响应则不消耗这个窗口。
 因此它是可运行性看门狗，不是精确 CPU 计量器。没有平台工作却悬挂的 Promise 也会报错，不允许隐式后台任务。
 脚本同步或微任务死循环均可终止；模型等待期间的超时仍由现有传输层负责。
 
-onInput 返回时必须没有未完成调用。未读取的隐藏 response 不影响成功；任一 call.done() 失败都会使整轮失败，脚本 catch 不能将其转为成功提交。
-只有整轮成功才把 Worker 的 State、全部 Messages 和 init 标记发布到 Session；失败、取消、超时均丢弃临时结果。
+onInput 返回时必须没有未完成调用、reader 或 present。未读取的隐藏 response 不影响成功；调用或 reader 失败都会使整轮失败，脚本 catch 不能将其转为成功提交。
+Worker 的临时数据通过只读 view 更新演出和历史；只有整轮成功才更新 Session 的完整 snapshot，失败、取消、超时均恢复整轮基准。
 重试成功轮同样从原始基准开始，不重复追加上下文；失败轮分配过的消息 ID 不在下一轮复用。
 终止后不再接收旧 Worker 结果，迟到模型/文件回调也不能写回新 Session。
 
@@ -57,7 +59,7 @@ onInput 返回时必须没有未完成调用。未读取的隐藏 response 不�
 共享 useChatGeneration 接受内部 mainSession 注入，复用现有发送、重试、停止入口；普通聊天和旧播放器保持原路径。
 GameCardRuntimeProvider 的 mainSession 由内部宿主管理，Session 切换必须替换实例，输入 Hook 释放旧实例。
 此通道尚不由普通导入流程自动创建；注入时禁用旧格式的自动及手动保存，关闭时仅清理，不写入旧 Session 存档。
-当前主程序只开放 State/Agent API，reader/present 和可见演出记录由独立 reader 契约接入，不伪造空实现。
+reader/present 的读取、展示记录与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)。注入时也跳过旧 Session 加载和初始化，避免覆盖新运行时数据。
 新协议仍未向普通玩家开放，也没有存档恢复或旧卡兼容承诺。
 
 ## 验证

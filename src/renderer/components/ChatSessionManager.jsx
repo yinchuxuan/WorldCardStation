@@ -74,13 +74,13 @@ function ChatSessionManager({ cardId, disabled = false, saveControl, onBeforeSes
       const snapshot = await repository.loadHistory();
       const currentId = activeId;
       const created = await repository.create('会话存档');
-      await repository.saveHistory(snapshot.messages || [], {
+      try { await repository.saveHistory(snapshot.messages || [], {
           gameState: snapshot.gameState || {},
           retryBaseMessages: snapshot.retryBaseMessages || [],
           retryBaseState: snapshot.retryBaseState || {},
-          viewState: snapshot.viewState || {}
-      });
-      if (currentId && currentId !== created.id) await repository.setActive(currentId);
+          viewState: snapshot.viewState || {},
+          ...(snapshot.runtimeSession ? { runtimeSession: snapshot.runtimeSession } : {})
+      }); } finally { if (currentId && currentId !== created.id) await repository.setActive(currentId); }
       await loadSessions();
     } catch (nextError) { setError(nextError); }
     finally { setBusy(false); }

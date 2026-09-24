@@ -26,6 +26,7 @@ mod game_card_state_schema;
 #[cfg(test)]
 mod game_runtime_definition;
 mod history;
+mod runtime_session;
 mod json_store;
 mod model_commands;
 mod model_http;

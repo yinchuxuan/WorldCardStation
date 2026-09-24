@@ -29,7 +29,7 @@ function useChatGeneration({
   onPresentationEffects
 }) {
   const generationControl = useGenerationAbort();
-  const mainGeneration = useMainGeneration({ mainSession, setMessages, setGameState, setIsLoading, setRequestError });
+  const mainGeneration = useMainGeneration({ mainSession, setMessages, setGameState, setIsLoading, setRequestError, canMutate: persistence.manual?.canMutate });
 
   const run = React.useCallback((nextMessages, nextState, appendAssistantWithUpdater = false) => (
     generationControl.trackGeneration(chatGeneration.runChatGeneration({

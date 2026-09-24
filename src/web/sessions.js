@@ -1,5 +1,6 @@
 import { createWebStore } from './storage.js';
 import { validateSession } from './sessionSnapshot.js';
+import { validateRuntimeSession, runtimeHistory } from '../shared/game-card/runtime/sessionSnapshot.js';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 const empty = () => ({ messages: [], gameState: {}, viewState: {}, retryBaseMessages: null, retryBaseState: null });
@@ -52,14 +53,17 @@ export function createWebSessions({ scope, store = createWebStore('sessions'), s
       if (!target) throw new Error('保存缺少已加载的会话目标');
       const snapshot = copy({ messages, gameState: options.gameState || {}, viewState: options.viewState || {},
         retryBaseMessages: options.retryBaseMessages ?? null, retryBaseState: options.retryBaseState ?? null });
+      if (options.runtimeSession !== undefined) Object.assign(snapshot, runtimeHistory(validateRuntimeSession(options.runtimeSession)));
       const archive = options.asNew ? newSession('会话存档') : null;
       const record = await store.update(target.scope, current => {
         const session = current?.sessions.find(item => item.id === target.id);
         if (!session) throw conflict('会话已被删除，不能保存；请重新加载');
+        validateSession(session);
+        if (session.snapshot.runtimeSession !== undefined && snapshot.runtimeSession === undefined) throw new Error('不能使用旧格式覆盖游戏 Session');
         if (session.revision !== target.revision) throw conflict('其他页面已修改此会话，请重新加载后继续');
         const updated = { ...(archive || session), snapshot, revision: archive ? 1 : session.revision + 1,
-          updatedAt: new Date().toISOString(), messageCount: messages.length,
-          preview: String(messages.at(-1)?.content || '').slice(0, 120) };
+          updatedAt: new Date().toISOString(), messageCount: snapshot.messages.length,
+          preview: String(snapshot.messages.at(-1)?.content || '').slice(0, 120) };
         return { ...current, sessions: archive ? [...current.sessions, updated]
           : current.sessions.map(item => item.id === target.id ? updated : item) };
       });

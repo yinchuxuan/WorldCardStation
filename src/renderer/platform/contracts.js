@@ -39,6 +39,8 @@
  * Web loadHistory includes saveTarget and savedAt; saveHistory requires that same
  * explicit target in options and returns the committed target/revision/time.
  * Desktop keeps its existing active-session, automatic-saving contract.
+ * Internal multi-Agent saves include options.runtimeSession: a versioned complete
+ * round envelope, returned unchanged by loadHistory; never persist a preview.
  */
 /**
  * @typedef {Object} CardRepository

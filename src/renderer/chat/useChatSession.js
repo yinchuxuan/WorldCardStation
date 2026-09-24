@@ -7,6 +7,7 @@ import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
   enabled = true,
+  mainSession,
   setMessages,
   setGameState,
   setRuntimeError,
@@ -19,17 +20,33 @@ function useChatSession({
   repository = rendererServices.sessions
 }) {
   const [revision, setRevision] = React.useState(0);
+  const loadToken = React.useRef(0);
   const loadCurrent = React.useCallback(async () => {
     if (!enabled) return null;
+    const token = ++loadToken.current;
     persistence.reset();
     if (savePolicy === 'manual') setIsLoading?.(true);
     try {
+      if (mainSession) {
+        await mainSession.beginLoad();
+        if (token !== loadToken.current) return null;
+        setMessages([]); setGameState(mainSession.snapshot().state);
+      }
       const result = await repository.loadHistory();
+      if (token !== loadToken.current) return null;
       if (result.sessionMissing) {
         setMessages([]); setGameState({}); setRuntimeError(null);
         onSessionLoaded?.({ card: await gameCardPlatform.repository.getActiveCard(), state: {} });
         return result;
       }
+      if (mainSession) {
+        const restored = mainSession.restoreHistory(result);
+        persistence.hydrate(result);
+        setMessages(restored.messages); setGameState(restored.state); setRuntimeError(null);
+        persistence.markLoaded();
+        return result;
+      }
+      if (result.runtimeSession !== undefined) throw new Error('此 Session 需要新游戏运行时，不能使用旧播放器恢复');
       persistence.hydrate(result);
       const loadedMessages = result.messages || [];
       const loadedState = result.gameState || {};
@@ -51,17 +68,17 @@ function useChatSession({
       if (savePolicy !== 'manual' && (init.changed || idsAdded)) await persistence.save(nextMessages, nextState);
       return result;
     } catch (error) {
-      setRuntimeError(normalizeGameCardError(error));
+      if (token === loadToken.current) setRuntimeError(normalizeGameCardError(error));
       return null;
-    } finally { if (savePolicy === 'manual') setIsLoading?.(false); }
-  }, [enabled, onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
+    } finally { if (token === loadToken.current && savePolicy === 'manual') setIsLoading?.(false); }
+  }, [enabled, mainSession, onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
 
   const load = React.useCallback(() => {
     setRevision(value => value + 1);
     return loadCurrent();
   }, [loadCurrent]);
 
-  React.useEffect(() => { void load(); }, [load]);
+  React.useEffect(() => { void load(); return () => { loadToken.current += 1; }; }, [load]);
 
   const saveCurrent = React.useCallback(async () => {
     if (isLoading) throw new Error('操作尚未完成，请稍后保存');

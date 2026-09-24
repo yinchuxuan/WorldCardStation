@@ -62,8 +62,8 @@ function useGameCardPresentation() {
   const restore = React.useCallback(snapshot => {
     updateBackground(snapshot.background?.card, snapshot.background?.state);
     updatePortrait(snapshot.portrait?.card, snapshot.portrait?.state);
-    stopBgm();
     if (snapshot.bgm) updateBgm(snapshot.bgm.card, snapshot.bgm.state);
+    else stopBgm();
   }, [stopBgm, updateBackground, updateBgm, updatePortrait]);
 
   return {

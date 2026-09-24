@@ -97,6 +97,7 @@ async fn sessions_persist_messages_state_retry_base_and_metadata() {
             retry_base_messages: Some(vec![json!({ "role": "user", "content": "retry" })]),
             retry_base_state: Some(json!({ "turn": 1 })),
             view_state: Some(json!({ "reading": { "messageId": "reply", "segmentIndex": 2 } })),
+            runtime_session: None,
         },
     )
     .await

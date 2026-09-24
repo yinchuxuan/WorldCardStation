@@ -31,6 +31,35 @@ describe('main reader → existing presentation (real SSE and media)', () => {
     await browser.$('button=Previous reader').click();
     expect((await browser.execute(() => window.mainReaderHarness.snapshot())).state).toEqual(second.state);
   });
+  it('IndexedDB archive survives page restart without replaying reader or losing Agent history', async () => {
+    const before = await browser.execute(() => window.mainReaderHarness.snapshot());
+    await browser.execute(() => window.mainReaderHarness.save());
+    await browser.refresh();
+    await browser.execute(() => window.mainReaderHarness.init(true));
+    await browser.waitUntil(async () => (await browser.$('[data-gc-part="message-surface"]').getText()).includes('第一段。'));
+    expect(await browser.execute(() => window.mainReaderHarness.snapshot())).toEqual(before);
+    await browser.waitUntil(() => browser.execute(() => document.querySelectorAll('#reader-harness img').length === 2
+      && [...document.querySelectorAll('#reader-harness img')].every(img => img.complete && img.naturalWidth > 0)));
+    await browser.waitUntil(() => browser.execute(() => !document.querySelector('#reader-harness audio').paused
+      || Boolean(document.querySelector('#reader-harness .game-card-bgm-btn.blocked'))));
+    const play = await browser.$('#reader-harness .game-card-bgm-btn.blocked');
+    if (await play.isExisting()) await play.click();
+    await browser.waitUntil(() => browser.execute(() => !document.querySelector('#reader-harness audio').paused));
+    await browser.$('button=narrator').click();
+    expect(await browser.$('[data-gc-part="message-history"]').getText()).toContain('state_patch_stream');
+    await browser.$('button=Next reader').click();
+    expect((await browser.execute(() => window.mainReaderHarness.snapshot())).state).toEqual(before.state);
+    await browser.$('button=Start reader').click();
+    await browser.waitUntil(() => browser.execute(() => Boolean(window.mainReaderHarness.view().reading)));
+    await browser.$('button=Next reader').click();
+    await browser.waitUntil(() => browser.execute(() => window.mainReaderHarness.view().reading
+      && window.mainReaderHarness.view().records.at(-1)?.content.includes('第二段。')));
+    await browser.$('button=Next reader').click();
+    await browser.waitUntil(() => browser.execute(() => Boolean(window.mainReaderHarness.result())));
+    const after = await browser.execute(() => window.mainReaderHarness.snapshot());
+    expect(after.contexts.narrator.messages.length).toBe(before.contexts.narrator.messages.length + 1);
+    expect(after.records.length).toBe(before.records.length + 1);
+  });
   it('failure after visible reading restores the entire baseline and media', async () => {
     await browser.execute(() => window.mainReaderHarness.init());
     await browser.$('button=Fail reader').click();

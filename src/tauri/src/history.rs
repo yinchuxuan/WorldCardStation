@@ -9,6 +9,7 @@ pub struct SaveOptions {
     pub retry_base_messages: Option<Vec<Value>>,
     pub retry_base_state: Option<Value>,
     pub view_state: Option<Value>,
+    pub runtime_session: Option<Value>,
 }
 
 fn object_or_empty(value: Option<&Value>) -> Value {
@@ -57,6 +58,11 @@ fn restore_messages(values: &[Value]) -> Vec<Value> {
 }
 
 pub fn encode_history(payload: &Value, options: &SaveOptions) -> Value {
+    if let Some(runtime) = options.runtime_session.as_ref() {
+        return json!({"messages": runtime["current"]["messages"],
+            "gameState": runtime["current"]["state"], "viewState": runtime["viewState"],
+            "runtimeSession": runtime});
+    }
     let (messages, game_state) = if let Some(values) = payload.as_array() {
         (
             values.as_slice(),
@@ -92,6 +98,9 @@ pub fn encode_retry_base(options: &SaveOptions) -> Value {
 }
 
 pub fn decode_history(value: Option<&Value>, retry: Option<&Value>) -> Value {
+    if let Some(saved) = value.filter(|item| item.get("runtimeSession").is_some()) {
+        return saved.clone();
+    }
     let history_messages = value
         .and_then(|item| item.as_array().or_else(|| item.get("messages")?.as_array()))
         .map(|values| restore_messages(values))

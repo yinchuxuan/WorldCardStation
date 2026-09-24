@@ -10,12 +10,15 @@ export default function useManualSave({ snapshot, loadedRef, repository, isLoadi
   const enabledRef = React.useRef(enabled);
   enabledRef.current = enabled;
   const fingerprint = () => JSON.stringify(snapshot());
-  const dirty = () => loadedRef.current && state.current.baseline !== fingerprint();
+  const dirty = () => {
+    if (!enabledRef.current || !loadedRef.current) return false;
+    try { return state.current.baseline !== fingerprint(); } catch { return true; }
+  };
   const busy = () => loading.current || state.current.saving || state.current.operations > 0 || state.current.transition;
   const controller = React.useMemo(() => ({
     hydrate(result) {
       if (savePolicy !== 'manual') return;
-      Object.assign(state.current, { baseline: JSON.stringify({ messages: result.messages || [], options: {
+      Object.assign(state.current, { baseline: result.runtimeSession ? fingerprint() : JSON.stringify({ messages: result.messages || [], options: {
         gameState: result.gameState || {}, retryBaseMessages: result.retryBaseMessages ?? null,
         retryBaseState: result.retryBaseState ?? null, viewState: result.viewState || {}
       } }), target: result.saveTarget, savedAt: result.savedAt, conflict: false, error: null });

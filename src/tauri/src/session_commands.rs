@@ -16,7 +16,10 @@ pub(crate) async fn load_history(storage: &AppStorage) -> AppResult<Value> {
     let context = sessions::active_context(&root)?;
     let _guard = storage.lock(&context.dir).await;
     let messages = read_json::<Value>(&context.messages)?;
-    let retry = read_json::<Value>(&context.retry_base)?;
+    if let Some(value) = &messages { crate::runtime_session::validate(value)?; }
+    let retry = if messages.as_ref().is_some_and(|v| v.get("runtimeSession").is_some()) {
+        None
+    } else { read_json::<Value>(&context.retry_base)? };
     let mut result = history::decode_history(messages.as_ref(), retry.as_ref());
     let card = root
         .parent()
@@ -48,9 +51,16 @@ pub(crate) async fn save_history(
     let encoded = history::encode_history(&messages, &options);
     let retry = history::encode_retry_base(&options);
     let _guard = storage.lock(&context.dir).await;
+    crate::runtime_session::validate(&encoded)?;
+    if let Some(previous) = read_json::<Value>(&context.messages)? {
+        crate::runtime_session::validate(&previous)?;
+        if previous.get("runtimeSession").is_some() && options.runtime_session.is_none() {
+            return Err("不能使用旧格式覆盖游戏 Session".into());
+        }
+    }
     sessions::ensure_files(&context)?;
     write_json(&context.messages, &encoded)?;
-    write_json(&context.retry_base, &retry)?;
+    if options.runtime_session.is_none() { write_json(&context.retry_base, &retry)?; }
     let saved_messages = encoded
         .get("messages")
         .and_then(Value::as_array)

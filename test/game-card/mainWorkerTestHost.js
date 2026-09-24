@@ -37,7 +37,7 @@ function buildMainWorkerFactory() {
 
 function testMainSession(workerFactory, source, generate, options = {}) {
   const definition = {
-    card: { id: 'test', files: {} }, main: { path: 'main.js', source },
+    card: { id: 'test', version: '1.0.0', files: {} }, main: { path: 'main.js', source },
     stateSchema: { count: { type: 'number', default: 0 }, verdict: { type: 'string' } },
     agents: Object.fromEntries(['judge', 'narrator'].map(id => [id, { definition: { model: 'default', rules: [] } }])),
     ...options.definition

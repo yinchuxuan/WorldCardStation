@@ -59,6 +59,6 @@ snapshot() 只包含完整结果；view() 的临时结果只供显示，不能�
 ## 交付边界与验证
 
 此能力通过内部 mainSession 注入共用 ChatRuntime，普通玩家新协议入口仍关闭；不写入旧格式存档。
-完整多 Agent Session 文件和恢复属于 Session 契约后续扩展，不持久化 Reader、Promise 或 JS 栈。
+完整数据与阅读/演出恢复见 [多 Agent Session](./game_runtime_sessions.md)，不持久化 Reader、Promise 或 JS 栈。
 reader 单元测试覆盖双来源/双模式、跨 chunk、提交时点和错误；真实 Worker 集成验证后处理差异、隐藏输出与整轮回滚。
 共享 React 测试验证历史隔离及演出恢复；浏览器 main-reader 用例通过本地 SSE、真实资源缓存和播放器覆盖逐段演出及失败恢复。

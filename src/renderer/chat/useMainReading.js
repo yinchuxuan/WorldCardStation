@@ -1,7 +1,7 @@
 import React from 'react';
 import { isSegmentAdvanceEvent } from './useSegmentedReading.js';
 
-function useMainReading(mainSession, view, surfaceRef, historyOpen) {
+function useMainReading(mainSession, view, surfaceRef, historyOpen, onPositionChange) {
   const pages = view.records.flatMap(record => record.mode === 'segmented'
     ? record.units.filter(unit => unit.text.trim()).map((unit, index) => ({ id: `${record.id}:${index}`, record, text: unit.text, segmentIndex: index }))
     : record.content ? [{ id: record.id, record, text: record.content, segmentIndex: 0 }] : []);
@@ -15,9 +15,13 @@ function useMainReading(mainSession, view, surfaceRef, historyOpen) {
         if (!detail.retry) baseline = selectionRef.current;
         setSelection(null);
       } else if (detail.type === 'rollback') setSelection(baseline || null);
+      else if (detail.type === 'restore' || detail.type === 'loading') setSelection(null);
     });
   }, [mainSession]);
-  const selected = selection?.session === mainSession ? pages.findIndex(page => page.id === selection.id) : -1;
+  const saved = mainSession?.viewState?.reading;
+  const savedPage = saved && pages.find(page => page.record.id === saved.messageId && page.segmentIndex === saved.segmentIndex);
+  const selected = selection?.session === mainSession ? pages.findIndex(page => page.id === selection.id)
+    : !mainSession?.running && savedPage ? pages.indexOf(savedPage) : -1;
   const index = selected >= 0 ? selected : pages.length - 1;
   const page = pages[index];
   const canAdvance = index === pages.length - 1 && Boolean(view.reading);
@@ -26,9 +30,15 @@ function useMainReading(mainSession, view, surfaceRef, historyOpen) {
     if (type === 'reading.next' && canAdvance) return mainSession.advance();
     const next = type === 'reading.previous' ? index - 1 : type === 'reading.latest' ? pages.length - 1 : index + 1;
     if (next < 0 || next >= pages.length || next === index) return false;
-    setSelection(next === pages.length - 1 ? null : { session: mainSession, id: pages[next].id });
+    setSelection({ session: mainSession, id: pages[next].id });
     return true;
   }, [mainSession, canAdvance, index, pages]);
+  React.useEffect(() => {
+    if (!mainSession || mainSession.running || !page) return;
+    const reading = { messageId: page.record.id, segmentIndex: page.segmentIndex };
+    mainSession.setViewState?.({ reading });
+    onPositionChange?.(reading);
+  }, [mainSession, page?.id, onPositionChange, view]);
   const advanceVisiblePage = React.useCallback(event => {
     if (historyOpen || page?.record.mode !== 'segmented' || !isSegmentAdvanceEvent(event)) return false;
     return navigate('reading.next');

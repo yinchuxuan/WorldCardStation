@@ -11,7 +11,7 @@ definition 来自新清单加载器；readText 必须绑定当前授权卡根，
 generate 由平台模型适配器提供，仍使用独立 AbortSignal 和内容/thinking 回调；配置和密钥不发送到 Worker。
 测试可以向 createMainSession 注入同契约的 workerFactory，不在 renderer 主线程执行卡片源码。
 
-- send(input)：从当前已完成结果开始一轮，成功返回包含 state/contexts/records 的只读快照。
+- send(input)：从当前已完成结果开始一轮，成功返回包含 state/contexts/records/messages 的只读快照。
 - retry(input?)：从上一轮开始前的内存基准重跑，可替换玩家输入；不是只重试最后一个 Agent。
 - cancel()：终止当前 Worker、取消模型请求，等待输入退出；可以再次 send/retry。
 - dispose()：永久停止实例；切换 Session、卸载卡片或销毁输入宿主时调用。
@@ -58,9 +58,9 @@ Worker 的临时数据通过只读 view 更新演出和历史；只有整轮成�
 
 共享 useChatGeneration 接受内部 mainSession 注入，复用现有发送、重试、停止入口；普通聊天和旧播放器保持原路径。
 GameCardRuntimeProvider 的 mainSession 由内部宿主管理，Session 切换必须替换实例，输入 Hook 释放旧实例。
-此通道尚不由普通导入流程自动创建；注入时禁用旧格式的自动及手动保存，关闭时仅清理，不写入旧 Session 存档。
+此通道尚不由普通导入流程自动创建；注入时使用带版本的完整 Session 保存恢复，不写入旧格式数据。
 reader/present 的读取、展示记录与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)。注入时也跳过旧 Session 加载和初始化，避免覆盖新运行时数据。
-新协议仍未向普通玩家开放，也没有存档恢复或旧卡兼容承诺。
+保存与恢复接口见 [多 Agent Session](./game_runtime_sessions.md)。新协议仍未向普通玩家开放，不迁移旧卡存档。
 
 ## 验证
 

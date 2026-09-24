@@ -1,3 +1,4 @@
+import { validateRuntimeSession } from '../shared/game-card/runtime/sessionSnapshot.js';
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value); }
 export function validateSession(session) {
   const snapshot = session?.snapshot;
@@ -9,6 +10,7 @@ export function validateSession(session) {
     throw new Error('会话快照已损坏，不能恢复或覆盖；请保留浏览器数据并检查存档');
   }
   const reading = snapshot.viewState.reading;
+  if (snapshot.runtimeSession !== undefined) validateRuntimeSession(snapshot.runtimeSession);
   if (reading && (!object(reading) || typeof reading.messageId !== 'string'
     || !Number.isInteger(reading.segmentIndex) || reading.segmentIndex < 0)) {
     throw new Error('会话阅读位置已损坏，不能恢复或覆盖');

@@ -57,10 +57,10 @@ function ChatRuntime({
   const typewriter = useTypewriter();
   const presentation = useGameCardPresentation();
   const mainView = useMainPresentation({ mainSession: runtime.mainSession, card: runtime.activeCard, presentation, setGameState: runtime.setGameState });
-  const mainReading = useMainReading(runtime.mainSession, mainView, chatPanelRef, showMsgHistory);
   const agentId = (agentSelection && agentSelection.session === runtime.mainSession && mainView.contexts[agentSelection.id])
     ? agentSelection.id : Object.keys(mainView.contexts)[0];
-  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, enabled: !runtime.mainSession });
+  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, mainSession: runtime.mainSession, enabled: !runtime.mainSession || Boolean(runtime.mainSession.exportSession) });
+  const mainReading = useMainReading(runtime.mainSession, mainView, chatPanelRef, showMsgHistory, persistence.setReadingPosition);
   const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
   const generation = useChatGeneration({
     mainSession: runtime.mainSession,
@@ -81,7 +81,7 @@ function ChatRuntime({
   useAppClosePersistence({ stopGeneration: generation.stop, flush: persistence.flush });
   const scroll = useChatScroll({ messages, isLoading, displayedCount: typewriter.displayedCount, showMsgHistory });
   const session = useChatSession({
-    setMessages, enabled: !runtime.mainSession,
+    setMessages, mainSession: runtime.mainSession, enabled: !runtime.mainSession || Boolean(runtime.mainSession.restoreHistory),
     setGameState: runtime.setGameState,
     setRuntimeError: runtime.setRuntimeError,
     isLoading,
@@ -146,7 +146,7 @@ function ChatRuntime({
   const currentThinking = isLoading && streamThinking ? streamThinking : null;
   return <div className="chat-panel" data-gc-part="chat-panel"
     ref={chatPanelRef} onClick={showMsgHistory ? undefined : reading.advanceVisiblePage}>
-    <PlatformRequestErrorNotice error={requestError} onClose={() => setRequestError(null)} />
+    <PlatformRequestErrorNotice error={persistence.error ? `存档失败：${persistence.error.message}` : requestError} onClose={() => setRequestError(null)} />
     <PlatformResponseWarningNotice warning={responseWarning} onClose={() => setResponseWarning(null)} />
     <GameCardStyleHost card={runtime.activeCard} />
     <BackgroundRuntime backgroundRequest={presentation.backgroundRequest} portraitRequest={presentation.portraitRequest} onBackgroundChange={onBackgroundChange} onPortraitChange={onPortraitChange} onVisualPanelChange={onVisualPanelChange} />

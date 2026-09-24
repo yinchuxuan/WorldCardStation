@@ -58,6 +58,14 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
     }, BGM_PLAY_DELAY_MS);
   }, [cancelScheduledPlay]);
 
+  // A new request in the same render supersedes the stop used to clear the old Session.
+  React.useEffect(() => {
+    if (stopToken === lastStopTokenRef.current) return;
+    lastStopTokenRef.current = stopToken;
+    pendingPlayRef.current = false;
+    stop();
+  }, [stop, stopToken]);
+
   React.useEffect(() => {
     if (!updateRequest) return;
     const cardId = updateRequest.card?.id || '';
@@ -100,12 +108,6 @@ function GameCardBgmPlayer({ updateRequest, stopToken = 0 }) {
   React.useEffect(() => {
     if (audioSource && pendingPlayRef.current) void playCurrent();
   }, [audioSource, playCurrent]);
-  React.useEffect(() => {
-    if (stopToken === lastStopTokenRef.current) return;
-    lastStopTokenRef.current = stopToken;
-    pendingPlayRef.current = false;
-    stop();
-  }, [stop, stopToken]);
   React.useEffect(() => () => {
     mountedRef.current = false;
     stop();

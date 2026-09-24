@@ -23,12 +23,13 @@ function bindText(value, state) {
   });
 }
 
-function resolveDisplayState(display, state) {
-  if (!display) return display;
+function resolveDisplayState(display, state, statePatchEnabled = true) {
+  if (!display) return statePatchEnabled ? display : { statePatchEnabled: false };
   const bind = rule => ({ ...rule, pattern: bindText(rule.pattern, state),
     replace: bindText(rule.replace, state),
     trimStrings: rule.trimStrings?.map(text => typeof text === 'string' ? text : { parts: bindText(text.parts, state) }) });
-  return { ...display, ...(display.user ? { user: display.user.map(bind) } : {}),
+  return { ...display, ...(!statePatchEnabled ? { statePatchEnabled: false } : {}),
+    ...(display.user ? { user: display.user.map(bind) } : {}),
     ...(display.assistant ? { assistant: display.assistant.map(bind) } : {}) };
 }
 

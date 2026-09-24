@@ -1,4 +1,4 @@
-const { preparePreSendMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { preparePreSendMessages } = require('../game-card/legacyPipelineHarness.js');
 
 test('pre_send rule errors block the request pipeline', async () => {
   const messages = [{ role: 'user', content: 'start' }];

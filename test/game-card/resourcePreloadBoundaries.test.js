@@ -1,4 +1,4 @@
-import { preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 import { checkCard } from '../../src/renderer/gameCard/dryRun/checkCard.js';
 import { collectExecSourcePaths, collectFileContentPaths } from '../../src/renderer/gameCard/resourcePreload.js';
 

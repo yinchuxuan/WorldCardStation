@@ -139,7 +139,7 @@
   padding-right: 72px;
 }
 
-.retry-source-row:has(.chat-message.user:hover) .retry-btn {
+.retry-source-row:has(.chat-message:hover) .retry-btn {
   opacity: 0.78;
   pointer-events: auto;
   background:

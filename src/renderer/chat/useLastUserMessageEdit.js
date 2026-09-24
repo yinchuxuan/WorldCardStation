@@ -1,11 +1,11 @@
 import React from 'react';
-import { findLastUserIndex, retryUserContent } from './retryMessages.js';
+import { findLastUserIndex } from './retryMessages.js';
 
-function useLastUserMessageEdit({ messages = [], isLoading = false, retryBaseMessages } = {}) {
+function useLastUserMessageEdit({ messages = [], isLoading = false, retryInput } = {}) {
   const [editingIndex, setEditingIndex] = React.useState(null);
   const [content, setContent] = React.useState('');
   const lastUserIndex = findLastUserIndex(messages);
-  const retrySource = retryUserContent(messages, retryBaseMessages);
+  const retrySource = retryInput ?? messages[lastUserIndex]?.content ?? '';
 
   React.useEffect(() => {
     if (editingIndex === null) return;

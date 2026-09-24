@@ -1,6 +1,6 @@
 const definitions = new WeakMap();
 function card(id, name, rules = [], extra = {}) {
-  const manifest = { formatVersion: '2', version: '1.0', id, name,
+  const manifest = { formatVersion: '1', version: '1.0', id, name,
     main: 'entry.js', agents: { narrator: 'agents/narrator.json' }, ...extra };
   definitions.set(manifest, {
     'entry.js': `export async function onInput(ctx, input) {

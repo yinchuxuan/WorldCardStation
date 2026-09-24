@@ -1,8 +1,6 @@
 import React from 'react';
-import generationServices from './generationServices.js';
-import { ensureMessageIds } from './messageIds.js';
 import { normalizeGameCardError } from '../gameCard/runtimeError.js';
-import { rendererServices, savePolicy, gameCardPlatform } from '../platform/index.js';
+import { rendererServices, savePolicy } from '../platform/index.js';
 import { runtimeTrace } from '../trace/runtimeTrace.js';
 
 function useChatSession({
@@ -14,9 +12,7 @@ function useChatSession({
   isLoading,
   setIsLoading,
   persistence,
-  typewriter,
   onResetView,
-  onSessionLoaded,
   repository = rendererServices.sessions
 }) {
   const [revision, setRevision] = React.useState(0);
@@ -25,56 +21,30 @@ function useChatSession({
     if (!enabled) return null;
     const token = ++loadToken.current;
     persistence.reset();
-    if (mainSession || savePolicy === 'manual') setIsLoading?.(true);
+    setIsLoading?.(true);
     try {
-      if (mainSession) {
-        await mainSession.beginLoad();
-        if (token !== loadToken.current) return null;
-      }
+      await mainSession.beginLoad();
+      if (token !== loadToken.current) return null;
       const result = await repository.loadHistory();
       if (token !== loadToken.current) return null;
       if (result.sessionMissing) {
         setMessages([]); setGameState({}); setRuntimeError(null);
-        onSessionLoaded?.({ card: await gameCardPlatform.repository.getActiveCard(), state: {} });
         return result;
       }
-      if (mainSession) {
-        const restored = mainSession.restoreHistory(result);
-        await runtimeTrace.bind(result.traceScope || null, restored.messages, restored.state);
-        if (token !== loadToken.current) return null;
-        persistence.hydrate(result);
-        setRuntimeError(null);
-        await mainSession.start();
-        if (token !== loadToken.current) return null;
-        persistence.markLoaded();
-        return result;
-      }
-      if (result.runtimeSession !== undefined) throw new Error('此 Session 需要新游戏运行时，不能使用旧播放器恢复');
+      const restored = mainSession.restoreHistory(result);
+      await runtimeTrace.bind(result.traceScope || null, restored.messages, restored.state);
+      if (token !== loadToken.current) return null;
       persistence.hydrate(result);
-      const loadedMessages = result.messages || [];
-      const loadedState = result.gameState || {};
-      await runtimeTrace.bind(result.traceScope || null, loadedMessages, loadedState);
-      const init = await generationServices.prepareInitMessages({ messages: loadedMessages, state: loadedState });
-      if (init.error || init.trace?.errors?.length) {
-        throw normalizeGameCardError({ ...init, error: init.error || init.trace.errors.join('\n') });
-      }
-      const initializedMessages = init.changed ? init.messages : loadedMessages;
-      const nextMessages = ensureMessageIds(initializedMessages);
-      const idsAdded = nextMessages !== initializedMessages;
-      const nextState = init.state || loadedState;
       setRuntimeError(null);
-      setMessages(nextMessages);
-      setGameState(nextState);
-      runtimeTrace.update(nextMessages, nextState);
-      onSessionLoaded?.({ card: init.card || null, state: nextState });
+      await mainSession.start();
+      if (token !== loadToken.current) return null;
       persistence.markLoaded();
-      if (savePolicy !== 'manual' && (init.changed || idsAdded)) await persistence.save(nextMessages, nextState);
       return result;
     } catch (error) {
       if (token === loadToken.current) setRuntimeError(normalizeGameCardError(error));
       return null;
-    } finally { if (token === loadToken.current && (mainSession || savePolicy === 'manual')) setIsLoading?.(Boolean(mainSession?.running)); }
-  }, [enabled, mainSession, onSessionLoaded, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
+    } finally { if (token === loadToken.current) setIsLoading?.(Boolean(mainSession?.running)); }
+  }, [enabled, mainSession, persistence, repository, setGameState, setMessages, setRuntimeError, setIsLoading]);
 
   const load = React.useCallback(() => {
     setRevision(value => value + 1);
@@ -96,22 +66,20 @@ function useChatSession({
   }, [persistence, saveCurrent]);
 
   const reload = React.useCallback(async () => {
-    typewriter.clearStreaming();
     onResetView?.();
     return load();
-  }, [load, onResetView, typewriter]);
+  }, [load, onResetView]);
 
   const switchSession = React.useCallback(async (id) => {
     if (!await beforeLeave()) return { canceled: true };
     try {
       setRevision(value => value + 1);
       const result = await repository.setActive(id);
-      typewriter.clearStreaming();
       onResetView?.();
       await loadCurrent();
       return { success: true, ...result };
     } finally { if (savePolicy === 'manual') persistence.manual.endLeave(); }
-  }, [beforeLeave, loadCurrent, onResetView, persistence, repository, typewriter]);
+  }, [beforeLeave, loadCurrent, onResetView, persistence, repository]);
 
   return { load, reload, revision, saveCurrent, beforeLeave, afterLeave: persistence.manual?.endLeave, switchSession };
 }

@@ -7,7 +7,7 @@ const { StreamServer } = require('./support/streamServer');
 const source = path.resolve('test-results/tauri-e2e/card');
 const entry = path.join(source, 'card.json');
 const installed = path.resolve('test-results/tauri-e2e/data/game-cards/cards/project-file-e2e');
-const card = { formatVersion: '2', id: 'project-file-e2e', name: 'Project File Test', version: '1',
+const card = { formatVersion: '1', id: 'project-file-e2e', name: 'Project File Test', version: '1',
   main: 'project-entry.js', agents: { narrator: 'project-agent.json' }, files: { intro: 'project-intro.md' } };
 
 async function importProject() {

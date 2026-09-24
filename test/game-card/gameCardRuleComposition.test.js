@@ -2,7 +2,7 @@ const { applyGameCard } = require('../../src/shared/game-card/engine/engine');
 const {
   preparePreSendMessages,
   toApiMessages
-} = require('../../src/renderer/gameCard/sendPipeline');
+} = require('../game-card/legacyPipelineHarness.js');
 
 function card(rules) {
   return { version: '1', id: 'rule-composition', name: 'Rule Composition', rules };

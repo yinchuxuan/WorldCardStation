@@ -1,10 +1,12 @@
-import { applyGameCardAsync } from './engine.js';
-import { adaptMessagesToProtocol } from '../../shared/game-card/protocol/protocolAdapter.js';
-import { loadCachedCardResources, loadCachedRuntimeCard, readCachedCardText } from './gameCardRuntimeCache.js';
-import { applyLatestAssistantStatePatch } from '../../shared/game-card/state/statePatch.js';
-import { decayTTL } from '../../shared/game-card/engine/ttl.js';
-import { collectPresentationEffects } from '../../shared/game-card/engine/presentationActions.js';
-import { prepareState } from './prepareState.js';
+import { applyGameCardAsync } from '../../src/renderer/gameCard/engine.js';
+// Test-only adapter for legacy converter output and low-level rule contracts.
+// Player generation uses mainSession/Agent Runtime exclusively.
+import { adaptMessagesToProtocol } from '../../src/shared/game-card/protocol/protocolAdapter.js';
+import { loadCachedCardResources, loadCachedRuntimeCard, readCachedCardText } from '../../src/renderer/gameCard/gameCardRuntimeCache.js';
+import { applyLatestAssistantStatePatch } from '../../src/shared/game-card/state/statePatch.js';
+import { decayTTL } from '../../src/shared/game-card/engine/ttl.js';
+import { collectPresentationEffects } from '../../src/shared/game-card/engine/presentationActions.js';
+import { prepareState } from '../../src/renderer/gameCard/prepareState.js';
 
 async function loadActiveGameCard(platform) {
   if (typeof platform?.repository?.getActiveCard !== 'function') return null;

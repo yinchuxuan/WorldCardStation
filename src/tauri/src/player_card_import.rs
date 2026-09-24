@@ -27,7 +27,7 @@ pub async fn import(storage: &AppStorage, path: &Path) -> CardResult<Value> {
             root
         }
         None => return Err(GameCardError::new(
-            "酒馆转换尚未支持 formatVersion 2，请先迁移为包含 main.js 和 Agent 定义的原生游戏卡。",
+            "酒馆转换尚未支持 formatVersion 1，请先迁移为包含 main.js 和 Agent 定义的原生游戏卡。",
         )),
     };
     load_definition(&root, &[]).map_err(GameCardError::new)?;
@@ -46,7 +46,7 @@ mod tests {
         let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../test/fixtures/runtime-delivery/card.json");
         let card = import(&storage, &fixture).await.unwrap();
-        assert_eq!(card["formatVersion"], "2");
+        assert_eq!(card["formatVersion"], "1");
         let legacy = dir.0.join("card.json");
         std::fs::write(
             &legacy,

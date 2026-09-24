@@ -48,7 +48,7 @@ test.each(cases)('$name (shared JS/Rust case)', async item => {
     return;
   }
   const definition = await load();
-  expect(definition.formatVersion).toBe('2');
+  expect(definition.formatVersion).toBe('1');
   expect(definition.main.path).toBe('main.js');
   expect(definition.main.source).toContain('export async function onInput');
   expect(Object.keys(definition.agents).sort()).toEqual(['judge', 'narrator']);

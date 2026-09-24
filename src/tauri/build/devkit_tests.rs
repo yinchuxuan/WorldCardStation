@@ -138,7 +138,7 @@ fn devkit_minimal_template_passes_the_real_platform_loader_and_validator() {
     crate::game_card_schema::validate_card(&card, &template).unwrap();
     let definition =
         crate::game_runtime_definition::load_card_definition(&template, &card, &[]).unwrap();
-    assert_eq!(card["formatVersion"], "2");
+    assert_eq!(card["formatVersion"], "1");
     assert!(!definition["agents"]["narrator"]["definition"]["rules"]
         .as_array()
         .unwrap()

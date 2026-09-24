@@ -9,7 +9,7 @@
 ## 组成
 
 游戏卡由 `card.json`、`main.js`、Agent 定义、提示词与演出资源组成。
-当前游戏卡协议为 `formatVersion: "2"`；卡片的 `version` 是独立的内容版本。
+当前游戏卡协议为 `formatVersion: "1"`；卡片的 `version` 是独立的内容版本。
 
 Agent = 独立 Messages + Rules + 模型配置引用。多个 Agent 共享当前 Session 的 State。
 主程序决定调用顺序、游戏逻辑及展示内容；变量变化本身不会自动触发 Agent。

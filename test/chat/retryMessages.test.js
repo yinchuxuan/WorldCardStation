@@ -1,5 +1,5 @@
 import { buildRetryMessages } from '../../src/renderer/chat/retryMessages.js';
-import { preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 
 test('retry preserves TTL, metadata, trailing messages and independently clones the snapshot', () => {
   const snapshot = [

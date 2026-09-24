@@ -4,7 +4,7 @@
   "name": "我的游戏卡",
   "description": "请填写游戏简介",
   "author": "请填写作者",
-  "formatVersion": "2",
+  "formatVersion": "1",
   "main": "main.js",
   "agents": { "narrator": "agents/narrator.json" },
   "state": { "schema": { "turn.input": { "type": "string", "default": "", "llmWrite": false } } }

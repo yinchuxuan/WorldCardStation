@@ -13,7 +13,7 @@ describe('useLastUserMessageEdit', () => {
     ];
 
     const { result } = renderHook(() => useLastUserMessageEdit({ messages, isLoading: true,
-      retryBaseMessages: [...messages.slice(0, 2), { role: 'user', content: '去第三音乐室。' }] }));
+      retryInput: '去第三音乐室。' }));
 
     expect(result.current.retrySource).toBe('去第三音乐室。');
   });
@@ -26,11 +26,14 @@ describe('useLastUserMessageEdit', () => {
     expect(result.current.content).toBe(content);
   });
 
-  test('does not use the snapshot of a different user message', () => {
-    const { result } = renderHook(() => useLastUserMessageEdit({
+  test('editing follows the latest runtime retry input after another round', () => {
+    const { result, rerender } = renderHook(({ retryInput }) => useLastUserMessageEdit({
       messages: [{ id: 'new', role: 'user', content: 'new input' }],
-      retryBaseMessages: [{ id: 'old', role: 'user', content: 'old input' }]
-    }));
+      retryInput
+    }), { initialProps: { retryInput: 'old input' } });
+    rerender({ retryInput: 'new input' });
     expect(result.current.retrySource).toBe('new input');
+    act(() => result.current.start(0));
+    expect(result.current.content).toBe('new input');
   });
 });

@@ -121,9 +121,9 @@ pub(crate) fn load_card_definition(
     card: &Value,
     model_ids: &[String],
 ) -> Result<Value, String> {
-    if card["formatVersion"] != "2" {
+    if card["formatVersion"] != "1" {
         return Err(
-            "card.json: formatVersion: unsupported protocol; migrate to formatVersion \"2\"".into(),
+            "card.json: formatVersion: unsupported protocol; migrate to formatVersion \"1\"".into(),
         );
     }
     validate(root, card, "runtimeManifest", "card.json")?;
@@ -162,6 +162,6 @@ pub(crate) fn load_card_definition(
     let path = card["main"].as_str().unwrap();
     let main = json!({"path": path, "source": read(root, path)?});
     Ok(
-        json!({"formatVersion": "2", "card": card, "main": main, "agents": agents, "stateSchema": state_schema}),
+        json!({"formatVersion": "1", "card": card, "main": main, "agents": agents, "stateSchema": state_schema}),
     )
 }

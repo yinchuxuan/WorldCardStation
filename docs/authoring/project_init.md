@@ -47,7 +47,7 @@ macOS 已安装应用的可执行文件为 `.app/Contents/MacOS/world-card-stati
 新卡选择世界书时生成：
 
 ```text
-card.json                         # formatVersion 2、main、agents、files 目录 scope
+card.json                         # formatVersion 1、main、agents、files 目录 scope
 main.js                           # 一轮输入与显式演出
 agents/narrator.json               # pre_send 普通 exec 调用世界书
 lib/worldbook/*.js

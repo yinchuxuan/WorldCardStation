@@ -54,7 +54,7 @@ export async function createCachedContext(cache, manifest, reference, urls = URL
   function dispose() { disposed = true; objectUrls.forEach(url => urls.revokeObjectURL(url)); objectUrls.clear(); }
   try {
     card = await (await response('card.json')).json();
-    if (card.formatVersion === '2') {
+    if (card.formatVersion === '1') {
       const definition = await loadRuntimeDefinition({
         readText: async path => (await response(path)).text(),
         stat: async path => {

@@ -10,7 +10,6 @@ const platformMock = global.platformMock;
 describe('ChatPanel Chat History Persistence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
     platformMock.getModelConfig.mockResolvedValue({
       success: true,
       config: { apiUrl: 'http://api.example.com/v1', apiKey: 'test-api-key', modelName: 'gpt-4' }
@@ -35,13 +34,12 @@ describe('ChatPanel Chat History Persistence', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     expect(platformMock.getChatHistory).toHaveBeenCalled();
     // Messages should be loaded from history
-    expect(screen.getByText('Previous question')).toBeInTheDocument();
-    expect(screen.getByText('Previous answer')).toBeInTheDocument();
+    expect(await screen.findByText('Previous question')).toBeInTheDocument();
+    expect(await screen.findByText('Previous answer')).toBeInTheDocument();
   });
 
   test('should handle empty chat history on mount', async () => {
@@ -51,11 +49,10 @@ describe('ChatPanel Chat History Persistence', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     expect(platformMock.getChatHistory).toHaveBeenCalled();
-    expect(screen.getByText('开始对话')).toBeInTheDocument();
+    expect(await screen.findByText('开始对话')).toBeInTheDocument();
   });
 
   test('should save chat history after model response completes', async () => {
@@ -63,26 +60,24 @@ describe('ChatPanel Chat History Persistence', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     // Clear save calls from initial load
     platformMock.saveChatHistory.mockClear();
 
     // Send a message
-    const input = screen.getByPlaceholderText('输入您的回答...');
+    const input = await screen.findByPlaceholderText('输入您的回答...');
+    await waitFor(() => expect(input).not.toBeDisabled());
     fireEvent.change(input, { target: { value: 'Hello' } });
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     const sendBtn = document.querySelector('button[type="submit"]');
     fireEvent.click(sendBtn);
 
     await act(async () => {
-      jest.advanceTimersByTime(200);
     });
 
     await waitFor(() => expect(platformMock.saveChatHistory.mock.calls.at(-1)?.[0]).toEqual([
@@ -99,12 +94,11 @@ describe('ChatPanel Chat History Persistence', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     expect(platformMock.getChatHistory).toHaveBeenCalled();
     // Should still render empty state
-    expect(screen.getByText('开始对话')).toBeInTheDocument();
+    expect(await screen.findByText('开始对话')).toBeInTheDocument();
   });
 
   test('should handle saveChatHistory failure gracefully', async () => {
@@ -114,28 +108,26 @@ describe('ChatPanel Chat History Persistence', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     // Send a message - should not crash even if save fails
-    const input = screen.getByPlaceholderText('输入您的回答...');
+    const input = await screen.findByPlaceholderText('输入您的回答...');
+    await waitFor(() => expect(input).not.toBeDisabled());
     fireEvent.change(input, { target: { value: 'Hello' } });
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
     const sendBtn = document.querySelector('button[type="submit"]');
     fireEvent.click(sendBtn);
 
     await act(async () => {
-      jest.advanceTimersByTime(200);
     });
 
     // Should have attempted to save
     expect(platformMock.saveChatHistory).toHaveBeenCalled();
     // Response should still be displayed
-    expect(screen.getByText('Test response')).toBeInTheDocument();
+    expect(await screen.findByText('Test response')).toBeInTheDocument();
   });
 });

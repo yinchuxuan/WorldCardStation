@@ -1,7 +1,7 @@
 const {
   prepareAfterResponseMessages,
   prepareAfterStreamMessages
-} = require('../../src/renderer/gameCard/sendPipeline');
+} = require('../game-card/legacyPipelineHarness.js');
 
 function phaseCard() {
   return {

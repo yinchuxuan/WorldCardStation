@@ -30,7 +30,7 @@ pub async fn import_game_card_from_file(
 ) -> CardResult<Value> {
     if tavern_only.unwrap_or(false) {
         return Err(GameCardError::new(
-            "酒馆转换尚未支持 formatVersion 2，请先迁移为原生游戏卡。",
+            "酒馆转换尚未支持 formatVersion 1，请先迁移为原生游戏卡。",
         ));
     }
     #[cfg(feature = "e2e")]

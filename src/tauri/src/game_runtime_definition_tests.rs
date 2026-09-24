@@ -85,7 +85,7 @@ fn runtime_definition_shared_js_rust_cases() {
         let result = load_definition(&root.0, &model_ids);
         if case["valid"] == true {
             let definition = result.unwrap();
-            assert_eq!(definition["formatVersion"], "2");
+            assert_eq!(definition["formatVersion"], "1");
             assert_eq!(definition["main"]["path"], "main.js");
             assert!(definition["main"]["source"]
                 .as_str()

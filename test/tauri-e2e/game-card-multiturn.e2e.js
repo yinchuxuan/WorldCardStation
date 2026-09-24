@@ -78,7 +78,9 @@ describe('Tauri multi-turn game card pipeline', () => {
     await sendMessage('with card');
     await browser.waitUntil(() => server.requests.length === 1);
     expect(server.requests[0].messages[0].content).toBe('MOD: with card');
-
+    // Direct native scope changes bypass the UI's save-before-switch barrier.
+    await waitForHistory(value => value.runtimeSession?.current.contexts.narrator.messages
+      .some(item => item.role === 'assistant' && item.content === 'ok'));
     await deactivateCard();
     server.queueOpenAi('ok');
     await sendMessage('without card');

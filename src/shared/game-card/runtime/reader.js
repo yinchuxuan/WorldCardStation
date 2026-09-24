@@ -1,10 +1,10 @@
 import { readerTokens } from './readerTokens.js';
 import { deepFreeze } from '../utils/jsonValue.js';
 
-async function* units(source, mode, separator) {
+async function* units(source, mode, separator, statePatchEnabled) {
   let text = '', patches = [];
   const take = () => { const value = { text, patches }; text = ''; patches = []; return value; };
-  for await (const token of readerTokens(source)) {
+  for await (const token of readerTokens(source, statePatchEnabled)) {
     if (mode === 'continuous') {
       if (token.type === 'text') yield { text: token.text, patches: [] };
       continue;
@@ -29,12 +29,12 @@ async function* units(source, mode, separator) {
   if (text.trim() || patches.length) { if (!text.trim()) text = ''; yield take(); }
 }
 
-function createReader({ source, mode, separator, applyPatch, check = () => {}, onError = () => {} }) {
+function createReader({ source, mode, separator, statePatchEnabled = true, applyPatch, check = () => {}, onError = () => {} }) {
   if (typeof source !== 'string' && typeof source?.[Symbol.asyncIterator] !== 'function') {
     throw new Error('reader source must be a string or AsyncIterable<string>');
   }
   if (!['segmented', 'continuous'].includes(mode)) throw new Error('invalid reader mode');
-  const iterator = units(source, mode, separator?.replace(/\r\n?/g, '\n'));
+  const iterator = units(source, mode, separator?.replace(/\r\n?/g, '\n'), statePatchEnabled);
   let busy = false, finished = false, failure;
   const reader = Object.freeze({ async next() {
     try {

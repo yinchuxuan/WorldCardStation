@@ -52,5 +52,5 @@ test('hides retry while a request is active and restores it when completed', asy
   expect(screen.queryByRole('button', { name: '重新生成回复' })).not.toBeInTheDocument();
   await act(async () => { finish(global.createStreamingMock('Completed answer')); });
   await screen.findByText('Completed answer');
-  expect(screen.getByRole('button', { name: '重新生成回复' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: '重新生成回复' })).toBeInTheDocument();
 });

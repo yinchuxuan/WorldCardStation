@@ -23,7 +23,7 @@ function card(overrides = {}) {
 
 describe('unified game card protocol validation', () => {
   test('exposes a schema version independent from the card version', () => {
-    expect(GAME_CARD_SCHEMA_VERSION).toBe('2.0.0');
+    expect(GAME_CARD_SCHEMA_VERSION).toBe('2.1.0');
     expect(schema['x-schema-version']).toBe(GAME_CARD_SCHEMA_VERSION);
     expect(card({ version: 'chapter-build-7' }).version).not.toBe(GAME_CARD_SCHEMA_VERSION);
   });

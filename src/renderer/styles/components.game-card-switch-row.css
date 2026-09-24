@@ -9,7 +9,7 @@
   flex: 1 1 auto;
 }
 
-.game-card-switch-remove, .game-card-switch-update {
+.game-card-switch-remove {
   width: 44px;
   height: 44px;
   flex: 0 0 auto;
@@ -33,10 +33,3 @@
 .game-card-switch-remove .material-icons.importing {
   animation: game-card-import-spin 900ms linear infinite;
 }
-.game-card-switch-update { color: var(--md-primary); }
-.game-card-switch-update:hover, .game-card-switch-update:focus-visible {
-  opacity: 1;
-  background: var(--md-primary-container);
-}
-.game-card-switch-update:disabled { cursor: default; opacity: 0.35; }
-.game-card-switch-update .material-icons { font-size: 20px; color: currentColor; }

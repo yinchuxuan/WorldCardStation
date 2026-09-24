@@ -30,9 +30,10 @@ test('production provider prepares V2 once, exposes no ordinary fallback while l
   await act(async () => runtime.changeActiveCard(null));
   expect(screen.getByText('ordinary')).toBeInTheDocument();
   expect(session.dispose).toHaveBeenCalledTimes(1);
-  expect(runtime.mainSession).toBeNull();
+  expect(runtime.mainSession).toBe(session);
+  expect(createBrowserMainSession.mock.lastCall[0].definition.card.statePatch.enabled).toBe(false);
   mounted.unmount();
-  expect(session.dispose).toHaveBeenCalledTimes(1);
+  expect(session.dispose).toHaveBeenCalledTimes(2);
 });
 
 test('provider disposes its owned Session on unmount', async () => {
@@ -64,5 +65,5 @@ test('late V2 preparation cannot replace a newer ordinary-chat selection', async
   await act(async () => change(null));
   await act(async () => { release(); await pending; });
   await waitFor(() => expect(screen.getByText('ordinary')).toBeInTheDocument());
-  expect(session.dispose).toHaveBeenCalledTimes(1);
+  expect(session.dispose).toHaveBeenCalledTimes(2);
 });

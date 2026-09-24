@@ -47,22 +47,18 @@ describe('saved reading and whole-turn retry', () => {
     await expect($('#test-state')).toHaveText('count=2;score=0');
     expect((await gameSnapshot()).revision).toBe(snapshot.revision);
   });
-  it('disables save during generation; cancellation restores the complete pre-input state', async () => {
+  it('disables save during generation; refresh discards the unfinished turn and restores the explicit save', async () => {
     await save();
-    const before = (await gameSnapshot()).snapshot.runtimeSession.current;
+    const before = await gameSnapshot();
     await configure('slow');
-    await send('取消生成');
-    await $('button[aria-label="停止生成"]').waitForExist();
+    await send('刷新中断生成');
     await expect($('button[aria-label="管理聊天会话"]')).toBeDisabled();
-    // This source has no complete segment until generation ends; cancellation must not preserve a half turn.
-    await $('[data-gc-part="chat-input-trigger"]').moveTo();
-    await $('button[aria-label="停止生成"]').click();
-    await save();
-    const saved = await gameSnapshot();
-    expect(saved.snapshot.runtimeSession.current).toEqual(before);
-    expect(saved.snapshot.messages.some(message => message.role === 'assistant' && message.content.includes('你好'))).toBe(false);
+    await expect($('#test-state')).toHaveText('count=3;score=0');
+    expect(await gameSnapshot()).toEqual(before);
     await browser.refresh();
     await $('button[aria-label="管理聊天会话"]').waitForEnabled();
-    expect((await gameSnapshot()).snapshot).toEqual(saved.snapshot);
+    await expect($('#test-state')).toHaveText('count=2;score=0');
+    await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('第二页的内容'));
+    expect(await gameSnapshot()).toEqual(before);
   });
 });

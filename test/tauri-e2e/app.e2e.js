@@ -1,7 +1,7 @@
 /* global browser, $, before, after */
 
 const http = require('node:http');
-const { invoke, sendMessage, revealHeader } = require('./support/tauri');
+const { invoke, sendMessage, revealHeader, resetNoCard, waitForHistory } = require('./support/tauri');
 
 describe('Tauri desktop application', () => {
   let server;
@@ -57,8 +57,10 @@ describe('Tauri desktop application', () => {
     const localUi = await $('.tauri-e2e-ui');
     await localUi.waitForExist();
     await expect(localUi).toHaveText('本地交互 1');
+    await waitForHistory(history => history.runtimeSession?.started === true);
     await browser.execute(() => document.querySelector('.tauri-e2e-ui')?.click());
     await expect(localUi).toHaveText('本地交互 2');
+    await expect($('#game-card-ui-root')).not.toHaveAttribute('data-error');
 
     await browser.waitUntil(async () => {
       const style = await $('.app-background-layer-current').getAttribute('style');
@@ -108,14 +110,6 @@ describe('Tauri desktop application', () => {
     expect(requestCount).toBe(2);
   });
 
-  it('stops an active stream with the send button', async () => {
-    await sendMessage('中止请求');
-    const send = await $('.chat-input-area button[type="submit"]');
-    await browser.waitUntil(async () => (await send.getAttribute('aria-label')) === '停止生成');
-    await send.click();
-    await browser.waitUntil(async () => (await send.getAttribute('aria-label')) === '发送消息');
-  });
-
   it('restores card, session, messages and state after an application restart', async () => {
     await browser.reloadSession();
     await $('.app-container').waitForExist();
@@ -124,5 +118,18 @@ describe('Tauri desktop application', () => {
     const history = await invoke('get_chat_history');
     expect(history.messages.some(message => message.content === '正常请求')).toBe(true);
     expect(history.gameState.score).toBe(1);
+  });
+
+  it('stops an ordinary-chat stream without saving a partial round', async () => {
+    await resetNoCard();
+    const baseline = await invoke('get_chat_history');
+    await sendMessage('中止请求');
+    await expect($('.chat-history')).toHaveText(expect.stringContaining('等待中'));
+    const send = await $('.chat-input-area button[type="submit"]');
+    await expect(send).toHaveAttribute('aria-label', '停止生成');
+    await browser.execute(element => element.click(), send);
+    await expect(send).toHaveAttribute('aria-label', '发送消息');
+    await expect($('.chat-history')).not.toHaveText(expect.stringContaining('等待中'));
+    expect((await invoke('get_chat_history')).runtimeSession.current).toEqual(baseline.runtimeSession.current);
   });
 });

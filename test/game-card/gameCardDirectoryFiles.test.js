@@ -1,7 +1,7 @@
 const { applyGameCardAsync } = require('../../src/renderer/gameCard/engine');
 const { resolveContent } = require('../../src/shared/game-card/content/contentResolver');
 const { validateGameCard } = require('../../src/shared/game-card/schema/validateGameCard');
-const { preparePreSendMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { preparePreSendMessages } = require('../game-card/legacyPipelineHarness.js');
 const { collectFileContentPaths } = require('../../src/renderer/gameCard/resourcePreload');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
 

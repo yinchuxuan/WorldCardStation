@@ -2,7 +2,7 @@
 
 <!-- devkit:omit:start -->
 适用任务：修改变量默认值、约束、state_patch 和提交时序。  
-相关代码：`src/shared/game-card/state/`、`src/renderer/gameCard/statePatchPipeline.js`。  
+相关代码：`src/shared/game-card/state/`、`src/shared/game-card/runtime/sharedState.js`。
 前置文档：[游戏卡（Game Card）参考](../overview.md)
 <!-- devkit:omit:end -->
 

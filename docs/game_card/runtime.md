@@ -10,7 +10,7 @@
 
 ```json
 {
-  "formatVersion": "2",
+  "formatVersion": "1",
   "id": "my-game",
   "version": "1.0.0",
   "name": "我的游戏",
@@ -26,6 +26,12 @@ Agent ID 以英文字母开头，后续可用字母、数字、下划线、连�
 
 根清单保留 files、state/stateSchema、visual、audio、display、presentation、ui 和描述字段。
 rules、responseValidation 移到各 Agent 文件，不再放在根清单。Agent 文件仅有 model、rules 和可选 responseValidation。
+
+根清单可设置 `"statePatch": { "enabled": false }`，省略时默认开启。
+关闭时所有 Agent 不解析或提交模型正文中的 `<state_patch>`；所有 reader 将 `<state_patch>` 和 `<state_patch_stream>` 视为普通文本，不过滤、不执行，也不因标签不完整或嵌套报错。
+回复校验的 content 来源和显示层也不再自动剔除这些标签；作者配置的显示规则和 Markdown 渲染仍照常执行。
+这只关闭模型正文的变量更新协议，不影响 main.js 的 State API、规则写入变量或 responseValidation 本身。
+
 model 是平台配置引用，不是模型名称或 API 密钥；播放器目前提供 default，不允许卡片内联 endpoint/密钥。
 
 card.json 和 Agent JSON 均支持 [JSON import](./packaging/imports.md)。路径相对于卡根，不相对于导入文件。

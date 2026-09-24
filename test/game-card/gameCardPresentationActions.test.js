@@ -3,7 +3,7 @@ const schema = require('../../src/shared/game-card/schema/game-card.schema.json'
 const {
   prepareAfterResponseMessages,
   preparePreSendMessages
-} = require('../../src/renderer/gameCard/sendPipeline');
+} = require('../game-card/legacyPipelineHarness.js');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
 
 const platform = createTestGameCardPlatform(() => global.platformMock);

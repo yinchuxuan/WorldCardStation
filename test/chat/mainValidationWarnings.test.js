@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import useChatGeneration from '../../src/renderer/chat/useChatGeneration.js';
+import useMainGeneration from '../../src/renderer/chat/useMainGeneration.js';
 
 function session() {
   const listeners = new Set(), view = { state: {}, messages: [], records: [], contexts: {} };
@@ -12,7 +12,7 @@ test('main warnings publish during reading, accumulate per Agent, and do not reo
   const main = session(), warn = jest.fn();
   const props = { mainSession: main, persistence: {}, setMessages: jest.fn(), setGameState: jest.fn(),
     setIsLoading: jest.fn(), onResponseValidationWarning: warn };
-  const { rerender } = renderHook(({ runtime }) => useChatGeneration({ ...props, mainSession: runtime }),
+  const { rerender } = renderHook(({ runtime }) => useMainGeneration({ ...props, mainSession: runtime }),
     { initialProps: { runtime: main } });
   const event = { type: 'agent-response', agentId: 'narrator', messageId: 'r1',
     warnings: [{ id: 'choices', message: 'choices 格式错误', onFailure: 'warn' }] };

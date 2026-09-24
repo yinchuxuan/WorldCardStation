@@ -1,16 +1,8 @@
 /* global browser, $, before, after */
 const fs = require('node:fs');
 const path = require('node:path');
-const { invoke, refreshApp, revealHeader, sendMessage } = require('./support/tauri');
+const { invoke, refreshApp, sendMessage } = require('./support/tauri');
 const http = require('node:http');
-
-function comparableHistory(history) {
-  // Reload can regenerate temporary prompt IDs; real message IDs and all other session data must survive.
-  return { ...history, messages: history.messages.map(message => {
-    if (message.ttl !== 1 || message._meta?.visibility !== 'llm_only') return message;
-    return { ...message, id: '<temporary-prompt>' };
-  }) };
-}
 
 describe('Tavern import through the single card button', () => {
   let server;
@@ -82,30 +74,4 @@ describe('Tavern import through the single card button', () => {
     expect(history.gameState.__tavern.initialized).toBe(true);
   });
 
-  it('requires a separate overwrite confirmation and preserves the existing session', async () => {
-    await browser.waitUntil(async () => !(await $('.game-card-title-main').getAttribute('disabled')));
-    await revealHeader();
-    const original = await invoke('get_active_game_card');
-    const history = await invoke('get_chat_history');
-    await browser.execute(() => {
-      const trigger = document.querySelector('.game-card-title-main');
-      if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
-    });
-    await $('.game-card-switch-panel[data-state="open"] .game-card-switch-update').waitForDisplayed();
-    await browser.execute(() => document.querySelector('.game-card-switch-update').click());
-    await $('.tavern-import-dialog').waitForExist();
-    await expect($('#tavern-import-title')).toHaveText('确认覆盖游戏卡');
-    expect(await invoke('get_active_game_card')).toEqual(original);
-    await browser.execute(() => [...document.querySelectorAll('.tavern-import-dialog button')].find(button => button.textContent === '取消').click());
-    await browser.waitUntil(async () => !(await $('.game-card-switch-update').getAttribute('disabled')));
-    expect(comparableHistory(await invoke('get_chat_history'))).toEqual(comparableHistory(history));
-    await browser.execute(() => document.querySelector('.game-card-switch-update').click());
-    await $('.tavern-import-dialog').waitForExist();
-    await browser.execute(() => [...document.querySelectorAll('.tavern-import-dialog button')].find(button => button.textContent.trim() === '覆盖并导入').click());
-    await $('.tavern-import-dialog').waitForExist({ reverse: true });
-    await browser.waitUntil(async () => !(await $('.game-card-title-main').getAttribute('disabled')));
-    expect((await invoke('get_active_game_card')).id).toBe(original.id);
-    expect(await invoke('get_game_cards')).toHaveLength(1);
-    expect(comparableHistory(await invoke('get_chat_history'))).toEqual(comparableHistory(history));
-  });
 });

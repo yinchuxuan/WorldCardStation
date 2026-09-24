@@ -1,14 +1,21 @@
 const { browser, $, expect } = require('@wdio/globals');
-const { openSessions: sessions, archive: save } = require('./ui.js');
+const { openSessions: sessions, archive: save, configure } = require('./ui.js');
 async function send(text) {
   await $('[data-gc-part="chat-input-trigger"]').moveTo();
   await $('[data-gc-part="chat-input-textarea"]').waitForDisplayed();
   await $('[data-gc-part="chat-input-textarea"]').setValue(text);
   await $('[data-gc-part="chat-send-button"]').click();
+  await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining(text));
+  await $('button[aria-label="管理聊天会话"]').waitForEnabled();
 }
 describe('session management and failure safety', () => {
   it('explicit save failure preserves memory progress and the previous snapshot', async () => {
-    await browser.url('/'); await send('旧存档'); await save();
+    await browser.url('/'); await configure(); await send('旧存档'); await save();
+    await sessions();
+    await $('.chat-session-row.active button[aria-label="重命名会话"]').click();
+    await $('.chat-session-title-input').setValue('旧存档');
+    await $('button[aria-label="保存会话名"]').click();
+    await $('button[aria-label="管理聊天会话"]').click();
     await send('配额不足时的现场');
     await browser.execute(() => {
       window.__originalPut = IDBObjectStore.prototype.put;
@@ -37,13 +44,17 @@ describe('session management and failure safety', () => {
     await expect($('[data-gc-part="chat-history"]')).not.toHaveText(expect.stringContaining('第二个会话'));
   });
   it('a corrupt saved snapshot disables writing and does not overwrite the existing record', async () => {
-    const original = await browser.execute(() => new Promise(resolve => {
+    await $('button[aria-label="管理聊天会话"]').waitForEnabled();
+    const original = await browser.execute(() => new Promise((resolve, reject) => {
       const open = indexedDB.open('WorldCardStationWeb');
       open.onsuccess = () => {
         const db = open.result, tx = db.transaction('sessions', 'readwrite'), store = tx.objectStore('sessions');
+        tx.onabort = () => { db.close(); reject(tx.error?.message || 'Session transaction aborted'); };
         const get = store.get('no-card'); let original;
         get.onsuccess = () => {
-          original = structuredClone(get.result);
+          // Runtime snapshots share message objects. Pass JSON across WebDriver,
+          // not a graph of repeated remote object references.
+          original = JSON.stringify(get.result);
           const corrupt = get.result; corrupt.sessions[1].snapshot.messages = 'damaged'; store.put(corrupt);
         };
         tx.oncomplete = () => { db.close(); resolve(original); };
@@ -53,12 +64,13 @@ describe('session management and failure safety', () => {
     await expect($('body')).toHaveText(expect.stringContaining('会话快照已损坏'));
     await sessions();
     await expect($('button[aria-label="保存当前会话"]')).toBeDisabled();
-    const preserved = await browser.execute(original => new Promise(resolve => {
+    const preserved = await browser.execute(original => new Promise((resolve, reject) => {
       const open = indexedDB.open('WorldCardStationWeb');
       open.onsuccess = () => {
         const db = open.result, tx = db.transaction('sessions', 'readwrite'), store = tx.objectStore('sessions');
+        tx.onabort = () => { db.close(); reject(tx.error?.message || 'Session transaction aborted'); };
         const get = store.get('no-card'); let corrupted;
-        get.onsuccess = () => { corrupted = get.result.sessions[1].snapshot.messages; store.put(original); };
+        get.onsuccess = () => { corrupted = get.result.sessions[1].snapshot.messages; store.put(JSON.parse(original)); };
         tx.oncomplete = () => { db.close(); resolve(corrupted); };
       };
     }), original);

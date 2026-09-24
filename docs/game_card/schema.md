@@ -36,7 +36,7 @@ JSON Schema 不负责读取文件。schema 中带 `x-file: true` 的定义会由
 维护者的加载契约见 [新运行时清单](../architecture/game_runtime_manifest.md)。
 <!-- devkit:omit:end -->
 
-Schema 发布版本为 `x-schema-version: "2.0.0"`。玩家卡片使用 `formatVersion: "2"` 选择新协议；
+Schema 发布版本为 `x-schema-version: "2.1.0"`。玩家卡片使用 `formatVersion: "1"` 选择新协议；
 顶层 `version` 由卡作者标记内容版本，不参与平台协议选择。新语法见 [清单与主程序](./runtime.md)。
 
 协议版本遵循 SemVer：

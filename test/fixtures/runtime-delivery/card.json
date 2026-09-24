@@ -1,5 +1,5 @@
 {
-  "formatVersion": "2", "version": "1.0.0", "id": "runtime-delivery", "name": "Judge 与 Narrator",
+  "formatVersion": "1", "version": "1.0.0", "id": "runtime-delivery", "name": "Judge 与 Narrator",
   "main": "main.js",
   "agents": { "judge": "agents/judge.json", "narrator": "agents/narrator.json" },
   "state": { "schema": {

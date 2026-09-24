@@ -59,8 +59,8 @@ function freeze(value) {
 async function loadRuntimeDefinition({ readText, stat, modelIds = [] }) {
   const manifest = await readExpandedJson(readText, 'card.json');
   const card = manifest.value;
-  if (card?.formatVersion !== '2') {
-    fail('card.json', 'formatVersion', 'unsupported protocol; migrate to formatVersion "2"');
+  if (card?.formatVersion !== '1') {
+    fail('card.json', 'formatVersion', 'unsupported protocol; migrate to formatVersion "1"');
   }
   await validateFiles(card, 'runtimeManifest', 'card.json', stat);
   const agents = {};
@@ -84,7 +84,7 @@ async function loadRuntimeDefinition({ readText, stat, modelIds = [] }) {
   });
   if (errors.length) fail(card.stateSchema || 'card.json', 'state.schema', errors.join('; '));
   const source = await read(readText, card.main);
-  return freeze({ formatVersion: '2', card, main: { path: card.main, source }, agents, stateSchema, sources: manifest.sources });
+  return freeze({ formatVersion: '1', card, main: { path: card.main, source }, agents, stateSchema, sources: manifest.sources });
 }
 
 export { loadRuntimeDefinition };

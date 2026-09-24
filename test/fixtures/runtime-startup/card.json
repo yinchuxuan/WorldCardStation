@@ -1,5 +1,5 @@
 {
-  "formatVersion": "2", "id": "runtime-startup", "version": "1", "name": "Startup Fixture",
+  "formatVersion": "1", "id": "runtime-startup", "version": "1", "name": "Startup Fixture",
   "main": "main.js", "agents": { "judge": "judge.json", "narrator": "narrator.json" },
   "state": { "schema": { "count": { "type": "number", "default": 0 } } },
   "display": { "segmentedReading": true }

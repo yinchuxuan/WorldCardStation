@@ -1,7 +1,7 @@
 import { createReader } from './reader.js';
 import { cloneJson } from '../utils/jsonValue.js';
 
-function createMainReaders({ runtime, snapshot, idPrefix, separator, check, fail, display, update }) {
+function createMainReaders({ runtime, snapshot, idPrefix, separator, statePatchEnabled, check, fail, display, update }) {
   const readers = new Map();
   const records = cloneJson(snapshot?.records || []);
   let sequence = 0, presenting = false;
@@ -9,7 +9,7 @@ function createMainReaders({ runtime, snapshot, idPrefix, separator, check, fail
   function make(options) {
     check();
     try {
-      const item = createReader({ source: options?.source, mode: options?.mode, separator,
+      const item = createReader({ source: options?.source, mode: options?.mode, separator, statePatchEnabled,
         applyPatch: runtime.applyReadingPatch, check, onError: fail });
       readers.set(item.reader, item);
       return item.reader;

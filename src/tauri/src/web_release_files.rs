@@ -143,7 +143,7 @@ pub fn collect(root: &Path, card: &Value) -> CardResult<BTreeSet<String>> {
         public_file(root, &item.file)?;
         paths.insert(item.file);
     }
-    if card["formatVersion"] == "2" {
+    if card["formatVersion"] == "1" {
         for file in crate::game_runtime_definition::agent_files(root, card)? {
             public_file(root, &file)?;
             paths.insert(file);

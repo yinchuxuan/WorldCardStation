@@ -16,7 +16,8 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
   let active;
   let stopped = false;
   let ruleWork;
-  const view = () => cloneJson({ state: store.snapshot(), contexts });
+  let thinkingPreview;
+  const view = () => cloneJson({ state: store.snapshot(), contexts, ...(thinkingPreview ? { thinkingPreview } : {}) });
   const publish = detail => { if (!stopped) onUpdate(view(), detail); };
   const nextId = () => `msg-${idPrefix}${++sequence}`;
   if (snapshot) {
@@ -102,15 +103,20 @@ function createAgentRuntime({ definition, generate, dependencies = {}, snapshot,
       observe('model.request', { normalized_messages: messages(agentId).map(({ role, content }) => ({ role, content })) });
       await generate({ agentId, model: agent.model, messages: messages(agentId), signal: controller.signal }, {
         onToken(text) { check(); stream.push(text); content += text; },
-        onThinkingToken(text) { check(); thinking += text; }
+        onThinkingToken(text) {
+          check(); thinking += text;
+          thinkingPreview = { agentId, messageId, text: thinking };
+          publish({ type: 'thinking' });
+        }
       });
       check();
       stream.finish();
       observe('model.response', { content, thinking });
-      const warnings = completeResponse(content, agent.responseValidation, store, observe);
+      const warnings = completeResponse(content, agent.responseValidation, store, observe, card.statePatch?.enabled !== false);
       publish({ type: 'model-patch' });
       context.messages.push({ id: messageId, role: 'assistant', content,
         ...(thinking ? { thinking } : {}), ...(warnings.length ? { _meta: { validationWarnings: warnings } } : {}) });
+      thinkingPreview = undefined;
       publish({ type: 'agent-response', agentId, messageId, warnings });
       await phase('post_response');
       publish({ type: 'agent' });

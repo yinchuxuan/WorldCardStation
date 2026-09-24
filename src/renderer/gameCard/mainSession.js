@@ -8,7 +8,7 @@ import { beginMainTrace } from '../trace/mainTrace.js';
 import { createMainInputQueue } from './mainInputQueue.js';
 
 // One instance per Session; replacing/unloading it must dispose the old instance first.
-function createMainSession({ definition, readText, generate, workerFactory, timeoutMs, program: preparedProgram, trace }) {
+function createMainSession({ definition, readText, generate, workerFactory, timeoutMs, program: preparedProgram, trace, migrateHistory = value => value }) {
   const empty = () => ({ ...createAgentRuntime({ definition, generate }).snapshot(), records: [], messages: [] });
   let current = empty(), viewState = {}, ready = true, started = false;
   const view = createMainSessionView(current);
@@ -139,6 +139,7 @@ function createMainSession({ definition, readText, generate, workerFactory, time
     restoreHistory(history) {
       if (queue.busy || disposed) throw new Error('Session is not idle');
       ready = false;
+      history = migrateHistory(history);
       if (history.runtimeSession !== undefined) {
         const saved = validateRuntimeSession(history.runtimeSession, definition);
         current = saved.current; viewState = saved.viewState; retryBase = saved.retryBase || undefined;

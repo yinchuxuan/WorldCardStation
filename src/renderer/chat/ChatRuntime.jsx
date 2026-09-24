@@ -13,12 +13,10 @@ import GameCardUIRoot from '../components/GameCardUIRoot.jsx';
 import PlatformRequestErrorNotice from '../components/PlatformRequestErrorNotice.jsx';
 import PlatformResponseWarningNotice from '../components/PlatformResponseWarningNotice.jsx';
 import useLastUserMessageEdit from './useLastUserMessageEdit.js';
-import useTypewriter from './useTypewriter.js';
-import { rendererServices, savePolicy } from '../platform/index.js';
+import useChatView from './useChatView.js';
 import { useGameCardRuntime } from './GameCardRuntimeProvider.jsx';
 import useAppClosePersistence from './useAppClosePersistence.js';
-import useChatGeneration from './useChatGeneration.js';
-import useChatPresentationHandlers from './useChatPresentationHandlers.js';
+import useMainGeneration from './useMainGeneration.js';
 import useChatPersistence from './useChatPersistence.js';
 import useChatScroll from './useChatScroll.js';
 import useChatSession from './useChatSession.js';
@@ -40,60 +38,46 @@ function ChatRuntime({
 }) {
   const [messages, setMessages] = React.useState([]), [isLoading, setIsLoading] = React.useState(false);
   const [showMsgHistory, setShowMsgHistory] = React.useState(false);
-  const [msgHistoryMessages, setMsgHistoryMessages] = React.useState(null);
   const [agentSelection, setAgentSelection] = React.useState(null);
-  const [showStreamThinking, setShowStreamThinking] = React.useState(true);
   const [isInputHovered, setIsInputHovered] = React.useState(false);
   const [isInputTriggerHovered, setIsInputTriggerHovered] = React.useState(false);
   const [actionError, setActionError] = React.useState(null), [requestError, setRequestError] = React.useState(null), [responseWarning, setResponseWarning] = React.useState(null);
   const chatPanelRef = React.useRef(null);
   const runtime = useGameCardRuntime();
   React.useEffect(() => runtimeTrace.update(messages, runtime.gameState), [messages, runtime.gameState]);
-  const { display, displayRevision, depths } = useChatDisplay(runtime.activeCard?.display, runtime.gameState, messages, isLoading);
+  const { display, displayRevision, depths } = useChatDisplay(runtime.activeCard?.display, runtime.gameState, messages, isLoading,
+    Boolean(runtime.activeCard) && runtime.activeCard.statePatch?.enabled !== false);
   const modelConfig = useModelConfig();
-  const typewriter = useTypewriter();
   const presentation = useGameCardPresentation();
   const mainView = useMainPresentation({ mainSession: runtime.mainSession, card: runtime.activeCard, presentation,
     setGameState: runtime.setGameState, setMessages, setIsLoading });
+  const chatView = useChatView(mainView, isLoading);
   const agentId = (agentSelection && agentSelection.session === runtime.mainSession && mainView.contexts[agentSelection.id])
     ? agentSelection.id : Object.keys(mainView.contexts)[0];
-  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, mainSession: runtime.mainSession, enabled: !runtime.mainSession || Boolean(runtime.mainSession.exportSession) });
+  const persistence = useChatPersistence({ messages, gameState: runtime.gameState, isLoading, mainSession: runtime.mainSession, enabled: Boolean(runtime.mainSession?.exportSession) });
   const mainReading = useMainReading(runtime.mainSession, mainView, chatPanelRef, showMsgHistory, persistence.notifyViewChanged, display);
-  const presentationHandlers = useChatPresentationHandlers(runtime.activeCard, presentation);
-  const generation = useChatGeneration({
+  const generation = useMainGeneration({
     mainSession: runtime.mainSession,
-    messages, setMessages, gameState: runtime.gameState, setGameState: runtime.setGameState,
-    modelConfig, typewriter,
-    persistence, isLoading,
-    setIsLoading, setRuntimeError: runtime.setRuntimeError,
+    canMutate: persistence.manual.canQueueInput,
     setRequestError,
-    setShowStreamThinking,
-    onAudioSubmit: presentation.stopBgm,
-    onRetryStateRestore: presentationHandlers.onRetryStateRestore, onRequestFailureRestore: presentationHandlers.onRequestFailureRestore,
-    onValidationRetry: presentationHandlers.onValidationRetry,
-    onResponseValidationWarning: setResponseWarning,
-    onPresentationEffects: presentation.applyEffects,
-    onStatePatchApplied: presentationHandlers.onStatePatchApplied,
-    onStreamContentStart: presentationHandlers.onStreamContentStart
+    onResponseValidationWarning: setResponseWarning
   });
   useAppClosePersistence({ stopGeneration: generation.stop, flush: persistence.flush });
-  const scroll = useChatScroll({ messages, isLoading, displayedCount: typewriter.displayedCount, showMsgHistory });
+  const scroll = useChatScroll({ messages, isLoading, displayedCount: chatView.typewriter.displayedCount, showMsgHistory });
   const session = useChatSession({
-    setMessages, mainSession: runtime.mainSession, enabled: !runtime.mainSession || Boolean(runtime.mainSession.restoreHistory),
+    setMessages, mainSession: runtime.mainSession, enabled: Boolean(runtime.mainSession?.restoreHistory),
     setGameState: runtime.setGameState,
     setRuntimeError: runtime.setRuntimeError,
     isLoading,
     setIsLoading,
     persistence,
-    typewriter,
-    onResetView: scroll.collapseHistory,
-    onSessionLoaded: presentationHandlers.onSessionLoaded
+    onResetView: scroll.collapseHistory
   });
   const gameCards = useGameCardSwitching({ isLoading, setIsLoading, presentation, runtime, session });
   React.useEffect(() => { setRequestError(null); setResponseWarning(null); }, [session.revision]);
   const editUserMessage = useLastUserMessageEdit({ messages, isLoading,
-    retryBaseMessages: persistence.retryBaseRef.current });
-  const reading = mainReading, retrySource = runtime.mainSession ? runtime.mainSession.retryInput || '' : editUserMessage.retrySource;
+    retryInput: runtime.mainSession?.retryInput });
+  const reading = mainReading, retrySource = runtime.mainSession?.retryInput || '';
   const handleRetry = React.useCallback(async (content) => {
     const retryContent = typeof content === 'string'
       ? content
@@ -102,20 +86,7 @@ function ChatRuntime({
     if (ok) editUserMessage.finish();
     return ok;
   }, [editUserMessage, generation]);
-  const toggleHistory = () => {
-    const next = !showMsgHistory;
-    setShowMsgHistory(next);
-    if (runtime.mainSession) return;
-    if (next && savePolicy === 'manual') setMsgHistoryMessages(messages);
-    else if (next) rendererServices.sessions.loadHistory()
-      .then(result => setMsgHistoryMessages(result.messages))
-      .catch(error => setActionError(error));
-  };
-  const toggleThinking = (index) => setMessages(prev => prev.map((msg, current) => (
-    current === index ? { ...msg, _thinkingVisible: !msg._thinkingVisible } : msg
-  )));
-  const streamThinking = typewriter.getThinkingContent();
-  const currentThinking = isLoading && streamThinking ? streamThinking : null;
+  const toggleHistory = () => setShowMsgHistory(value => !value);
   return <div className="chat-panel" data-gc-part="chat-panel"
     ref={chatPanelRef} onClick={showMsgHistory ? undefined : reading.advanceVisiblePage}>
     <PlatformRequestErrorNotice error={persistence.error ? `存档失败：${persistence.error.message}` : requestError} onClose={() => setRequestError(null)} />
@@ -148,18 +119,16 @@ function ChatRuntime({
       <div className="chat-history" data-gc-part="chat-history" data-view={showMsgHistory ? 'history' : 'messages'} ref={scroll.chatHistoryRef}>
         <div className="chat-reading-veil game-card-visual-panel" data-gc-part="chat-reading-veil" aria-hidden="true" />
         {runtime.runtimeError ? <><GameCardErrorPanel error={runtime.runtimeError} />{runtime.mainSession && !runtime.mainSession.started && !isLoading ? <button type="button" onClick={session.reload}>重新启动游戏</button> : null}</> : null}
-        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(runtime.mainSession ? mainView.contexts[agentId]?.messages : msgHistoryMessages)
-          : runtime.mainSession ? <MainMessages messages={messages} reading={mainReading} display={display} displayRevision={displayRevision}
+        {showMsgHistory ? ChatPanelRenderers.renderMsgHistoryDisplay(mainView.contexts[agentId]?.messages)
+          : runtime.activeCard ? <MainMessages messages={messages} reading={mainReading} display={display} displayRevision={displayRevision}
             isLoading={isLoading} handleRetry={handleRetry} /> : <ChatMessages
           display={display} displayRevision={displayRevision} depths={depths}
-          messages={messages} isLoading={isLoading} typewriter={typewriter}
-          currentThinking={currentThinking} showStreamThinking={showStreamThinking}
-          setShowStreamThinking={setShowStreamThinking} toggleThinking={toggleThinking}
+          {...chatView} isLoading={chatView.streaming}
           handleRetry={handleRetry} scroll={scroll} modelConfig={modelConfig} editUserMessage={editUserMessage} />}
       </div>
       <div className="chat-input-hover-trigger" data-gc-part="chat-input-trigger" onMouseEnter={() => setIsInputTriggerHovered(true)} onMouseLeave={() => setIsInputTriggerHovered(false)} />
     </div>
-    <ChatInputArea isLoading={runtime.mainSession ? false : isLoading} isInputHovered={isInputHovered} setIsInputHovered={setIsInputHovered} isInputTriggerHovered={isInputTriggerHovered} setIsInputTriggerHovered={setIsInputTriggerHovered} onSend={generation.send} onStop={generation.stop} />
+    <ChatInputArea isLoading={runtime.activeCard ? false : isLoading} isInputHovered={isInputHovered} setIsInputHovered={setIsInputHovered} isInputTriggerHovered={isInputTriggerHovered} setIsInputTriggerHovered={setIsInputTriggerHovered} onSend={generation.send} onStop={generation.stop} />
   </div>;
 }
 ChatRuntime.propTypes = {

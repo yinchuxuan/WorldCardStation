@@ -2,16 +2,24 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import useChatSession from '../../src/renderer/chat/useChatSession.js';
 import useChatPersistence from '../../src/renderer/chat/useChatPersistence.js';
-import generationServices from '../../src/renderer/chat/generationServices.js';
 
-function renderSession(repository) {
+function renderSession(repository, failure) {
   const onError = jest.fn();
   const typewriter = { clearStreaming: jest.fn() };
+  let restored;
+  const mainSession = { started: true, beginLoad: jest.fn(),
+    restoreHistory(value) {
+      if (failure === 'card') throw new Error('unreadable card');
+      restored = { messages: value.messages, state: value.gameState };
+      return restored;
+    },
+    async start() { if (failure === 'rule') throw new Error('unreadable rule'); },
+    exportSession: () => ({ current: restored, viewState: {} }) };
   const hook = renderHook(() => {
     const [messages, setMessages] = React.useState([]);
     const [gameState, setGameState] = React.useState({});
-    const persistence = useChatPersistence({ messages, gameState, isLoading: false, repository });
-    const session = useChatSession({ setMessages, setGameState, setRuntimeError: onError,
+    const persistence = useChatPersistence({ messages, gameState, isLoading: false, repository, mainSession });
+    const session = useChatSession({ mainSession, setMessages, setGameState, setRuntimeError: onError,
       isLoading: false, persistence, typewriter, repository });
     return { session, persistence, messages, gameState, setMessages };
   });
@@ -23,11 +31,7 @@ afterEach(() => jest.restoreAllMocks());
 test.each(['history', 'card', 'rule'])('%s load failure cannot overwrite disk through autosave, explicit save or close', async failure => {
   const repository = { loadHistory: jest.fn(async () => ({ messages: [], gameState: {} })), saveHistory: jest.fn() };
   if (failure === 'history') repository.loadHistory.mockRejectedValue(new Error('unreadable history'));
-  else jest.spyOn(generationServices, 'prepareInitMessages').mockResolvedValue(failure === 'card'
-    ? { error: 'unreadable card' }
-    : { messages: [{ role: 'system', content: 'partial init' }], state: { score: 99 }, changed: true,
-      trace: { errors: ['unreadable rule'] } });
-  const { result, onError } = renderSession(repository);
+  const { result, onError } = renderSession(repository, failure);
   await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: `unreadable ${failure}` })));
   expect(result.current.messages).toEqual([]);
   expect(result.current.gameState).toEqual({});

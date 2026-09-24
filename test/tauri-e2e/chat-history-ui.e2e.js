@@ -1,7 +1,7 @@
 /* global browser, $, $$ */
 
 const {
-  refreshApp, resetNoCard, saveHistory, toggleHistory
+  refreshApp, resetNoCard, saveHistory, toggleHistory, invoke, sendMessage, waitForHistory
 } = require('./support/tauri');
 
 const MULTI_TURN = [
@@ -20,6 +20,29 @@ async function inject(messages) {
 describe('Tauri collapsed message history', () => {
   beforeEach(async () => {
     await resetNoCard();
+  });
+
+  it('keeps only the latest turn visible after three real streamed replies', async () => {
+    const { StreamServer } = require('./support/streamServer');
+    const server = await new StreamServer().start();
+    try {
+      await invoke('save_model_config', { config: {
+        apiUrl: server.url, apiKey: 'collapse-test', modelName: 'collapse-model', protocol: 'openai'
+      } });
+      await refreshApp();
+      for (let turn = 1; turn <= 3; turn += 1) {
+        server.queueOpenAi(`streamed answer ${turn}`);
+        await sendMessage(`streamed question ${turn}`);
+        await waitForHistory(value => value.messages.at(-1)?.content === `streamed answer ${turn}`);
+        await expect($$('.collapse-inner-wrapper .chat-message.user')).toBeElementsArrayOfSize(1);
+        await expect($('.collapse-inner-wrapper .chat-message.user')).toHaveText(`streamed question ${turn}`);
+        await expect($$('.collapse-inner-wrapper .chat-message.assistant')).toBeElementsArrayOfSize(1);
+      }
+      await browser.execute(() => document.querySelector('.collapsed-message-view')
+        .dispatchEvent(new WheelEvent('wheel', { deltaY: -400, bubbles: true })));
+      await expect($$('.collapse-inner-wrapper .chat-message.user')).toBeElementsArrayOfSize(3);
+      await expect($$('.collapse-inner-wrapper .chat-message.assistant')).toBeElementsArrayOfSize(3);
+    } finally { server.close(); }
   });
 
   it('should hide earlier messages behind a collapsed indicator', async () => {

@@ -1,6 +1,6 @@
 const {
   prepareStatePatchAtCursor
-} = require('../../src/renderer/gameCard/statePatchPipeline');
+} = require('../game-card/legacyPatchHarness.js');
 
 const card = {
   version: '1',

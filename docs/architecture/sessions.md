@@ -37,7 +37,7 @@ game-cards/
 
 ## 数据结构
 
-以下是普通聊天及旧播放器格式。内部多 Agent 运行时复用相同服务与目录，但保存带版本的完整数据包；见 [多 Agent Session](./game_runtime_sessions.md)。其恢复不执行 init，重试基准也不拆文件。
+以下描述旧历史的读取格式。当前普通聊天和游戏卡均保存带版本的完整运行时数据包；见 [多 Agent Session](./game_runtime_sessions.md)。普通聊天旧历史在加载边界转换；恢复不重复执行 init，重试基准也不拆文件。
 
 每个 session root 包含 `index.json`：
 

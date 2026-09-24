@@ -1,6 +1,6 @@
 import { convertTavernCard } from '../../src/shared/tavern-import/convert.js';
 import { source, runtime } from './runtime.js';
-import { prepareInitMessages, preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { prepareInitMessages, preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 
 describe('Tavern card compiler', () => {
   test('maps definitions, original prompts, examples and a real greeting into ordinary rules', async () => {

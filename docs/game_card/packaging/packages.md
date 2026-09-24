@@ -75,7 +75,7 @@ PNG CRC 校验单段，SHA-256 校验重组后的完整 ZIP。导入器必须流
 
 ## 统一导入管线
 
-玩家导入只接受 formatVersion 2，完整校验 main、Agent JSON、模型引用及资源后才安装。
+玩家导入只接受 formatVersion 1，完整校验 main、Agent JSON、模型引用及资源后才安装。
 旧版原生卡提示迁移；酒馆源卡因转换器仍输出旧协议而拒绝，不能借文件扩展名绕过。
 根目录清单和各 Agent 均支持 JSON import。容器版本仍为 v1，与卡运行协议版本独立。
 

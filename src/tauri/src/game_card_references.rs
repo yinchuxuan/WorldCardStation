@@ -119,7 +119,7 @@ fn walk(
 }
 
 pub fn collect_file_references(card: &Value) -> Result<Vec<FileReference>, String> {
-    let schema: Value = if card["formatVersion"] == "2" {
+    let schema: Value = if card["formatVersion"] == "1" {
         crate::game_runtime_definition::definition_schema("runtimeManifest")
     } else {
         serde_json::from_str(SCHEMA_TEXT).map_err(|error| error.to_string())?

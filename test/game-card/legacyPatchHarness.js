@@ -1,5 +1,6 @@
-import { loadCachedRuntimeCard } from './gameCardRuntimeCache.js';
-import { applyStatePatch } from '../../shared/game-card/state/statePatch.js';
+import { loadCachedRuntimeCard } from '../../src/renderer/gameCard/gameCardRuntimeCache.js';
+// Legacy-format fixture adapter; never imported by the player.
+import { applyStatePatch } from '../../src/shared/game-card/state/statePatch.js';
 
 const PRESENTATION_PATHS = [
   'visual.scene',

@@ -1,12 +1,13 @@
-import { buildSync } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 import { Worker } from 'node:worker_threads';
 import path from 'node:path';
 import { createMainSession } from '../../src/renderer/gameCard/mainSession.js';
 
 function buildMainWorkerFactory() {
-  const built = buildSync({ entryPoints: [path.resolve('src/renderer/platform/mainRuntime.worker.js')],
-    bundle: true, write: false, format: 'iife', platform: 'browser', target: 'es2022', logLevel: 'silent' });
-  const source = built.outputFiles[0].text;
+  const options = { entryPoints: [path.resolve('src/renderer/platform/mainRuntime.worker.js')],
+    bundle: true, write: false, format: 'iife', platform: 'browser', target: 'es2022', logLevel: 'silent' };
+  const source = execFileSync(process.execPath, ['-e',
+    `process.stdout.write(require('esbuild').buildSync(${JSON.stringify(options)}).outputFiles[0].text)`], { encoding: 'utf8' });
   return () => {
     const worker = new Worker(`
       const { parentPort } = require('node:worker_threads');

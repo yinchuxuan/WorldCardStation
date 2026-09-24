@@ -73,7 +73,8 @@ function getAssistantRules(display) {
 }
 
 function applyAssistantDisplayRules(content, display, depth) {
-  return applyDisplayRules(content, display, 'assistant', depth).replace(STATE_PATCH_PATTERN, '');
+  const text = applyDisplayRules(content, display, 'assistant', depth);
+  return display?.statePatchEnabled === false ? text : text.replace(STATE_PATCH_PATTERN, '');
 }
 
 function applyUserDisplayRules(content, display, depth) {

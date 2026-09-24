@@ -1,7 +1,7 @@
 import { applyGameCard, applyGameCardAsync } from '../../src/renderer/gameCard/engine.js';
 import { createTraceRecorder, messageChanges, stateChanges } from '../../src/shared/game-card/trace/changes.js';
 import { matchesWhen } from '../../src/shared/game-card/engine/predicate.js';
-import { preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 
 const card = rules => ({ id: 'trace', version: '1', name: 'Trace', rules });
 const rule = then => ({ when: { phase: 'pre_send' }, then });

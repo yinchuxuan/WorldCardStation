@@ -1,6 +1,6 @@
 import { runtime, source } from './runtime.js';
-import { prepareInitMessages, preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
-import { buildRetryMessages } from '../../src/renderer/chat/chatGeneration.js';
+import { prepareInitMessages, preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
+import { buildRetryMessages } from '../../src/renderer/chat/retryMessages.js';
 
 test('variable writes and nested reads execute in order with safe names', async () => {
   const converted = runtime(source({ first_mes: '{{setvar::__proto__::2}}{{incvar::__proto__}}/{{getvar::__proto__}}',

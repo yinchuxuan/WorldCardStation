@@ -7,13 +7,12 @@ const { render, screen, fireEvent, waitFor, act } = require('@testing-library/re
 
 const platformMock = global.platformMock;
 const ChatPanel = require('../../src/renderer/ChatPanel.jsx').default;
-const generationServices = require('../../src/renderer/chat/generationServices.js').default;
+const generationServices = require('../../src/renderer/chat/apiClient.js');
 const originalSendChatRequest = generationServices.sendChatRequest;
 
 describe('ChatPanel thinking display', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
 
     platformMock.getModelConfig.mockResolvedValue({
       success: true,
@@ -23,7 +22,6 @@ describe('ChatPanel thinking display', () => {
 
   afterEach(() => {
     generationServices.sendChatRequest = originalSendChatRequest;
-    jest.useRealTimers();
   });
   test('thinking content should be stored in last assistant message', async () => {
     global.fetch.mockResolvedValue(
@@ -34,21 +32,20 @@ describe('ChatPanel thinking display', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
-    const input = screen.getByPlaceholderText('输入您的回答...');
+    const input = await screen.findByPlaceholderText('输入您的回答...');
+    await waitFor(() => expect(input).not.toBeDisabled());
     fireEvent.change(input, { target: { value: 'test' } });
     fireEvent.click(document.querySelector('button[type="submit"]'));
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(200);
     });
 
     await waitFor(() => expect(screen.getByText('The final answer.')).toBeInTheDocument());
     await waitFor(() => {
-      const saved = platformMock.saveChatHistory.mock.calls.at(-1)?.[0];
+      const saved = platformMock.saveChatHistory.mock.calls.at(-1)?.[1]?.runtimeSession?.current.contexts.chat.messages;
       expect(saved?.at(-1)).toMatchObject({
         role: 'assistant', content: 'The final answer.', thinking: 'Thinking process here'
       });
@@ -66,10 +63,10 @@ describe('ChatPanel thinking display', () => {
 
     await act(async () => {
       await Promise.resolve();
-      jest.advanceTimersByTime(100);
     });
 
-    const input = screen.getByPlaceholderText('输入您的回答...');
+    const input = await screen.findByPlaceholderText('输入您的回答...');
+    await waitFor(() => expect(input).not.toBeDisabled());
     fireEvent.change(input, { target: { value: 'test' } });
     fireEvent.click(document.querySelector('button[type="submit"]'));
 
@@ -80,15 +77,13 @@ describe('ChatPanel thinking display', () => {
     await act(async () => {
       callbacks.onThinkingToken('thinking while streaming');
       callbacks.onToken('answer text');
-      jest.advanceTimersByTime(100);
     });
 
-    expect(screen.getByText('thinking while streaming')).toBeInTheDocument();
+    await screen.findByText('thinking while streaming');
     fireEvent.click(document.querySelector('.streaming-message-row .chat-message-bubble'));
     expect(screen.queryByText('thinking while streaming')).toBeNull();
 
     await act(async () => {
-      jest.advanceTimersByTime(100);
     });
 
     fireEvent.click(document.querySelector('.streaming-message-row .chat-message-bubble'));

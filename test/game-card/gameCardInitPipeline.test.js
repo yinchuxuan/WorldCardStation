@@ -1,4 +1,4 @@
-const { prepareInitMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { prepareInitMessages } = require('../game-card/legacyPipelineHarness.js');
 
 function initCard() {
   return {

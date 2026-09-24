@@ -1,5 +1,5 @@
 const { browser, $, expect } = require('@wdio/globals');
-const { openCards, archive: save } = require('./ui.js');
+const { openCards, archive: save, configure } = require('./ui.js');
 const { openTab } = require('./window.js');
 
 async function send(content) {
@@ -8,6 +8,7 @@ async function send(content) {
   await input.waitForDisplayed(); await input.setValue(content);
   await $('[data-gc-part="chat-send-button"]').click();
   await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining(content));
+  await $('button[aria-label="管理聊天会话"]').waitForEnabled();
 }
 async function snapshot() {
   return browser.execute(() => new Promise((resolve, reject) => {
@@ -25,13 +26,14 @@ describe('explicit browser sessions', () => {
   it('never autosaves, saves complete progress and restores only the saved snapshot', async () => {
     await browser.url('/');
     await $('button[aria-label="管理聊天会话"]').waitForEnabled();
+    await configure();
     await expect($('button[aria-label="保存进度"]')).not.toExist();
     await send('已存消息');
     expect((await snapshot()).snapshot.messages).toEqual([]);
     await save();
     expect((await snapshot()).snapshot.messages[0].content).toBe('已存消息');
     await send('未存消息');
-    expect((await snapshot()).snapshot.messages).toHaveLength(1);
+    expect((await snapshot()).snapshot.messages).toHaveLength(2);
     await browser.refresh();
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('已存消息'));
     await expect($('[data-gc-part="chat-history"]')).not.toHaveText(expect.stringContaining('未存消息'));
@@ -41,7 +43,7 @@ describe('explicit browser sessions', () => {
     await openCards(); await $('.game-card-switch-row*=静态发布测试卡').click();
     await $('#test-state').waitForExist();
     await expect($('[aria-label="未保存的进度"]')).not.toExist();
-    expect((await snapshot()).snapshot.messages).toHaveLength(1);
+    expect((await snapshot()).snapshot.messages).toHaveLength(2);
     await $('#test-increment').click();
     await openCards(); await $('.game-card-switch-row*=普通聊天').click();
     await $('#test-state').waitForExist({ reverse: true });
@@ -60,7 +62,7 @@ describe('explicit browser sessions', () => {
     await save();
     const secondArchive = await snapshot();
     expect(secondArchive.id).not.toBe(firstArchive.id);
-    expect(secondArchive.snapshot.messages.at(-1).content).toBe('标签二的旧副本');
+    expect(secondArchive.snapshot.messages.filter(msg => msg.role === 'user').at(-1).content).toBe('标签二的旧副本');
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('标签二的旧副本'));
     await browser.switchToWindow(first);
     await browser.refresh();

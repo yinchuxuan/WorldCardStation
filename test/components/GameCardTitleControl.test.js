@@ -6,7 +6,7 @@ import { GameCardRuntimeProvider } from '../../src/renderer/chat/GameCardRuntime
 describe('GameCardTitleControl', () => {
   test.each([['', '模型未配置'], ['example-model', 'example-model']])('shows model status: %s', async (modelName, expected) => {
     const platform = { repository: { getActiveCard: jest.fn(async () => null) } };
-    const { container } = render(<GameCardRuntimeProvider platform={platform}>
+    const { container } = render(<GameCardRuntimeProvider platform={platform} mainSession={{}}>
       <GameCardTitleControl modelName={modelName} onActivateCard={jest.fn()} onImportCard={jest.fn()}
         onUninstallCard={jest.fn()} cardRepository={{ list: async () => [] }} />
     </GameCardRuntimeProvider>);
@@ -21,7 +21,7 @@ describe('GameCardTitleControl', () => {
     const cardRepository = { list: jest.fn(async () => []) };
 
     render(
-      <GameCardRuntimeProvider platform={platform}>
+      <GameCardRuntimeProvider platform={platform} mainSession={{}}>
         <GameCardTitleControl
           cardRepository={cardRepository}
           onActivateCard={jest.fn()}

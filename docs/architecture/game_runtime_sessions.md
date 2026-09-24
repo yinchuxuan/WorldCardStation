@@ -7,7 +7,9 @@
 ## 数据与边界
 
 复用 sessions.loadHistory / saveHistory 和已有会话菜单，不新增存档服务或检查点 API。
-新运行时向 saveHistory 的 options 传入 runtimeSession；普通聊天仍使用原格式。
+所有新存档向 saveHistory 的 options 传入 runtimeSession，普通聊天也使用相同格式。
+普通聊天以平台内置默认卡执行，不进入卡片目录或下载列表，仍保存在 no-card 会话空间。
+旧普通聊天历史在加载时转换为单 Agent 上下文、展示记录和整轮重试基准，保留正文、思维链及变量，不调用模型或重放演出；只在正常保存时写入新格式。旧游戏卡存档不适用此转换。
 runtimeSession 是独立版本的完整数据包，version 为数字 1，与卡片 formatVersion 不同。
 
 ```text

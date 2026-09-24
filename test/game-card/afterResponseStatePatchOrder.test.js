@@ -1,4 +1,4 @@
-const { prepareAfterResponseMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { prepareAfterResponseMessages } = require('../game-card/legacyPipelineHarness.js');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
 
 const platform = createTestGameCardPlatform(() => global.platformMock);

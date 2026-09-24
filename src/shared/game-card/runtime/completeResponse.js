@@ -6,11 +6,11 @@ function ordinaryPatches(text) {
   return createReaderTokenizer().feed(text, true).filter(token => token.type === 'state_patch').map(token => token.text);
 }
 
-function completeResponse(rawContent, config, store, observe = () => {}) {
+function completeResponse(rawContent, config, store, observe = () => {}, statePatchEnabled = true) {
   const before = store.snapshot();
   let candidate = before;
   const updates = [];
-  for (const text of ordinaryPatches(rawContent)) {
+  for (const text of statePatchEnabled ? ordinaryPatches(rawContent) : []) {
     const result = store.patch(text, candidate);
     candidate = result.state;
     updates.push(...result.updates);
@@ -21,7 +21,7 @@ function completeResponse(rawContent, config, store, observe = () => {}) {
   )) };
   const violations = (config?.rules || []).flatMap((rule, index) => validateResponse({
     config: { ...validationConfig, rules: [validationConfig.rules[index]] },
-    rawContent: rule.type === 'content.regex' && rule.source !== 'raw'
+    rawContent: statePatchEnabled && rule.type === 'content.regex' && rule.source !== 'raw'
       ? rawContent.replace(/<state_patch(?:_stream)?>[\s\S]*?<\/state_patch(?:_stream)?>/g, '') : rawContent,
     stateBefore: before, stateAfter: candidate, updates
   }).violations);

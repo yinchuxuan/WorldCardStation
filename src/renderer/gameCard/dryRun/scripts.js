@@ -5,7 +5,7 @@ import { parse } from 'acorn';
 import { inspectScriptAst } from '../../../shared/game-card/runtime/mainModules.js';
 
 function checkRuntimeSyntax(source, ctx) {
-  if (ctx.card.formatVersion === '2') inspectScriptAst(parse(`function run(ctx) { ${source} }`, { ecmaVersion: 'latest' }));
+  if (ctx.card.formatVersion === '1') inspectScriptAst(parse(`function run(ctx) { ${source} }`, { ecmaVersion: 'latest' }));
 }
 
 async function loadScript(file, files, stack, ctx, origin) {

@@ -11,6 +11,7 @@ async function executeMainRound({ onInput, onStart, startup = false, input, disp
   const failed = new Promise((_, reject) => { rejectFailure = reject; });
   const check = () => { if (!valid) throw new Error('input context expired'); };
   readers = createMainReaders({ runtime, snapshot: options.snapshot, idPrefix: options.idPrefix || '',
+    statePatchEnabled: options.definition.card.statePatch?.enabled !== false,
     separator: options.definition.card.display?.segmentSeparator, check, fail: rejectFailure, display, update: onUpdate });
   const ctx = Object.freeze({
     state: Object.freeze(Object.fromEntries(Object.entries(runtime.state).map(([key, fn]) =>

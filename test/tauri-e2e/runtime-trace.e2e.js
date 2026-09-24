@@ -4,9 +4,7 @@ const path = require('node:path');
 const { card } = require('./support/cards');
 const { StreamServer } = require('./support/streamServer');
 const { activateCard, invoke, revealHeader, sendMessage, waitForHistory } = require('./support/tauri');
-const dataDir = path.resolve('test-results/tauri-e2e/data/game-cards/cards');
-const tracePath = (id, session = 'default') => path.join(dataDir, id, 'sessions', session, 'trace.jsonl');
-const read = file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
+const { tracePath, read, currentTrace, waitEvent } = require('./support/trace');
 
 async function mode(enabled) {
   const button = $('.chat-header [aria-label="开发者模式"]');
@@ -16,22 +14,6 @@ async function mode(enabled) {
   await browser.waitUntil(async () => await button.isEnabled()
     && (await button.getAttribute('aria-pressed')) === String(enabled));
   if (enabled) await expect(button).toHaveAttribute('data-state', 'recording');
-}
-
-async function currentTrace() {
-  const text = await invoke('get_game_card_development_instructions');
-  const { gameCardsPath } = JSON.parse(text.match(/```json\n([\s\S]*?)\n```/)[1]);
-  const json = file => JSON.parse(fs.readFileSync(file, 'utf8'));
-  const cardId = json(path.join(gameCardsPath, 'active.json')).id;
-  const root = path.join(gameCardsPath, 'cards', cardId, 'sessions');
-  const sessionId = json(path.join(root, 'active.json')).id;
-  const session = json(path.join(root, 'index.json')).sessions.find(item => item.id === sessionId);
-  return { cardId, session, file: path.join(root, sessionId, 'trace.jsonl') };
-}
-
-async function waitEvent(file, type) {
-  await browser.waitUntil(() => read(file).some(event => event.type === type));
-  return read(file);
 }
 
 describe('Developer mode runtime trace', () => {
@@ -96,22 +78,26 @@ describe('Developer mode runtime trace', () => {
     expect(fs.readFileSync(tracePath(id), 'utf8')).toBe(before);
   });
 
-  it('keeps actions before a real Worker timeout and logs whole-round rollback without inventing a script result', async () => {
+  it('logs a real Worker timeout as failed without rollback, fabricated results or saving the incomplete round', async () => {
     const id = 'runtime-trace-timeout';
     await activateCard(card(id, 'Trace Timeout', [{ when: { phase: 'pre_send' }, then: [
       { type: 'state.set', path: 'attempted', value: 'visible before failure' },
       { type: 'exec', source: 'while (true) {}' }
     ] }]));
     await mode(true);
+    const savedBefore = await invoke('get_chat_history');
     await sendMessage('trigger');
     const events = await waitEvent(tracePath(id), 'operation.end');
     expect(events.find(event => event.type === 'action.end' && event.actionType === 'state.set').changes.state)
       .toContainEqual({ path: '/attempted', hasBefore: false, hasAfter: true, after: 'visible before failure' });
-    expect(events.find(event => event.type === 'main.view' && event.reason === 'rollback').error).toContain('timed out');
+    expect(events.find(event => event.type === 'main.view' && event.reason === 'failed')?.error).toContain('timed out');
+    expect(events.some(event => event.type === 'main.view' && event.reason === 'rollback')).toBe(false);
+    expect(events.find(event => event.type === 'operation.end' && event.kind === 'main.input')?.status).toBe('failed');
     expect(events.some(event => event.type === 'exec.end')).toBe(false);
     expect((await invoke('get_chat_history')).gameState.attempted).toBeUndefined();
     expect(server.requests).toHaveLength(0);
     await expect($('body')).toHaveText(expect.stringContaining('main.js computation timed out'));
+    expect((await invoke('get_chat_history')).runtimeSession).toEqual(savedBefore.runtimeSession);
     await mode(false);
   });
 

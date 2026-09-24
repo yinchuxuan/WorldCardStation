@@ -1,5 +1,5 @@
 import { runtime, source } from './runtime.js';
-import { prepareInitMessages, preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { prepareInitMessages, preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 
 const entry = (id, content, extra = {}) => ({ id, content, keys: ['key'], enabled: true, insertion_order: 100, ...extra });
 

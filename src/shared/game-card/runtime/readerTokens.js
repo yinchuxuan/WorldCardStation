@@ -42,8 +42,10 @@ function createReaderTokenizer() {
   return { feed };
 }
 
-async function* readerTokens(source) {
-  const tokenizer = createReaderTokenizer();
+async function* readerTokens(source, statePatchEnabled = true) {
+  const tokenizer = statePatchEnabled ? createReaderTokenizer() : {
+    feed: text => text ? [{ type: 'text', text }] : []
+  };
   const chunks = typeof source === 'string' ? [source] : source;
   let cr = false;
   for await (let chunk of chunks) {

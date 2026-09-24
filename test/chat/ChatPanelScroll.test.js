@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import ChatPanel from '../../src/renderer/ChatPanel.jsx';
-import generationServices from '../../src/renderer/chat/generationServices.js';
+const generationServices = require('../../src/renderer/chat/apiClient.js');
 
 const originalSend = generationServices.sendChatRequest;
 beforeEach(() => {

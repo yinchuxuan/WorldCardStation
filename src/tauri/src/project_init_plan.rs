@@ -65,7 +65,7 @@ pub fn create(devkit: &Path, root: &Path, worldbook: bool) -> InitResult<Plan> {
         let mut template: Value =
             serde_json::from_slice(&read(devkit, "templates/minimal/card.json")?)
                 .map_err(|error| InitError::new("invalid_devkit", error.to_string()))?;
-        if template["formatVersion"] != "2" || !template["agents"].is_object() {
+        if template["formatVersion"] != "1" || !template["agents"].is_object() {
             return Err(InitError::new("invalid_devkit", "最小卡模板结构错误"));
         }
         template["id"] = Uuid::new_v4().to_string().into();

@@ -19,9 +19,16 @@ test('player loads the complete definition before enabling input and never resol
   expect(JSON.stringify(factory.mock.calls[0][0].program)).not.toContain('not-for-scripts');
 });
 
-test('ordinary chat needs no runtime; old cards and missing main dependencies cannot create a Session', async () => {
+test('ordinary chat loads a built-in runtime without repository resources', async () => {
+  const factory = jest.fn(() => ({ beginLoad: jest.fn() }));
+  const loaded = await loadPlayerSession(null, {}, {}, factory);
+  expect(loaded.card).toBeNull();
+  expect(factory.mock.calls[0][0].definition.card.statePatch).toEqual({ enabled: false });
+  expect(factory.mock.calls[0][0].migrateHistory).toEqual(expect.any(Function));
+});
+
+test('old cards and missing main dependencies cannot create a Session', async () => {
   const factory = jest.fn();
-  await expect(loadPlayerSession(null)).resolves.toBeNull();
   await expect(loadPlayerSession({ id: 'old', rules: [] })).rejects.toThrow('旧版协议');
   const platform = { resources: { readText: (_, file) => {
     if (file === 'scripts/narrate.js') throw new Error('missing module');

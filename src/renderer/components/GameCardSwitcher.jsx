@@ -89,7 +89,7 @@ function GameCardSwitcher({
     }
   };
 
-  const importCard = async (event, targetCard = null) => {
+  const importCard = async (event) => {
     event.stopPropagation();
     if (busy || isLoading) return;
     window.clearTimeout(closeTimer.current);
@@ -97,7 +97,7 @@ function GameCardSwitcher({
     setImportStatus({ state: 'importing', message: '正在导入游戏卡…' });
     onError?.(null);
     try {
-      const card = await conversion.run(targetCard, message => setImportStatus({ state: 'importing', message }));
+      const card = await conversion.run(null, message => setImportStatus({ state: 'importing', message }));
       if (card) {
         await loadCards();
         const name = card.name || card.id || '游戏卡';
@@ -148,7 +148,7 @@ function GameCardSwitcher({
   const renderCard = card => <GameCardSwitchRow key={identity(card) || 'no-card'} card={card}
     active={identity(card) === activeIdentity} busy={busy || isLoading}
     removing={removingId === card?.id} onActivate={activate}
-    onUninstall={uninstallCard} onUpdate={canImport ? importCard : undefined} />;
+    onUninstall={uninstallCard} />;
 
   return <div className="game-card-switcher" data-gc-part="game-card-switcher">
     <button type="button" className="game-card-title-main" data-gc-part="game-card-title-main"

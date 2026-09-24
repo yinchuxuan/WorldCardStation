@@ -99,7 +99,9 @@ async function deactivateCard() {
 }
 
 async function saveHistory(messages, options = null) {
-  return invoke('save_chat_history', { messages, options });
+  const runtimeSession = require('./chatSnapshot').chatSnapshot(messages, options?.gameState);
+  return invoke('save_chat_history', { messages: runtimeSession.current.messages,
+    options: { ...options, gameState: runtimeSession.current.state, runtimeSession } });
 }
 
 async function getHistory() {
@@ -113,6 +115,8 @@ async function resetNoCard() {
   const created = await invoke('create_chat_session', { title: 'Isolated ordinary chat' });
   await invoke('set_active_chat_session', { id: created.id });
   await refreshApp();
+  // Wait for initial runtime hydration/autosave before seeding a fixture.
+  await waitForHistory(history => history.runtimeSession?.started === true);
 }
 
 async function waitForHistory(predicate, timeout = 15000) {

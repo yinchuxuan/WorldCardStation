@@ -22,8 +22,7 @@ function GameCardRuntimeProvider({ children, platform = gameCardPlatform, mainSe
     invalidateGameCardRuntimeCache();
     const previous = current.current;
     current.current = null;
-    // Ordinary chat has no script realm. Protocol admission belongs to repositories.
-    if (mainSession || !card?.formatVersion) {
+    if (mainSession) {
       if (previous) await previous.dispose();
       if (request !== token.current) return;
       setOwned(null); setActiveCard(card || null); setRuntimeError(null); setLoading(false);
@@ -34,8 +33,7 @@ function GameCardRuntimeProvider({ children, platform = gameCardPlatform, mainSe
     try {
       await previous?.dispose();
       if (request !== token.current) return;
-      const create = card?.formatVersion === '2'
-        ? (await import('../platform/mainWorkerFactory.mjs')).createBrowserMainSession : undefined;
+      const create = (await import('../platform/mainWorkerFactory.mjs')).createBrowserMainSession;
       const loaded = await loadPlayerSession(card, platform, rendererServices.config, create);
       if (request !== token.current) { await loaded.session.dispose(); return; }
       current.current = loaded.session;

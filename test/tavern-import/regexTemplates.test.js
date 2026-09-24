@@ -1,5 +1,5 @@
 import { runtime, source } from './runtime.js';
-import { preparePreSendMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { preparePreSendMessages } from '../game-card/legacyPipelineHarness.js';
 import { applyAssistantDisplayRules } from '../../src/renderer/gameCard/displayRules.js';
 import { resolveDisplayState } from '../../src/renderer/gameCard/regexTemplate.js';
 

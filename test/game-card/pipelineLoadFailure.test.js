@@ -1,4 +1,4 @@
-import * as pipeline from '../../src/renderer/gameCard/sendPipeline.js';
+import * as pipeline from '../game-card/legacyPipelineHarness.js';
 
 test.each(['prepareInitMessages', 'preparePreSendMessages', 'prepareAfterStreamMessages', 'prepareAfterResponseMessages'])(
   '%s preserves load errors and original data', async name => {

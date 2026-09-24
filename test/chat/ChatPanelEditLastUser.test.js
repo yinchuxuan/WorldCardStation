@@ -49,8 +49,10 @@ describe('ChatPanel last user message edit resend', () => {
     expect(body.messages).toEqual([{ role: 'user', content: '修改后的选择' }]);
     await waitFor(() => expect(screen.queryByLabelText('编辑用户消息')).not.toBeInTheDocument());
     expect(platformMock.saveChatHistory).toHaveBeenLastCalledWith(expect.any(Array), expect.objectContaining({
-      retryBaseMessages: [{ role: 'user', content: '修改后的选择' }],
-      retryBaseState: { score: 3 }
+      runtimeSession: expect.objectContaining({ retryBase: expect.objectContaining({ input: '修改后的选择',
+        snapshot: expect.objectContaining({ state: { score: 3 }, messages: [] }) }) })
     }));
+    fireEvent.click(screen.getByText('修改后的选择'));
+    expect(screen.getByLabelText('编辑用户消息')).toHaveValue('修改后的选择');
   });
 });

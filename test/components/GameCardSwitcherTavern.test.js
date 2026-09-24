@@ -55,17 +55,6 @@ test('lossy imports support cancel and then continue without a checkbox', async 
   expect(context.repository.commitTavernImport).toHaveBeenCalledTimes(1);
 });
 
-test('updating from the card row requires an independent overwrite confirmation', async () => {
-  const context = setup();
-  fireEvent.click(await screen.findByRole('button', { name: '用酒馆卡更新 旧卡' }));
-  await screen.findByRole('dialog', { name: '确认覆盖游戏卡' });
-  expect(context.repository.importFile).toHaveBeenCalledWith({ tavernOnly: true });
-  expect(context.repository.stageTavernImport).toHaveBeenCalledWith('task', expect.anything(), 'old');
-  expect(context.repository.commitTavernImport).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: '覆盖并导入' }));
-  await screen.findByText('导入成功：Alice');
-});
-
 test.each(['cancel', 'unmount'])('%s aborts a pending Worker and cleans the token without staging', async action => {
   let signal;
   compileTavern.mockImplementation((_input, nextSignal) => {

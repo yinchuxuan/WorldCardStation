@@ -1,5 +1,5 @@
 {
-  "formatVersion": "2",
+  "formatVersion": "1",
   "main": "entry.js",
   "agents": { "narrator": "agents/narrator.json" },
   "id": "web-demo",

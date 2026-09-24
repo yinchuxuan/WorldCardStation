@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import useChatGeneration from '../../src/renderer/chat/useChatGeneration.js';
+import useMainGeneration from '../../src/renderer/chat/useMainGeneration.js';
 import useMainView from '../../src/renderer/chat/useMainView.js';
 import { barrier } from '../game-card/agentRuntimeHelpers.js';
 
@@ -24,7 +24,7 @@ function session() {
 
 function useGeneration(props) {
   useMainView(props);
-  return useChatGeneration(props);
+  return useMainGeneration(props);
 }
 
 test('existing generation send/retry/stop route to main without broadcasting to legacy Messages', async () => {

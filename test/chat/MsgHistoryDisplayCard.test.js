@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import ChatPanel from '../../src/renderer/ChatPanel.jsx';
 
 async function openHistory(messages) {
@@ -19,7 +19,7 @@ test('history preserves roles, content, thinking, TTL and metadata', async () =>
   await openHistory(messages);
   const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
   // History exposes the public `thinking` field, normalizing stored `_thinking`.
-  expect(Object.values(msgs)).toEqual([
+  expect(Object.values(msgs).map(({ id: _id, ...msg }) => msg)).toEqual([
     messages[0], messages[1],
     { role: 'assistant', content: 'Hi there!', thinking: 'How to respond...' }
   ]);
@@ -31,7 +31,7 @@ test('empty history shows the empty state instead of a JSON card', async () => {
   expect(document.querySelector('[data-gc-part="message-history-content"]')).toBeNull();
 });
 
-test('opening history reads storage again rather than showing the current response', async () => {
+test('opening history shows the live Agent context instead of rereading a stale archive', async () => {
   const platform = global.platformMock;
   platform.getModelConfig.mockResolvedValue({ success: true,
     config: { apiUrl: 'https://api.example.com/v1', apiKey: 'key', modelName: 'model' } });
@@ -47,17 +47,23 @@ test('opening history reads storage again rather than showing the current respon
   fireEvent.mouseEnter(document.querySelector('.chat-header-hover-trigger'));
   await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
   const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
-  expect(msgs).toEqual(stored);
+  await waitFor(() => {
+    const current = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent).msgs;
+    expect(current.map(({ role, content }) => ({ role, content }))).toEqual([
+      { role: 'user', content: 'Question' }, { role: 'assistant', content: 'Current response' }
+    ]);
+  });
+  expect(msgs).not.toEqual(stored);
 });
 
-test('a failed reread reports the error and preserves the last successful history', async () => {
+test('opening history does not reread storage or lose the loaded Agent context', async () => {
   await openHistory([{ role: 'assistant', content: 'Previous history' }]);
   await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
   global.platformMock.getChatHistory.mockResolvedValue({ success: false, error: 'Read error', messages: [] });
   await act(async () => { fireEvent.click(document.querySelector('.chat-header')); });
-  expect(screen.getByRole('alert')).toHaveTextContent('Read error');
+  expect(screen.queryByRole('alert')).toBeNull();
   const { msgs } = JSON.parse(document.querySelector('[data-gc-part="message-history-content"]').textContent);
-  expect(msgs).toEqual([{ role: 'assistant', content: 'Previous history' }]);
+  expect(msgs).toEqual([expect.objectContaining({ role: 'assistant', content: 'Previous history' })]);
 });
 
 test('an initial failed read leaves history empty and reports the error', async () => {

@@ -2,7 +2,7 @@ import { applyGameCardAsync } from '../../src/renderer/gameCard/engine.js';
 import { createTraceRecorder } from '../../src/shared/game-card/trace/changes.js';
 import { resolveExecSource } from '../../src/renderer/gameCard/execSource.js';
 import { runExecAction } from '../../src/renderer/gameCard/execRunner.js';
-import { prepareStatePatchAtCursor } from '../../src/renderer/gameCard/statePatchPipeline.js';
+import { prepareStatePatchAtCursor } from '../game-card/legacyPatchHarness.js';
 
 function setup() {
   const events = [], messages = [{ role: 'user', content: 'before' }], state = { hp: 1 };

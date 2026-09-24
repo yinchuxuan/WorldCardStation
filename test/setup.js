@@ -13,6 +13,18 @@ const { invalidateGameCardRuntimeCache } = require('../src/renderer/gameCard/gam
 
 beforeEach(() => invalidateGameCardRuntimeCache());
 
+// Component tests exercise the real bundled runtime in a Node Worker; browser E2E
+// verifies the production Worker factory and isolation in each browser engine.
+jest.mock('../src/renderer/platform/mainWorkerFactory.mjs', () => {
+  let factory;
+  return { createBrowserMainSession(options) {
+    const { buildMainWorkerFactory } = require('./game-card/mainWorkerTestHost.js');
+    const { createMainSession } = require('../src/renderer/gameCard/mainSession.js');
+    factory ||= buildMainWorkerFactory();
+    return createMainSession({ ...options, workerFactory: factory });
+  } };
+});
+
 jest.mock('@tauri-apps/api/core', () => ({
   Channel: mockTauriApi.MockChannel,
   convertFileSrc: mockTauriApi.convertFileSrc,

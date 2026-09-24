@@ -14,7 +14,7 @@ function renderControl(props = {}, parentProps = null) {
     onImportCard: () => rendererServices.cards.importFile(),
     onUninstallCard: card => rendererServices.cards.uninstall(card.id)
   };
-  const control = <GameCardRuntimeProvider>
+  const control = <GameCardRuntimeProvider mainSession={{}}>
     <GameCardTitleControl {...callbacks} {...props} />
   </GameCardRuntimeProvider>;
   return render(parentProps ? <div {...parentProps}>{control}</div> : control);

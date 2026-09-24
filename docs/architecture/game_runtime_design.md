@@ -40,7 +40,7 @@ Agent 处理普通变量提交，reader 处理阅读位置相关的提交；两�
 
 ```json
 {
-  "formatVersion": "2",
+  "formatVersion": "1",
   "id": "my-game",
   "name": "我的游戏",
   "version": "1.0.0",
@@ -52,7 +52,7 @@ Agent 处理普通变量提交，reader 处理阅读位置相关的提交；两�
 }
 ```
 
-formatVersion 固定为字符串 "2"；version 是卡片内容版本。
+formatVersion 固定为字符串 "1"；version 是卡片内容版本。
 Agent 文件声明规则、内容引用、模型配置引用及回复校验，不保存运行中的 Messages。
 密钥仍由平台持有，不进入卡片脚本。
 

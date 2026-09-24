@@ -1,7 +1,7 @@
 const {
   preparePreSendMessages,
   prepareState
-} = require('../../src/renderer/gameCard/sendPipeline');
+} = require('../game-card/legacyPipelineHarness.js');
 const {
   mergeRuntimeStateSchema
 } = require('../../src/shared/game-card/schema/runtimeStateSchema');

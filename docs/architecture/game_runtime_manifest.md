@@ -1,24 +1,24 @@
 # 新运行时清单与加载契约
 
-适用任务：formatVersion "2" 的双端加载边界。
+适用任务：formatVersion "1" 的双端加载边界。
 相关代码：`src/shared/game-card/runtime/loadDefinition.js`、`src/tauri/src/game_runtime_definition.rs`。
 前置文档：[运行时设计](./game_runtime_design.md)。脚本 API 见 [最小执行契约](./game_runtime_api.md)。
 结构事实源仍为 `src/shared/game-card/schema/game-card.schema.json`；本文解释跨文件语义，不替代 Schema。
 
 ## 协议选择
 
-- `formatVersion` 固定为字符串 `"2"`；缺失、旧版、数字或未知版本均在新加载器中拒绝，提示迁移。
+- `formatVersion` 固定为字符串 `"1"`；缺失、旧版、数字或未知版本均在新加载器中拒绝，提示迁移。
 - `version` 是作者的内容版本，不选择运行协议。
 - 唯一 Schema 的 `runtimeManifest` / `runtimeAgent` 定义新清单，复用资源、State、操作等定义。
 - 新协议 Schema 视图替换阶段枚举、收紧路径、给 find 增加 agentId；JS/Rust 按相同方式构造。
-- Schema 发布版本为 x-schema-version 2.0.0，formatVersion 2 选择运行协议。
+- Schema 发布版本为 x-schema-version 2.1.0，formatVersion 1 选择运行协议。
 - 玩家入口拒绝旧版或未知版本；根部旧结构仅用于底层迁移/格式测试，不是播放器兼容承诺。
 
 ## card.json
 
 ```json
 {
-  "formatVersion": "2",
+  "formatVersion": "1",
   "id": "my-game",
   "name": "我的游戏",
   "version": "1.0.0",

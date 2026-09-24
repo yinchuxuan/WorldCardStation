@@ -63,12 +63,17 @@ Worker 的临时数据通过只读 view 更新演出和历史；只有整轮成�
 
 ## 输入与交付边界
 
-共享 useChatGeneration 接受 mainSession，复用现有发送、重试、停止入口；普通聊天保留原路径。
+共享 useMainGeneration 接受 mainSession，统一发送、重试和取消入口。普通聊天使用内置默认卡，关闭 statePatch 协议，经过同一 Worker、Agent 和 reader/present；不是另一条生成管线。
 GameCardRuntimeProvider 从已验证的卡片准备主程序与 Agent 定义，加载期间禁止输入。
 切卡销毁旧实例，Session 切换通过 beginLoad/restoreHistory 恢复数据；异步加载结果按请求代次隔离。
-此通道尚不由普通导入流程自动创建；注入时使用带版本的完整 Session 保存恢复，不写入旧格式数据。
-reader/present 的读取、展示记录与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)。注入时也跳过旧 Session 加载和初始化，避免覆盖新运行时数据。
-保存与恢复接口见 [多 Agent Session](./game_runtime_sessions.md)。新协议仍未向普通玩家开放，不迁移旧卡存档。
+普通聊天和导入卡均由玩家入口创建运行时，使用带版本的完整 Session 保存恢复，不执行旧生成管线。
+reader/present 的读取、展示记录与演出桥见 [Reader 与现有演出](./game_runtime_reader.md)。
+保存与恢复接口见 [多 Agent Session](./game_runtime_sessions.md)。只转换普通聊天旧历史，不迁移旧卡存档。
+
+普通聊天默认卡是平台随包提供的 card.json、单 Agent 定义和 main.js 内容，通过正常定义加载器校验并在 Worker 中运行，不安装到卡仓库。
+它使用 continuous reader、关闭 statePatch，并保留普通聊天的折叠历史、编辑重试和思维链界面。
+普通聊天传输适配器将首个内联 thinking 块分离到思维链通道；游戏卡仍接收原始 response，不受此兼容处理影响。
+缺少模型配置或请求失败同样停止本轮、保留现场并禁止保存；修复配置后可整轮 retry。取消丢弃当前未完成轮，恢复轮前基准；不再保存部分模型响应。
 
 ## 验证
 

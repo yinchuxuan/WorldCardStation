@@ -1,6 +1,6 @@
 /* global after */
 const { browser, $, $$, expect } = require('@wdio/globals');
-const { openCards, selectCard, openSessions, archive } = require('./ui.js');
+const { openCards, selectCard, openSessions, archive, configure } = require('./ui.js');
 const { openTab } = require('./window.js');
 let otherTab;
 
@@ -67,6 +67,7 @@ describe('resource removal and session deletion', () => {
   });
   it('cancel is harmless; unload exits both tabs, preserves saves, and re-download restores them', async () => {
     await browser.url('/'); await selectCard('静态发布测试卡');
+    await configure('pages');
     await $('#test-increment').click(); await expect($('#test-state')).toHaveText('count=2;score=0');
     await $('[data-gc-part="chat-input-trigger"]').moveTo();
     await $('[data-gc-part="chat-input-textarea"]').waitForDisplayed();
@@ -82,7 +83,7 @@ describe('resource removal and session deletion', () => {
     otherTab = second;
     await browser.switchToWindow(first);
     await removeCard(false);
-    await expect($('#test-state')).toHaveText('count=2;score=0');
+    await expect($('#test-state')).toHaveText('count=3;score=0');
     await $('button[aria-label="切换游戏卡"]').click();
     await removeCard();
     await $('#test-state').waitForExist({ reverse: true });
@@ -95,7 +96,7 @@ describe('resource removal and session deletion', () => {
     await browser.switchToWindow(first);
     await selectCard('静态发布测试卡');
     // Non-empty history restores saved state without rerunning the fixture's init reset.
-    await expect($('#test-state')).toHaveText('count=2;score=0');
+    await expect($('#test-state')).toHaveText('count=3;score=0');
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('卸载后仍保留的消息'));
     expect(await data('sessions')).toEqual(before);
     await openSessions(); await expect($$('.chat-session-row')).toBeElementsArrayOfSize(2);
@@ -118,7 +119,7 @@ describe('resource removal and session deletion', () => {
     await expect($$('.chat-session-row')).toBeElementsArrayOfSize(2);
     await confirmClick($('.chat-session-row:not(.active) button[aria-label="删除会话"]'));
     await expect($$('.chat-session-row')).toBeElementsArrayOfSize(1);
-    await expect($('#test-state')).toHaveText('count=2;score=0');
+    await expect($('#test-state')).toHaveText('count=3;score=0');
     await expect($('[data-gc-part="chat-history"]')).toHaveText(expect.stringContaining('卸载后仍保留的消息'));
     expect(await browser.execute(() => caches.keys())).toEqual(cached);
     await browser.switchToWindow(otherTab);

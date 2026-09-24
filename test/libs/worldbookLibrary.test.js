@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { preparePreSendMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { preparePreSendMessages } = require('../game-card/legacyPipelineHarness.js');
 const { createMemoryGameCardPlatform } = require('../../src/renderer/platform/memoryGameCardPlatform');
 const { scripts } = require('./worldbookTestRuntime');
 

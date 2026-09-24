@@ -1,5 +1,5 @@
 import { runtime, source } from './runtime.js';
-import { prepareInitMessages, preparePreSendMessages, prepareAfterStreamMessages, toApiMessages } from '../../src/renderer/gameCard/sendPipeline.js';
+import { prepareInitMessages, preparePreSendMessages, prepareAfterStreamMessages, toApiMessages } from '../game-card/legacyPipelineHarness.js';
 import { applyAssistantDisplayRules } from '../../src/renderer/gameCard/displayRules.js';
 
 const regex = extra => ({ findRegex: '/x/g', replaceString: 'y', placement: [2], ...extra });

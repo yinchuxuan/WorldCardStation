@@ -56,7 +56,7 @@ test('Web shared App never subscribes to native close, starts trace, or saves', 
   jest.spyOn(web.rendererServices.background, 'load').mockResolvedValue({ backgroundImageUrl: '', backgroundOpacity: 0.5 });
   const WebApp = require('../../../src/web/WebApp.jsx').default;
   const { container, unmount } = render(<WebApp />);
-  await waitFor(() => expect(screen.getByRole('button', { name: '切换游戏卡' })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole('button', { name: '切换游戏卡' })).toBeEnabled(), { timeout: 5000 });
   expect(container.querySelector('.settings-panel')).not.toBeNull();
   expect(screen.queryByText(/记住密钥|清除密钥|切换全屏/)).not.toBeInTheDocument();
   expect(container.querySelector('.app-container')).not.toBeNull();

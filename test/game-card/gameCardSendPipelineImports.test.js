@@ -1,4 +1,4 @@
-const { prepareInitMessages, preparePreSendMessages } = require('../../src/renderer/gameCard/sendPipeline');
+const { prepareInitMessages, preparePreSendMessages } = require('../game-card/legacyPipelineHarness.js');
 const { createTestGameCardPlatform } = require('../platform/tauriTestClient');
 const { expandCardImports } = require('../platform/cardImportExpander');
 

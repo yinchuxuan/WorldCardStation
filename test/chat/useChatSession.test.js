@@ -3,6 +3,8 @@ import useChatSession from '../../src/renderer/chat/useChatSession.js';
 
 function createOptions(repository) {
   return {
+    mainSession: { started: true, beginLoad: jest.fn(), start: jest.fn(),
+      restoreHistory: jest.fn(result => ({ messages: result.messages, state: result.gameState })) },
     setMessages: jest.fn(),
     setGameState: jest.fn(),
     setRuntimeError: jest.fn(),
@@ -23,14 +25,10 @@ describe('useChatSession', () => {
     const repository = { loadHistory: jest.fn(async () => history) };
     const options = createOptions(repository);
     renderHook(() => useChatSession(options));
-    await waitFor(() => expect(options.setMessages).toHaveBeenCalled());
-    const loadedMessages = options.setMessages.mock.calls[0][0];
-    expect(loadedMessages).toEqual([
-      { id: expect.any(String), role: 'user', content: 'saved' }
-    ]);
-    expect(options.setGameState).toHaveBeenCalledWith({ score: 2 });
+    await waitFor(() => expect(options.persistence.markLoaded).toHaveBeenCalled());
+    expect(options.mainSession.restoreHistory).toHaveBeenCalledWith(history);
     expect(options.persistence.hydrate).toHaveBeenCalledWith(history);
-    expect(options.persistence.save).toHaveBeenCalledWith(loadedMessages, { score: 2 });
+    expect(options.mainSession.start).toHaveBeenCalled();
     expect(options.persistence.markLoaded).toHaveBeenCalled();
   });
 
@@ -47,7 +45,7 @@ describe('useChatSession', () => {
     expect(options.persistence.save).toHaveBeenCalled();
     expect(repository.setActive).toHaveBeenCalledWith('chapter-2');
     expect(options.persistence.reset).toHaveBeenCalled();
-    expect(options.typewriter.clearStreaming).toHaveBeenCalled();
+    expect(options.onResetView).toHaveBeenCalled();
     expect(repository.loadHistory).toHaveBeenCalledTimes(2);
     expect(result.current.revision).toBe(2);
   });

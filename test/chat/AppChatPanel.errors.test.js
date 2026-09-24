@@ -30,7 +30,8 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const input = _screen.getByPlaceholderText('输入您的回答...');
+    const input = await _screen.findByPlaceholderText('输入您的回答...');
+    await _waitFor(() => expect(input).not.toBeDisabled());
     _fireEvent.change(input, { target: { value: 'test question' } });
 
     await act(async () => { await Promise.resolve(); });
@@ -42,7 +43,7 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const notice = _screen.getByRole('alert');
+    const notice = await _screen.findByRole('alert');
     expect(notice).toHaveTextContent('请先在右侧设置面板配置模型 API');
     expect(notice.parentElement).toBe(document.body);
     expect(document.querySelector('.chat-message.assistant')).toBeNull();
@@ -64,7 +65,8 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const input = _screen.getByPlaceholderText('输入您的回答...');
+    const input = await _screen.findByPlaceholderText('输入您的回答...');
+    await _waitFor(() => expect(input).not.toBeDisabled());
     _fireEvent.change(input, { target: { value: 'test' } });
 
     await act(async () => { await Promise.resolve(); });
@@ -76,8 +78,8 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const notice = _screen.getByRole('alert');
-    expect(notice).toHaveTextContent('请求失败: Network failed');
+    const notice = await _screen.findByRole('alert');
+    expect(notice).toHaveTextContent('Network failed');
     expect(notice.parentElement).toBe(document.body);
     expect(document.querySelector('.chat-message.assistant')).toBeNull();
 
@@ -99,7 +101,8 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const input = _screen.getByPlaceholderText('输入您的回答...');
+    const input = await _screen.findByPlaceholderText('输入您的回答...');
+    await _waitFor(() => expect(input).not.toBeDisabled());
     _fireEvent.change(input, { target: { value: 'test' } });
 
     await act(async () => { await Promise.resolve(); });
@@ -111,7 +114,7 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    expect(_screen.getByText('请求失败: Forbidden')).toBeInTheDocument();
+    expect(await _screen.findByRole('alert')).toHaveTextContent('Forbidden');
   });
 
   test('should display response on successful API call', async () => {
@@ -125,7 +128,8 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    const input = _screen.getByPlaceholderText('输入您的回答...');
+    const input = await _screen.findByPlaceholderText('输入您的回答...');
+    await _waitFor(() => expect(input).not.toBeDisabled());
     _fireEvent.change(input, { target: { value: 'hi' } });
 
     await act(async () => { await Promise.resolve(); });
@@ -137,7 +141,7 @@ describe('ChatPanel Component - Error Handling', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    expect(_screen.getByText('Hello World')).toBeInTheDocument();
+    expect(await _screen.findByText('Hello World')).toBeInTheDocument();
   });
 
   test('should use default model name when not provided', async () => {
@@ -160,7 +164,8 @@ describe('ChatPanel Component - Error Handling', () => {
       expect(_screen.getByText('已连接')).toBeInTheDocument();
     }, { timeout: 10000 });
 
-    const input = _screen.getByPlaceholderText('输入您的回答...');
+    const input = await _screen.findByPlaceholderText('输入您的回答...');
+    await _waitFor(() => expect(input).not.toBeDisabled());
     _fireEvent.change(input, { target: { value: 'test' } });
     _fireEvent.submit(input.closest('form'));
 

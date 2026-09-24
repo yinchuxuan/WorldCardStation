@@ -7,7 +7,7 @@ describe('GameCardRuntimeProvider', () => {
   test('owns the active card, game state, and runtime error', async () => {
     const card = { id: 'runtime-card', name: 'Runtime Card' };
     const platform = { repository: { getActiveCard: jest.fn(async () => card) } };
-    const wrapper = ({ children }) => <GameCardRuntimeProvider platform={platform}>{children}</GameCardRuntimeProvider>;
+    const wrapper = ({ children }) => <GameCardRuntimeProvider platform={platform} mainSession={{}}>{children}</GameCardRuntimeProvider>;
     const { result } = renderHook(() => useGameCardRuntime(), { wrapper });
     await waitFor(() => expect(result.current.activeCard).toEqual(card));
     act(() => {
